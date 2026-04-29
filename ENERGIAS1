@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proyecto de Energías Renovables</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --verde:       #1B6B2F;
+    --verde-mid:   #2D8A45;
+    --verde-light: #EAF5EC;
+    --verde-badge: #D6EEDD;
+    --teal:        #0D9E8C;
+    --teal-light:  #E6F9F5;
+    --azul:        #185FA5;
+    --azul-light:  #EAF3FB;
+    --amber:       #c07a00;
+    --amber-light: #FFF3CD;
+    --rojo:        #991f1f;
+    --rojo-light:  #FDECEA;
+    --gris:        #f4f4f4;
+    --gris-borde:  #e0e0e0;
+    --texto:       #1a1a1a;
+    --muted:       #666;
+    --bg:          #f8f9fa;
+    --card-bg:     #ffffff;
+    --shadow:      0 1px 4px rgba(0,0,0,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--texto); min-height: 100vh; }
+
+  /* ── Header ── */
+  .header { background: var(--verde); color: #fff; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .header h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-sub { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+  .sync-badge { font-size: 11px; background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px; white-space: nowrap; display: flex; align-items: center; gap: 5px; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
+  .sync-dot.offline { background: #f87171; }
+  .sync-dot.loading { background: #fbbf24; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── Nav tabs ── */
+  .tabs { display: flex; background: #fff; border-bottom: 1px solid var(--gris-borde); padding: 0 16px; overflow-x: auto; }
+  .tab { padding: 12px 16px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: color .15s, border-color .15s; }
+  .tab.active { color: var(--verde); border-bottom-color: var(--verde); }
+  .tab:hover { color: var(--verde); }
+
+  /* ── Main layout ── */
+  .main { max-width: 960px; margin: 0 auto; padding: 20px 16px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── Progress bars ── */
+  .progress-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .progress-card { background: var(--card-bg); border: 1px solid var(--gris-borde); border-radius: 10px; padding: 14px 16px; }
+  .progress-label { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-verde { background: var(--verde); }
+  .dot-azul { background: var(--azul); }
+  .bar-wrap { background: var(--gris); border-radius: 4px; height: 6px; margin-bottom: 4px; }
+  .bar { height: 6px; border-radius: 4px; transition: width .4s ease; }
+  .bar-verde { background: var(--verde); }
+  .bar-azul { background: var(--azul); }
+  .bar-pct { font-size: 11px; color: var(--muted); text-align: right; }
+
+  /* ── Section labels ── */
+  .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 16px 0 6px; border-bottom: 1px solid var(--gris-borde); margin-bottom: 8px; }
+
+  /* ── Task cards ── */
+  .tasks { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+  .task-card { background: var(--card-bg); border: 1px solid var(--gris-borde); border-radius: 8px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 12px; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+  .task-card:hover { border-color: #bbb; box-shadow: var(--shadow); }
+  .task-card.done { opacity: 0.55; }
+  .task-card.done .task-title { text-decoration: line-through; color: var(--muted); }
+  .check-box { width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid var(--gris-borde); flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; transition: background .15s, border-color .15s; }
+  .check-box.checked-verde { background: var(--verde); border-color: var(--verde); }
+  .check-box.checked-azul { background: var(--azul); border-color: var(--azul); }
+  .check-icon { display: none; color: #fff; font-size: 12px; font-weight: 700; }
+  .check-box.checked-verde .check-icon,
+  .check-box.checked-azul .check-icon { display: block; }
+  .task-body { flex: 1; min-width: 0; }
+  .task-title { font-size: 14px; font-weight: 500; line-height: 1.4; }
+  .task-sub { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+  .task-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+  .badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; }
+  .badge-hecho   { background: var(--verde-badge); color: var(--verde); }
+  .badge-curso   { background: var(--teal-light);  color: var(--teal); }
+  .badge-pend    { background: var(--gris);        color: var(--muted); }
+  .badge-urgente { background: var(--rojo-light);  color: var(--rojo); }
+  .badge-alta    { background: var(--rojo-light);  color: var(--rojo); }
+  .badge-media   { background: var(--amber-light); color: var(--amber); }
+  .badge-baja    { background: var(--verde-badge); color: var(--verde); }
+
+  /* ── Add task ── */
+  .add-btn { display: flex; align-items: center; gap: 6px; background: none; border: 1.5px dashed var(--gris-borde); border-radius: 8px; padding: 10px 14px; width: 100%; cursor: pointer; color: var(--muted); font-size: 13px; transition: border-color .15s, color .15s; margin-top: 6px; }
+  .add-btn:hover { border-color: var(--verde); color: var(--verde); }
+
+  /* ── Modal ── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; display: none; align-items: center; justify-content: center; padding: 16px; }
+  .modal-overlay.open { display: flex !important; }
+  .modal { background: #fff; border-radius: 12px; padding: 24px; width: 100%; max-width: 440px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+  .modal h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+  .modal label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+  .modal input, .modal select, .modal textarea { width: 100%; border: 1px solid var(--gris-borde); border-radius: 6px; padding: 9px 11px; font-size: 14px; margin-bottom: 12px; font-family: inherit; }
+  .modal textarea { height: 72px; resize: vertical; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+  .btn { padding: 9px 18px; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: opacity .15s; }
+  .btn-primary { background: var(--verde); color: #fff; }
+  .btn-primary:hover { opacity: .88; }
+  .btn-secondary { background: var(--gris); color: var(--texto); }
+  .btn-delete { background: var(--rojo-light); color: var(--rojo); }
+
+  /* ── Providers page ── */
+  .prov-grid { display: flex; flex-direction: column; gap: 10px; }
+  .prov-card { background: var(--card-bg); border: 1px solid var(--gris-borde); border-radius: 10px; padding: 16px; }
+  .prov-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .prov-name { font-size: 15px; font-weight: 600; }
+  .prov-web { font-size: 12px; color: var(--teal); margin-top: 1px; }
+  .prov-status { font-size: 11px; }
+  .prov-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; }
+  .prov-row { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .prov-row strong { color: var(--texto); font-weight: 500; }
+  .prio-pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .prio-alta   { background: var(--rojo-light);  color: var(--rojo); }
+  .prio-media  { background: var(--amber-light); color: var(--amber); }
+  .prio-baja   { background: var(--verde-badge); color: var(--verde); }
+
+  /* ── Dimensionamiento page ── */
+  .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .calc-card { background: var(--card-bg); border: 1px solid var(--gris-borde); border-radius: 10px; padding: 16px; }
+  .calc-card h3 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--gris-borde); }
+  .calc-field { margin-bottom: 12px; }
+  .calc-field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+  .calc-field input, .calc-field select { width: 100%; border: 1px solid var(--gris-borde); border-radius: 6px; padding: 8px 10px; font-size: 14px; font-family: inherit; }
+  .calc-field input:focus, .calc-field select:focus { outline: none; border-color: var(--teal); }
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .result-box { background: var(--verde-light); border: 1px solid var(--verde-badge); border-radius: 8px; padding: 12px; }
+  .result-box.accent { background: var(--teal-light); border-color: #b2e8e0; }
+  .result-val { font-size: 22px; font-weight: 700; color: var(--verde); line-height: 1; }
+  .result-box.accent .result-val { color: var(--teal); }
+  .result-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .result-note { font-size: 10px; color: var(--muted); margin-top: 2px; font-style: italic; }
+
+  /* ── Clientes page ── */
+  .cliente-list { display: flex; flex-direction: column; gap: 8px; }
+  .cliente-card { background: var(--card-bg); border: 1px solid var(--gris-borde); border-radius: 10px; padding: 14px 16px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .cliente-name { font-size: 14px; font-weight: 600; }
+  .cliente-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .cliente-status-pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 12px; white-space: nowrap; flex-shrink: 0; }
+  .status-consulta  { background: var(--azul-light);   color: var(--azul); }
+  .status-cotizando { background: var(--amber-light);  color: var(--amber); }
+  .status-enviado   { background: var(--teal-light);   color: var(--teal); }
+  .status-cerrado   { background: var(--verde-badge);  color: var(--verde); }
+  .status-perdido   { background: var(--rojo-light);   color: var(--rojo); }
+  .edit-btn { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 16px; padding: 2px 4px; }
+  .edit-btn:hover { color: var(--verde); }
+
+  /* ── Empty state ── */
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #222; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; z-index: 200; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+
+  @media (max-width: 600px) {
+    .progress-row { grid-template-columns: 1fr; }
+    .calc-grid { grid-template-columns: 1fr; }
+    .result-grid { grid-template-columns: 1fr 1fr; }
+    .prov-rows { grid-template-columns: 1fr; }
+    .header h1 { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── CONFIG — reemplazá estos dos valores con los tuyos de Supabase ── -->
+<script>
+  const SUPA_URL = 'https://venvzyzbuduzbyqlrtcm.supabase.co';
+  const SUPA_KEY = 'sb_publishable_j-I3Ckl63BOTjUP9JmYyNA_-VYscbRU';
+</script>
+
+<div class="header">
+  <div>
+    <h1 style="font-size:18px;font-weight:600;letter-spacing:-0.3px;color:#fff">Proyecto de Energías Renovables</h1>
+    <div class="header-sub">Solar Térmica + Fotovoltaico · De Energía</div>
+  </div>
+  <div class="sync-badge">
+    <div class="sync-dot loading" id="sync-dot"></div>
+    <span id="sync-label">Conectando...</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('agenda')">Checkpoints</div>
+  <div class="tab" onclick="showTab('proveedores')">Proveedores</div>
+  <div class="tab" onclick="showTab('dimension')">Dimensionamiento</div>
+  <div class="tab" onclick="showTab('clientes')">Clientes</div>
+</div>
+
+<div class="main">
+
+  <!-- ══ PÁGINA: AGENDA ══════════════════════════════════════════════════════ -->
+  <div class="page active" id="page-agenda">
+
+    <div class="progress-row">
+      <div class="progress-card">
+        <div class="progress-label"><span class="dot dot-verde"></span>Solar Térmica</div>
+        <div class="bar-wrap"><div class="bar bar-verde" id="bar-termica" style="width:0%"></div></div>
+        <div class="bar-pct" id="pct-termica">0 / 0</div>
+      </div>
+      <div class="progress-card">
+        <div class="progress-label"><span class="dot dot-azul"></span>Fotovoltaico (con Adri)</div>
+        <div class="bar-wrap"><div class="bar bar-azul" id="bar-fv" style="width:0%"></div></div>
+        <div class="bar-pct" id="pct-fv">0 / 0</div>
+      </div>
+    </div>
+
+    <!-- Solar Térmica -->
+    <div class="section-label">☀ Solar Térmica</div>
+    <div class="tasks" id="tasks-termica"></div>
+    <button class="add-btn" onclick="openModal('termica')">＋ Agregar tarea</button>
+
+    <div style="height:20px"></div>
+
+    <!-- Fotovoltaico -->
+    <div class="section-label">⚡ Fotovoltaico (con Adri)</div>
+    <div class="tasks" id="tasks-fv"></div>
+    <button class="add-btn" onclick="openModal('fv')">＋ Agregar tarea</button>
+
+  </div>
+
+  <!-- ══ PÁGINA: PROVEEDORES ════════════════════════════════════════════════ -->
+  <div class="page" id="page-proveedores">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="section-label" style="margin-top:4px;border:none;margin-bottom:0">CRM de Proveedores</div>
+      <button class="btn btn-primary" style="font-size:13px;padding:7px 14px" onclick="openProvModal()">＋ Agregar proveedor</button>
+    </div>
+    <div class="prov-grid" id="prov-grid"></div>
+  </div>
+
+  <!-- ══ PÁGINA: DIMENSIONAMIENTO ══════════════════════════════════════════ -->
+  <div class="page" id="page-dimension">
+
+    <!-- Sub-tabs -->
+    <div style="display:flex;gap:8px;margin:4px 0 16px">
+      <button id="dtab-termica" onclick="showDimTab('termica')"
+        style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--verde);background:var(--verde);color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+        ☀ Solar Térmica
+      </button>
+      <button id="dtab-fv" onclick="showDimTab('fv')"
+        style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--gris-borde);background:#fff;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer">
+        ⚡ Fotovoltaico
+      </button>
+    </div>
+
+    <!-- ── TÉRMICA ── -->
+    <div id="dim-termica">
+      <div class="calc-grid">
+        <div class="calc-card">
+          <h3>Datos del proyecto</h3>
+          <div class="calc-field"><label>Cliente / Proyecto</label>
+            <input type="text" id="d-cliente" placeholder="Nombre del cliente"></div>
+          <div class="calc-field"><label>Cantidad de personas</label>
+            <input type="number" id="d-personas" value="4" min="1" oninput="calcular()"></div>
+          <div class="calc-field"><label>Litros/día por persona</label>
+            <input type="number" id="d-litros" value="40" min="10" oninput="calcular()"></div>
+          <div class="calc-field"><label>Temperatura acumulación (°C)</label>
+            <input type="number" id="d-tacum" value="55" min="40" max="80" oninput="calcular()"></div>
+          <div class="calc-field"><label>Temperatura agua de red (°C)</label>
+            <input type="number" id="d-tred" value="15" min="5" max="30" oninput="calcular()"></div>
+          <div class="calc-field"><label>Zona / Irradianza (kWh/m²/día)</label>
+            <select id="d-zona" onchange="calcular()">
+              <option value="4.2">Buenos Aires / AMBA — 4.2</option>
+              <option value="4.5">Córdoba / Santa Fe — 4.5</option>
+              <option value="5.2">Mendoza / San Juan — 5.2</option>
+              <option value="5.8">NOA (Salta, Jujuy, La Rioja) — 5.8</option>
+              <option value="3.5">Patagonia — 3.5</option>
+              <option value="4.0">Entre Ríos / Rosario — 4.0</option>
+            </select></div>
+          <div class="calc-field"><label>Tipo de colector</label>
+            <select id="d-tipo" onchange="calcular()">
+              <option value="0.60">Plano — eficiencia 60%</option>
+              <option value="0.70">Tubular al vacío — eficiencia 70%</option>
+            </select></div>
+          <div class="calc-field"><label>Cobertura solar deseada</label>
+            <select id="d-cobertura" onchange="calcular()">
+              <option value="0.60">60%</option>
+              <option value="0.70" selected>70%</option>
+              <option value="0.80">80%</option>
+            </select></div>
+        </div>
+        <div class="calc-card">
+          <h3>Resultados</h3>
+          <div class="result-grid">
+            <div class="result-box"><div class="result-val" id="r-area">0</div><div class="result-label">m² de colector</div><div class="result-note">área total necesaria</div></div>
+            <div class="result-box"><div class="result-val" id="r-colectores">0</div><div class="result-label">colectores</div><div class="result-note">de 2 m² c/u</div></div>
+            <div class="result-box accent"><div class="result-val" id="r-acum">0</div><div class="result-label">litros acumulador</div><div class="result-note">con intercambiador</div></div>
+            <div class="result-box accent"><div class="result-val" id="r-bomba">0</div><div class="result-label">L/h bomba</div><div class="result-note">circulación forzada</div></div>
+          </div>
+          <div style="margin-top:16px;background:var(--gris);border-radius:8px;padding:12px">
+            <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Resumen técnico</div>
+            <div style="font-size:13px;line-height:1.8" id="r-resumen">—</div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="guardarDim()">Guardar presupuesto</button>
+        </div>
+      </div>
+      <div style="height:16px"></div>
+      <div class="section-label">Presupuestos guardados — Térmica</div>
+      <div id="dim-lista"></div>
+    </div>
+
+    <!-- ── FOTOVOLTAICO ── -->
+    <div id="dim-fv" style="display:none">
+      <div class="calc-grid">
+        <div class="calc-card">
+          <h3>Datos del proyecto</h3>
+          <div class="calc-field"><label>Cliente / Proyecto</label>
+            <input type="text" id="fv-cliente" placeholder="Nombre del cliente"></div>
+          <div class="calc-field"><label>Consumo mensual (kWh/mes)</label>
+            <input type="number" id="fv-consumo" value="300" min="50" oninput="calcularFV()">
+            <span style="font-size:11px;color:var(--muted)">Dato de la factura de luz</span></div>
+          <div class="calc-field"><label>% de consumo a cubrir</label>
+            <select id="fv-cobertura" onchange="calcularFV()">
+              <option value="0.75">75% — residencial típico</option>
+              <option value="1.00" selected>100% — autoconsumo total</option>
+              <option value="0.50">50% — reducción parcial</option>
+            </select></div>
+          <div class="calc-field"><label>Zona / HSP (horas solares pico)</label>
+            <select id="fv-zona" onchange="calcularFV()">
+              <option value="4.2">Buenos Aires / AMBA — 4.2 HSP</option>
+              <option value="4.5">Córdoba / Santa Fe — 4.5 HSP</option>
+              <option value="5.2">Mendoza / San Juan — 5.2 HSP</option>
+              <option value="5.8">NOA (Salta, Jujuy, La Rioja) — 5.8 HSP</option>
+              <option value="3.5">Patagonia — 3.5 HSP</option>
+              <option value="4.0">Entre Ríos / Rosario — 4.0 HSP</option>
+            </select></div>
+          <div class="calc-field"><label>Potencia del panel (W)</label>
+            <select id="fv-panel" onchange="calcularFV()">
+              <option value="400">400 W — estándar residencial</option>
+              <option value="430" selected>430 W — N-Type TOPCon (GPSOLAR)</option>
+              <option value="550">550 W — comercial</option>
+              <option value="600">600 W — industrial</option>
+            </select></div>
+          <div class="calc-field"><label>Performance Ratio (PR)</label>
+            <select id="fv-pr" onchange="calcularFV()">
+              <option value="0.75">0.75 — instalación básica</option>
+              <option value="0.80" selected>0.80 — instalación estándar</option>
+              <option value="0.85">0.85 — instalación óptima</option>
+            </select></div>
+          <div class="calc-field"><label>Sistema</label>
+            <select id="fv-sistema" onchange="calcularFV()">
+              <option value="ongrid">On-Grid (conectado a red)</option>
+              <option value="offgrid">Off-Grid (autónomo)</option>
+            </select></div>
+        </div>
+        <div class="calc-card">
+          <h3>Resultados</h3>
+          <div class="result-grid">
+            <div class="result-box"><div class="result-val" id="fv-r-kwp">0</div><div class="result-label">kWp instalados</div><div class="result-note">potencia pico DC</div></div>
+            <div class="result-box"><div class="result-val" id="fv-r-paneles">0</div><div class="result-label">paneles</div><div class="result-note" id="fv-r-wpanel">de 430W c/u</div></div>
+            <div class="result-box accent"><div class="result-val" id="fv-r-inversor">0</div><div class="result-label">kW inversor</div><div class="result-note">potencia AC</div></div>
+            <div class="result-box accent" id="fv-r-bat-box"><div class="result-val" id="fv-r-bateria">—</div><div class="result-label">kWh batería</div><div class="result-note" id="fv-r-bat-note">solo Off-Grid</div></div>
+          </div>
+          <div style="margin-top:16px;background:var(--gris);border-radius:8px;padding:12px">
+            <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Resumen técnico</div>
+            <div style="font-size:13px;line-height:1.8" id="fv-r-resumen">—</div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:14px;background:var(--azul);border-color:var(--azul)" onclick="guardarDimFV()">Guardar presupuesto FV</button>
+        </div>
+      </div>
+      <div style="height:16px"></div>
+      <div class="section-label">Presupuestos guardados — Fotovoltaico</div>
+      <div id="fv-dim-lista"></div>
+    </div>
+
+  </div>
+
+  <!-- ══ PÁGINA: CLIENTES ══════════════════════════════════════════════════ -->
+  <div class="page" id="page-clientes">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="section-label" style="margin-top:4px;border:none;margin-bottom:0">Pipeline de clientes</div>
+      <button class="btn btn-primary" style="font-size:13px;padding:7px 14px" onclick="openClienteModal()">＋ Nuevo cliente</button>
+    </div>
+    <div style="height:10px"></div>
+    <div class="cliente-list" id="cliente-list"></div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ── MODAL TAREA ── -->
+<div class="modal-overlay" id="modal-task">
+  <div class="modal">
+    <h2 id="modal-title">Nueva tarea</h2>
+    <input type="hidden" id="modal-id">
+    <input type="hidden" id="modal-col">
+    <label>Tarea</label>
+    <input type="text" id="modal-tarea" placeholder="Descripción de la tarea">
+    <label>Detalle / Notas</label>
+    <textarea id="modal-detalle" placeholder="Información adicional, contactos, links..."></textarea>
+    <label>Estado</label>
+    <select id="modal-estado">
+      <option value="pendiente">⏳ Pendiente</option>
+      <option value="curso">🔄 En curso</option>
+      <option value="hecho">✅ Hecho</option>
+      <option value="urgente">🔥 Urgente</option>
+    </select>
+    <label>Prioridad</label>
+    <select id="modal-prio">
+      <option value="alta">🔴 Alta</option>
+      <option value="media">🟡 Media</option>
+      <option value="baja">🟢 Baja</option>
+    </select>
+    <label>Sección</label>
+    <select id="modal-seccion">
+      <option value="Esta semana">Esta semana</option>
+      <option value="Semana que viene">Semana que viene</option>
+      <option value="Próximas semanas">Próximas semanas</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn btn-delete" id="btn-delete" style="display:none;margin-right:auto" onclick="deleteTask()">Eliminar</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-task')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveTask()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL CLIENTE ── -->
+<div class="modal-overlay" id="modal-cliente">
+  <div class="modal">
+    <h2>Cliente potencial</h2>
+    <input type="hidden" id="cli-id">
+    <label>Nombre / Empresa</label>
+    <input type="text" id="cli-nombre" placeholder="Juan García / Empresa SRL">
+    <label>Teléfono / Email</label>
+    <input type="text" id="cli-contacto" placeholder="11-xxxx-xxxx">
+    <label>Tipo de sistema</label>
+    <select id="cli-tipo">
+      <option>Solar Térmica — ACS</option>
+      <option>Solar Térmica — Pileta</option>
+      <option>Solar Térmica — Calefacción</option>
+      <option>Fotovoltaico On-Grid</option>
+      <option>Térmica + FV</option>
+    </select>
+    <label>Estado</label>
+    <select id="cli-estado">
+      <option value="consulta">Consulta inicial</option>
+      <option value="cotizando">En cotización</option>
+      <option value="enviado">Presupuesto enviado</option>
+      <option value="cerrado">Cerrado ✅</option>
+      <option value="perdido">Perdido ❌</option>
+    </select>
+    <label>Notas</label>
+    <textarea id="cli-notas" placeholder="Ubicación, necesidades, próximos pasos..."></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-delete" id="cli-btn-delete" style="display:none;margin-right:auto" onclick="deleteCliente()">Eliminar</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-cliente')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCliente()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL PROVEEDOR ── -->
+<div class="modal-overlay" id="modal-prov">
+  <div class="modal">
+    <h2 id="prov-modal-title">Nuevo proveedor</h2>
+    <input type="hidden" id="prov-id">
+    <label>Nombre / Empresa</label>
+    <input type="text" id="prov-nombre" placeholder="Ej: Solarsol">
+    <label>Sitio web</label>
+    <input type="text" id="prov-web" placeholder="solarsol.com.ar">
+    <label>Tipo</label>
+    <select id="prov-tipo">
+      <option>Importador directo</option>
+      <option>Especialista térmica</option>
+      <option>FV + Térmica</option>
+      <option>Fabricante</option>
+      <option>Distribuidor</option>
+      <option>Otro</option>
+    </select>
+    <label>Categoría</label>
+    <select id="prov-categoria">
+      <option value="termica">Solar Térmica</option>
+      <option value="fv">Fotovoltaico</option>
+      <option value="ambos">Ambos</option>
+      <option value="accesorios">Accesorios</option>
+    </select>
+    <label>Prioridad</label>
+    <select id="prov-prio">
+      <option value="alta">🔴 Alta</option>
+      <option value="media">🟡 Media</option>
+      <option value="baja">🟢 Baja</option>
+    </select>
+    <label>Estado de negociación</label>
+    <select id="prov-estado">
+      <option value="sin_contacto">📋 Sin contacto</option>
+      <option value="contactado">📞 Contactado</option>
+      <option value="esperando">⏳ Esperando respuesta</option>
+      <option value="en_negociacion">💬 En negociación</option>
+      <option value="ppto_recibido">📄 Presupuesto recibido</option>
+      <option value="acuerdo">🤝 Acuerdo cerrado</option>
+      <option value="descartado">❌ Descartado</option>
+    </select>
+    <label>Productos principales</label>
+    <input type="text" id="prov-productos" placeholder="Colectores tubulares, termotanques...">
+    <label>Certificaciones</label>
+    <input type="text" id="prov-certs" placeholder="ISO 9001, CE, Solar Keymark...">
+    <label>Notas / Seguimiento de negociación</label>
+    <textarea id="prov-notas" placeholder="Condiciones ofrecidas, próximos pasos, contacto de referencia..."></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-delete" id="prov-btn-delete" style="display:none;margin-right:auto" onclick="deleteProv()">Eliminar</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-prov')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProv()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Supabase init ────────────────────────────────────────────────────────────
+const { createClient } = supabase;
+const db = createClient(SUPA_URL, SUPA_KEY);
+
+// ── State ────────────────────────────────────────────────────────────────────
+let tasks = [];
+let clientes = [];
+let presupuestos = [];
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const names = ['agenda','proveedores','dimension','clientes'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+}
+
+function toast(msg, ms = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function setSyncState(state) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot ' + (state === 'ok' ? '' : state === 'error' ? 'offline' : 'loading');
+  lbl.textContent = state === 'ok' ? 'Sincronizado' : state === 'error' ? 'Sin conexión' : 'Sincronizando...';
+}
+
+function closeModal(id) {
+  const overlay = document.getElementById(id);
+  overlay.classList.remove('open');
+  overlay.style.display = 'none';
+}
+
+// ── TAREAS ────────────────────────────────────────────────────────────────────
+async function loadTasks() {
+  const { data, error } = await db.from('hes_tareas').select('*').order('created_at');
+  if (error) { setSyncState('error'); return; }
+  tasks = data || [];
+  renderTasks();
+  setSyncState('ok');
+}
+
+function renderTasks() {
+  renderCol('termica');
+  renderCol('fv');
+  updateProgress();
+}
+
+function renderCol(col) {
+  const container = document.getElementById('tasks-' + col);
+  const colTasks = tasks.filter(t => t.columna === col);
+  const sections = [...new Set(colTasks.map(t => t.seccion))];
+
+  container.innerHTML = '';
+  if (colTasks.length === 0) {
+    container.innerHTML = '<div class="empty">No hay tareas aún</div>';
+    return;
+  }
+
+  const sectionOrder = ['Esta semana', 'Semana que viene', 'Próximas semanas'];
+  const sorted = sectionOrder.filter(s => sections.includes(s));
+
+  sorted.forEach(sec => {
+    const secTasks = colTasks.filter(t => t.seccion === sec);
+    if (!secTasks.length) return;
+    const secLabel = document.createElement('div');
+    secLabel.style.cssText = 'font-size:11px;font-weight:600;color:var(--muted);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.05em';
+    secLabel.textContent = sec;
+    container.appendChild(secLabel);
+    secTasks.forEach(t => container.appendChild(renderTaskCard(t, col)));
+  });
+}
+
+function renderTaskCard(t, col) {
+  const card = document.createElement('div');
+  card.className = 'task-card' + (t.estado === 'hecho' ? ' done' : '');
+  card.dataset.id = t.id;
+
+  const checkedClass = t.estado === 'hecho' ? (col === 'termica' ? 'checked-verde' : 'checked-azul') : '';
+
+  const badgeMap = { hecho:'badge-hecho ✅ Hecho', curso:'badge-curso 🔄 En curso', pendiente:'badge-pend ⏳ Pendiente', urgente:'badge-urgente 🔥 Urgente' };
+  const prioMap = { alta:'badge-alta 🔴 Alta', media:'badge-media 🟡 Media', baja:'badge-baja 🟢 Baja' };
+  const [bCls, bTxt] = (badgeMap[t.estado] || 'badge-pend ⏳ Pendiente').split(' ').reduce((a,v,i) => i===0?[v,a[1]||'']:[a[0],a[1]+' '+v], ['','']);
+  const [pCls, pTxt] = (prioMap[t.prioridad] || 'badge-baja 🟢 Baja').split(' ').reduce((a,v,i) => i===0?[v,a[1]||'']:[a[0],a[1]+' '+v], ['','']);
+
+  card.innerHTML = `
+    <div class="check-box ${checkedClass}" onclick="toggleTask(event,'${t.id}','${col}')">
+      <span class="check-icon">✓</span>
+    </div>
+    <div class="task-body" onclick="openModal('${col}','${t.id}')">
+      <div class="task-title">${t.tarea}</div>
+      ${t.detalle ? `<div class="task-sub">${t.detalle}</div>` : ''}
+      <div class="task-badges">
+        <span class="badge ${bCls}">${bTxt.trim()}</span>
+        <span class="badge ${pCls}">${pTxt.trim()}</span>
+      </div>
+    </div>`;
+  return card;
+}
+
+async function toggleTask(e, id, col) {
+  e.stopPropagation();
+  const task = tasks.find(t => t.id == id);
+  if (!task) return;
+  const newEstado = task.estado === 'hecho' ? 'pendiente' : 'hecho';
+  setSyncState('loading');
+  const { error } = await db.from('hes_tareas').update({ estado: newEstado }).eq('id', id);
+  if (!error) { task.estado = newEstado; renderTasks(); setSyncState('ok'); }
+  else { setSyncState('error'); toast('Error al guardar'); }
+}
+
+function updateProgress() {
+  ['termica','fv'].forEach(col => {
+    const colTasks = tasks.filter(t => t.columna === col);
+    const done = colTasks.filter(t => t.estado === 'hecho').length;
+    const total = colTasks.length;
+    const pct = total ? Math.round(done / total * 100) : 0;
+    document.getElementById('bar-' + col).style.width = pct + '%';
+    document.getElementById('pct-' + col).textContent = `${done} / ${total} · ${pct}%`;
+  });
+}
+
+function openModal(col, id = null) {
+  document.getElementById('modal-col').value = col;
+  document.getElementById('modal-id').value = id || '';
+  document.getElementById('modal-title').textContent = id ? 'Editar tarea' : 'Nueva tarea';
+  document.getElementById('btn-delete').style.display = id ? 'block' : 'none';
+
+  if (id) {
+    const t = tasks.find(t => t.id == id);
+    if (!t) return;
+    document.getElementById('modal-tarea').value = t.tarea;
+    document.getElementById('modal-detalle').value = t.detalle || '';
+    document.getElementById('modal-estado').value = t.estado;
+    document.getElementById('modal-prio').value = t.prioridad;
+    document.getElementById('modal-seccion').value = t.seccion;
+  } else {
+    document.getElementById('modal-tarea').value = '';
+    document.getElementById('modal-detalle').value = '';
+    document.getElementById('modal-estado').value = 'pendiente';
+    document.getElementById('modal-prio').value = 'media';
+    document.getElementById('modal-seccion').value = 'Semana que viene';
+  }
+  const overlay = document.getElementById('modal-task');
+  overlay.style.display = 'flex';
+  overlay.classList.add('open');
+  setTimeout(() => document.getElementById('modal-tarea').focus(), 50);
+}
+
+async function saveTask() {
+  const id = document.getElementById('modal-id').value;
+  const payload = {
+    columna:  document.getElementById('modal-col').value,
+    tarea:    document.getElementById('modal-tarea').value.trim(),
+    detalle:  document.getElementById('modal-detalle').value.trim(),
+    estado:   document.getElementById('modal-estado').value,
+    prioridad:document.getElementById('modal-prio').value,
+    seccion:  document.getElementById('modal-seccion').value,
+  };
+  if (!payload.tarea) { toast('Escribí el nombre de la tarea'); return; }
+  setSyncState('loading');
+  let error;
+  if (id) {
+    ({ error } = await db.from('hes_tareas').update(payload).eq('id', id));
+  } else {
+    ({ error } = await db.from('hes_tareas').insert(payload));
+  }
+  closeModal('modal-task');
+  if (!error) { await loadTasks(); toast('Guardado ✓'); }
+  else { setSyncState('error'); toast('Error al guardar'); }
+}
+
+async function deleteTask() {
+  const id = document.getElementById('modal-id').value;
+  if (!id) return;
+  if (!confirm('¿Eliminar esta tarea?')) return;
+  setSyncState('loading');
+  const { error } = await db.from('hes_tareas').delete().eq('id', id);
+  closeModal('modal-task');
+  if (!error) { await loadTasks(); toast('Tarea eliminada'); }
+  else { setSyncState('error'); }
+}
+
+// ── PROVEEDORES (dinámicos — Supabase) ───────────────────────────────────────
+let proveedores = [];
+
+const ESTADO_PROV = {
+  sin_contacto:   { label: 'Sin contacto',          cls: 'badge-pend'    },
+  contactado:     { label: '📞 Contactado',          cls: 'badge-curso'   },
+  esperando:      { label: '⏳ Esperando respuesta', cls: 'badge-pend'    },
+  en_negociacion: { label: '💬 En negociación',      cls: 'badge-urgente' },
+  ppto_recibido:  { label: '📄 Ppto. recibido',      cls: 'badge-curso'   },
+  acuerdo:        { label: '🤝 Acuerdo cerrado',     cls: 'badge-hecho'   },
+  descartado:     { label: '❌ Descartado',           cls: 'badge-pend'    },
+};
+
+async function loadProveedores() {
+  const { data, error } = await db.from('hes_proveedores').select('*').order('created_at');
+  if (error) { setSyncState('error'); return; }
+  proveedores = data || [];
+  renderProveedores();
+}
+
+function renderProveedores() {
+  const grid = document.getElementById('prov-grid');
+  if (!proveedores.length) {
+    grid.innerHTML = '<div class="empty">No hay proveedores cargados — agregá el primero con el botón de arriba</div>';
+    return;
+  }
+  grid.innerHTML = proveedores.map(p => {
+    const est = ESTADO_PROV[p.estado] || { label: p.estado, cls: 'badge-pend' };
+    const prioMap = { alta:'prio-alta 🔴 Alta', media:'prio-media 🟡 Media', baja:'prio-baja 🟢 Baja' };
+    const [prioCls, prioLbl] = (prioMap[p.prioridad] || 'prio-baja 🟢 Baja').split(' ').reduce((a,v,i) => i===0?[v,a[1]||'']:[a[0],a[1]+' '+v], ['','']);
+    return `
+    <div class="prov-card" style="cursor:pointer" onclick="openProvModal('${p.id}')">
+      <div class="prov-header">
+        <div>
+          <div class="prov-name">${p.nombre}</div>
+          <div class="prov-web">${p.web || ''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+          <span class="prio-pill ${prioCls}">${prioLbl.trim()}</span>
+          <span class="badge ${est.cls}" style="font-size:11px">${est.label}</span>
+        </div>
+      </div>
+      <div class="prov-rows">
+        <div class="prov-row"><strong>Tipo:</strong> ${p.tipo || '—'}</div>
+        <div class="prov-row"><strong>Categoría:</strong> ${p.categoria || '—'}</div>
+        ${p.certs ? `<div class="prov-row" style="grid-column:1/-1"><strong>Cert:</strong> ${p.certs}</div>` : ''}
+        ${p.productos ? `<div class="prov-row" style="grid-column:1/-1"><strong>Productos:</strong> ${p.productos}</div>` : ''}
+        ${p.notas ? `<div class="prov-row" style="grid-column:1/-1;margin-top:4px;padding-top:6px;border-top:1px solid var(--gris-borde);color:var(--muted);font-style:italic">${p.notas}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openProvModal(id = null) {
+  document.getElementById('prov-id').value = id || '';
+  document.getElementById('prov-modal-title').textContent = id ? 'Editar proveedor' : 'Nuevo proveedor';
+  document.getElementById('prov-btn-delete').style.display = id ? 'block' : 'none';
+  if (id) {
+    const p = proveedores.find(p => p.id == id);
+    if (!p) return;
+    document.getElementById('prov-nombre').value    = p.nombre || '';
+    document.getElementById('prov-web').value       = p.web || '';
+    document.getElementById('prov-tipo').value      = p.tipo || 'Importador directo';
+    document.getElementById('prov-categoria').value = p.categoria || 'termica';
+    document.getElementById('prov-prio').value      = p.prioridad || 'media';
+    document.getElementById('prov-estado').value    = p.estado || 'sin_contacto';
+    document.getElementById('prov-productos').value = p.productos || '';
+    document.getElementById('prov-certs').value     = p.certs || '';
+    document.getElementById('prov-notas').value     = p.notas || '';
+  } else {
+    document.getElementById('prov-nombre').value    = '';
+    document.getElementById('prov-web').value       = '';
+    document.getElementById('prov-tipo').value      = 'Importador directo';
+    document.getElementById('prov-categoria').value = 'termica';
+    document.getElementById('prov-prio').value      = 'media';
+    document.getElementById('prov-estado').value    = 'sin_contacto';
+    document.getElementById('prov-productos').value = '';
+    document.getElementById('prov-certs').value     = '';
+    document.getElementById('prov-notas').value     = '';
+  }
+  const overlay = document.getElementById('modal-prov');
+  overlay.style.display = 'flex';
+  overlay.classList.add('open');
+  setTimeout(() => document.getElementById('prov-nombre').focus(), 50);
+}
+
+async function saveProv() {
+  const id = document.getElementById('prov-id').value;
+  const payload = {
+    nombre:    document.getElementById('prov-nombre').value.trim(),
+    web:       document.getElementById('prov-web').value.trim(),
+    tipo:      document.getElementById('prov-tipo').value,
+    categoria: document.getElementById('prov-categoria').value,
+    prioridad: document.getElementById('prov-prio').value,
+    estado:    document.getElementById('prov-estado').value,
+    productos: document.getElementById('prov-productos').value.trim(),
+    certs:     document.getElementById('prov-certs').value.trim(),
+    notas:     document.getElementById('prov-notas').value.trim(),
+  };
+  if (!payload.nombre) { toast('Ingresá el nombre del proveedor'); return; }
+  setSyncState('loading');
+  let error;
+  if (id) ({ error } = await db.from('hes_proveedores').update(payload).eq('id', id));
+  else    ({ error } = await db.from('hes_proveedores').insert(payload));
+  closeModal('modal-prov');
+  if (!error) { await loadProveedores(); toast('Guardado ✓'); setSyncState('ok'); }
+  else { setSyncState('error'); toast('Error al guardar'); }
+}
+
+async function deleteProv() {
+  const id = document.getElementById('prov-id').value;
+  if (!id || !confirm('¿Eliminar este proveedor?')) return;
+  const { error } = await db.from('hes_proveedores').delete().eq('id', id);
+  closeModal('modal-prov');
+  if (!error) { await loadProveedores(); toast('Proveedor eliminado'); }
+  else { setSyncState('error'); }
+}
+
+// ── DIMENSIONAMIENTO ──────────────────────────────────────────────────────────
+function showDimTab(tab) {
+  document.getElementById('dim-termica').style.display = tab === 'termica' ? 'block' : 'none';
+  document.getElementById('dim-fv').style.display       = tab === 'fv'      ? 'block' : 'none';
+  const tBtn = document.getElementById('dtab-termica');
+  const fBtn = document.getElementById('dtab-fv');
+  if (tab === 'termica') {
+    tBtn.style.cssText = 'flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--verde);background:var(--verde);color:#fff;font-size:13px;font-weight:600;cursor:pointer';
+    fBtn.style.cssText = 'flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--gris-borde);background:#fff;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer';
+  } else {
+    fBtn.style.cssText = 'flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--azul);background:var(--azul);color:#fff;font-size:13px;font-weight:600;cursor:pointer';
+    tBtn.style.cssText = 'flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--gris-borde);background:#fff;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer';
+  }
+}
+
+function calcular() {
+  const personas  = parseFloat(document.getElementById('d-personas').value) || 0;
+  const litros    = parseFloat(document.getElementById('d-litros').value) || 0;
+  const tacum     = parseFloat(document.getElementById('d-tacum').value) || 55;
+  const tred      = parseFloat(document.getElementById('d-tred').value) || 15;
+  const hsp       = parseFloat(document.getElementById('d-zona').value) || 4.2;
+  const eta       = parseFloat(document.getElementById('d-tipo').value) || 0.60;
+  const cobertura = parseFloat(document.getElementById('d-cobertura').value) || 0.70;
+
+  const totalLitros = personas * litros;
+  const deltaT = tacum - tred;
+  const energiaDia = (totalLitros * deltaT * 1.16) / 1000;
+  const energiaAnualSolar = energiaDia * 365 * cobertura;
+  const area = energiaAnualSolar / (hsp * eta * 365);
+  const colectores = Math.ceil(area / 2);
+  const acumulador = Math.round(area * 65);
+  const bomba = Math.round(area * 35);
+
+  document.getElementById('r-area').textContent = area.toFixed(1);
+  document.getElementById('r-colectores').textContent = colectores;
+  document.getElementById('r-acum').textContent = acumulador;
+  document.getElementById('r-bomba').textContent = bomba;
+
+  const tipoLabel = document.getElementById('d-tipo').options[document.getElementById('d-tipo').selectedIndex].text.split('—')[0].trim();
+  document.getElementById('r-resumen').innerHTML = `
+    <b>${colectores} colector${colectores > 1 ? 'es' : ''}</b> ${tipoLabel} de 2 m² c/u<br>
+    Acumulador: <b>${acumulador} litros</b> con intercambiador de calor<br>
+    Bomba: <b>${bomba} L/h</b> (circulación forzada)<br>
+    Cobertura solar: <b>${Math.round(cobertura * 100)}%</b> de la demanda anual<br>
+    Apoyo: calefón a gas o eléctrico en serie
+  `;
+}
+
+function calcularFV() {
+  const consumo   = parseFloat(document.getElementById('fv-consumo').value) || 0;
+  const cobertura = parseFloat(document.getElementById('fv-cobertura').value) || 1.0;
+  const hsp       = parseFloat(document.getElementById('fv-zona').value) || 4.2;
+  const panelW    = parseFloat(document.getElementById('fv-panel').value) || 430;
+  const pr        = parseFloat(document.getElementById('fv-pr').value) || 0.80;
+  const sistema   = document.getElementById('fv-sistema').value;
+
+  const consumoDia = (consumo * cobertura) / 30;
+  const kwp = consumoDia / (hsp * pr);
+  const paneles = Math.ceil((kwp * 1000) / panelW);
+  const kwpReal = (paneles * panelW) / 1000;
+  const inversor = +(kwpReal * 0.85).toFixed(1);
+
+  let batLabel = '—', batNote = 'solo Off-Grid';
+  if (sistema === 'offgrid') {
+    const batKwh = Math.ceil(consumoDia * 2);
+    batLabel = batKwh;
+    batNote = 'autonomía 2 días';
+  }
+
+  document.getElementById('fv-r-kwp').textContent = kwpReal.toFixed(1);
+  document.getElementById('fv-r-paneles').textContent = paneles;
+  document.getElementById('fv-r-wpanel').textContent = `de ${panelW}W c/u`;
+  document.getElementById('fv-r-inversor').textContent = inversor;
+  document.getElementById('fv-r-bateria').textContent = batLabel;
+  document.getElementById('fv-r-bat-note').textContent = batNote;
+
+  const zonaLabel = document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text.split('—')[0].trim();
+  const sistLabel = sistema === 'ongrid' ? 'On-Grid (con inyección a red)' : 'Off-Grid (autónomo con baterías)';
+  document.getElementById('fv-r-resumen').innerHTML = `
+    <b>${paneles} paneles</b> de ${panelW}W = <b>${kwpReal.toFixed(1)} kWp</b> instalados<br>
+    Inversor: <b>${inversor} kW</b> AC (factor DC/AC: ${(kwpReal/inversor).toFixed(2)})<br>
+    Zona: <b>${zonaLabel}</b> · PR: <b>${pr}</b><br>
+    Sistema: <b>${sistLabel}</b><br>
+    ${sistema === 'offgrid' ? `Batería sugerida: <b>${batLabel} kWh</b> (LiFePO4)` : 'Medidor bidireccional requerido para excedente'}
+  `;
+}
+
+async function guardarDim() {
+  const cliente = document.getElementById('d-cliente').value.trim();
+  if (!cliente) { toast('Ingresá el nombre del cliente'); return; }
+  const payload = {
+    tipo_dim: 'termica',
+    cliente,
+    personas:   parseInt(document.getElementById('d-personas').value),
+    litros_dia: parseInt(document.getElementById('d-litros').value),
+    zona:       document.getElementById('d-zona').options[document.getElementById('d-zona').selectedIndex].text,
+    tipo:       document.getElementById('d-tipo').options[document.getElementById('d-tipo').selectedIndex].text,
+    colectores: parseInt(document.getElementById('r-colectores').textContent),
+    acumulador: parseInt(document.getElementById('r-acum').textContent),
+    bomba:      parseInt(document.getElementById('r-bomba').textContent),
+    area:       parseFloat(document.getElementById('r-area').textContent),
+  };
+  setSyncState('loading');
+  const { error } = await db.from('hes_presupuestos').insert(payload);
+  if (!error) { await loadPresupuestos(); toast('Presupuesto guardado ✓'); setSyncState('ok'); }
+  else { setSyncState('error'); toast('Error al guardar'); }
+}
+
+async function guardarDimFV() {
+  const cliente = document.getElementById('fv-cliente').value.trim();
+  if (!cliente) { toast('Ingresá el nombre del cliente'); return; }
+  const payload = {
+    tipo_dim: 'fv',
+    cliente,
+    zona:       document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text,
+    tipo:       document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text,
+    colectores: parseInt(document.getElementById('fv-r-paneles').textContent),
+    acumulador: null,
+    bomba:      null,
+    area:       parseFloat(document.getElementById('fv-r-kwp').textContent),
+    extra_json: JSON.stringify({
+      sistema:  document.getElementById('fv-sistema').value,
+      inversor: document.getElementById('fv-r-inversor').textContent,
+      bateria:  document.getElementById('fv-r-bateria').textContent,
+      consumo:  document.getElementById('fv-consumo').value,
+    })
+  };
+  setSyncState('loading');
+  const { error } = await db.from('hes_presupuestos').insert(payload);
+  if (!error) { await loadPresupuestos(); toast('Presupuesto FV guardado ✓'); setSyncState('ok'); }
+  else { setSyncState('error'); toast('Error al guardar'); }
+}
+
+async function deleteDim(id) {
+  if (!confirm('¿Eliminar este presupuesto?')) return;
+  setSyncState('loading');
+  const { error } = await db.from('hes_presupuestos').delete().eq('id', id);
+  if (!error) { await loadPresupuestos(); toast('Eliminado'); setSyncState('ok'); }
+  else { setSyncState('error'); toast('Error al eliminar'); }
+}
+
+async function loadPresupuestos() {
+  const { data } = await db.from('hes_presupuestos').select('*').order('created_at', { ascending: false });
+  presupuestos = data || [];
+
+  const termica = presupuestos.filter(p => !p.tipo_dim || p.tipo_dim === 'termica');
+  const fv      = presupuestos.filter(p => p.tipo_dim === 'fv');
+
+  const listaT = document.getElementById('dim-lista');
+  const listaF = document.getElementById('fv-dim-lista');
+
+  if (!termica.length) {
+    listaT.innerHTML = '<div class="empty">Todavía no guardaste presupuestos térmicos</div>';
+  } else {
+    listaT.innerHTML = termica.map(p => `
+      <div class="prov-card" style="margin-bottom:8px">
+        <div class="prov-header">
+          <div><div class="prov-name">${p.cliente}</div><div class="prov-web">${new Date(p.created_at).toLocaleDateString('es-AR')}</div></div>
+          <button onclick="deleteDim(${p.id})" style="background:var(--rojo-light);color:var(--rojo);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer">Eliminar</button>
+        </div>
+        <div class="prov-rows">
+          <div class="prov-row"><strong>Colectores:</strong> ${p.colectores} × 2 m²</div>
+          <div class="prov-row"><strong>Área:</strong> ${p.area} m²</div>
+          <div class="prov-row"><strong>Acumulador:</strong> ${p.acumulador} L</div>
+          <div class="prov-row"><strong>Bomba:</strong> ${p.bomba} L/h</div>
+          <div class="prov-row"><strong>Zona:</strong> ${p.zona}</div>
+          <div class="prov-row"><strong>Tipo:</strong> ${p.tipo}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  if (!fv.length) {
+    listaF.innerHTML = '<div class="empty">Todavía no guardaste presupuestos fotovoltaicos</div>';
+  } else {
+    listaF.innerHTML = fv.map(p => {
+      let extra = {};
+      try { extra = JSON.parse(p.extra_json || '{}'); } catch(e) {}
+      return `
+      <div class="prov-card" style="margin-bottom:8px">
+        <div class="prov-header">
+          <div><div class="prov-name">${p.cliente}</div><div class="prov-web">${new Date(p.created_at).toLocaleDateString('es-AR')}</div></div>
+          <button onclick="deleteDim(${p.id})" style="background:var(--rojo-light);color:var(--rojo);border:none;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer">Eliminar</button>
+        </div>
+        <div class="prov-rows">
+          <div class="prov-row"><strong>kWp instalados:</strong> ${p.area} kWp</div>
+          <div class="prov-row"><strong>Paneles:</strong> ${p.colectores} unidades</div>
+          <div class="prov-row"><strong>Inversor:</strong> ${extra.inversor || '—'} kW</div>
+          <div class="prov-row"><strong>Sistema:</strong> ${extra.sistema === 'offgrid' ? 'Off-Grid' : 'On-Grid'}</div>
+          ${extra.bateria && extra.bateria !== '—' ? `<div class="prov-row"><strong>Batería:</strong> ${extra.bateria} kWh</div>` : ''}
+          <div class="prov-row"><strong>Zona:</strong> ${p.zona}</div>
+          <div class="prov-row"><strong>Panel:</strong> ${p.tipo}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ── CLIENTES ─────────────────────────────────────────────────────────────────
+async function loadClientes() {
+  const { data } = await db.from('hes_clientes').select('*').order('created_at', { ascending: false });
+  clientes = data || [];
+  renderClientes();
+}
+
+function renderClientes() {
+  const list = document.getElementById('cliente-list');
+  if (!clientes.length) { list.innerHTML = '<div class="empty">No hay clientes registrados todavía</div>'; return; }
+  const statusMap = { consulta:['status-consulta','Consulta inicial'], cotizando:['status-cotizando','En cotización'], enviado:['status-enviado','Ppto. enviado'], cerrado:['status-cerrado','Cerrado ✅'], perdido:['status-perdido','Perdido ❌'] };
+  list.innerHTML = clientes.map(c => {
+    const [cls, lbl] = statusMap[c.estado] || ['status-consulta','Consulta'];
+    return `<div class="cliente-card">
+      <div>
+        <div class="cliente-name">${c.nombre}</div>
+        <div class="cliente-meta">${c.tipo} · ${c.contacto || '—'}</div>
+        ${c.notas ? `<div class="cliente-meta" style="margin-top:3px">${c.notas}</div>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+        <span class="cliente-status-pill ${cls}">${lbl}</span>
+        <button class="edit-btn" onclick="openClienteModal('${c.id}')">✎</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openClienteModal(id = null) {
+  document.getElementById('cli-id').value = id || '';
+  document.getElementById('cli-btn-delete').style.display = id ? 'block' : 'none';
+  if (id) {
+    const c = clientes.find(c => c.id == id);
+    if (!c) return;
+    document.getElementById('cli-nombre').value = c.nombre;
+    document.getElementById('cli-contacto').value = c.contacto || '';
+    document.getElementById('cli-tipo').value = c.tipo;
+    document.getElementById('cli-estado').value = c.estado;
+    document.getElementById('cli-notas').value = c.notas || '';
+  } else {
+    document.getElementById('cli-nombre').value = '';
+    document.getElementById('cli-contacto').value = '';
+    document.getElementById('cli-tipo').value = 'Solar Térmica — ACS';
+    document.getElementById('cli-estado').value = 'consulta';
+    document.getElementById('cli-notas').value = '';
+  }
+  const overlay = document.getElementById('modal-cliente');
+  overlay.style.display = 'flex';
+  overlay.classList.add('open');
+  setTimeout(() => document.getElementById('cli-nombre').focus(), 50);
+}
+
+async function saveCliente() {
+  const id = document.getElementById('cli-id').value;
+  const payload = {
+    nombre:   document.getElementById('cli-nombre').value.trim(),
+    contacto: document.getElementById('cli-contacto').value.trim(),
+    tipo:     document.getElementById('cli-tipo').value,
+    estado:   document.getElementById('cli-estado').value,
+    notas:    document.getElementById('cli-notas').value.trim(),
+  };
+  if (!payload.nombre) { toast('Ingresá el nombre'); return; }
+  setSyncState('loading');
+  let error;
+  if (id) ({ error } = await db.from('hes_clientes').update(payload).eq('id', id));
+  else    ({ error } = await db.from('hes_clientes').insert(payload));
+  closeModal('modal-cliente');
+  if (!error) { await loadClientes(); toast('Guardado ✓'); setSyncState('ok'); }
+  else { setSyncState('error'); toast('Error al guardar'); }
+}
+
+async function deleteCliente() {
+  const id = document.getElementById('cli-id').value;
+  if (!id || !confirm('¿Eliminar este cliente?')) return;
+  const { error } = await db.from('hes_clientes').delete().eq('id', id);
+  closeModal('modal-cliente');
+  if (!error) { await loadClientes(); toast('Eliminado'); }
+}
+
+// ── Cerrar modales clickando afuera ──────────────────────────────────────────
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) {
+      overlay.classList.remove('open');
+      overlay.style.display = 'none';
+    }
+  });
+});
+
+// ── Cargar datos iniciales con tareas por defecto ─────────────────────────────
+async function seedIfEmpty() {
+  const { data } = await db.from('hes_tareas').select('id').limit(1);
+  if (data && data.length > 0) return;
+
+  const defaults = [
+    { columna:'termica', tarea:'Contactar proveedores de solar térmica', detalle:'Solarsol, Enertik, Hissuma, Termosol, Energe, INTEVA — todos contactados', estado:'hecho', prioridad:'baja', seccion:'Esta semana' },
+    { columna:'termica', tarea:'Consolidar proveedor principal', detalle:'Elegir entre Solarsol y Enertik · solicitar lista mayorista + condiciones de crédito', estado:'pendiente', prioridad:'alta', seccion:'Semana que viene' },
+    { columna:'termica', tarea:'Conseguir primer cliente de solar térmica', detalle:'Identificar caso concreto (ACS, pileta o calefacción) · dimensionar el sistema', estado:'pendiente', prioridad:'alta', seccion:'Semana que viene' },
+    { columna:'termica', tarea:'Cotizar accesorios del sistema', detalle:'Caños cobre/multitubo · bomba circulación · controlador diferencial · glicol · válvulas', estado:'pendiente', prioridad:'media', seccion:'Semana que viene' },
+    { columna:'termica', tarea:'Definir termosifón vs. circulación forzada', detalle:'Para el primer cliente: evaluar posición del acumulador y elegir sistema adecuado', estado:'pendiente', prioridad:'media', seccion:'Semana que viene' },
+    { columna:'termica', tarea:'Armar catálogo e-commerce térmica', detalle:'Fichas técnicas + fotos + precios · subir al sitio web', estado:'pendiente', prioridad:'media', seccion:'Próximas semanas' },
+    { columna:'fv', tarea:'Seguimiento con Adri — FV On-Grid', detalle:'Está buscando info · ya mandó videos · continuar el intercambio semanal', estado:'curso', prioridad:'alta', seccion:'Esta semana' },
+    { columna:'fv', tarea:'Estudiar proyecto FV de la cooperativa de Adri', detalle:'Adri armó un proyecto On-Grid en su trabajo · analizar configuración y componentes usados', estado:'pendiente', prioridad:'media', seccion:'Semana que viene' },
+    { columna:'fv', tarea:'Mapear proveedores FV locales', detalle:'Inversores On-Grid, paneles, accesorios disponibles en Argentina', estado:'pendiente', prioridad:'media', seccion:'Semana que viene' },
+    { columna:'fv', tarea:'Identificar primer cliente potencial FV', detalle:'Con Adri: definir perfil cliente On-Grid · hacer el dimensionamiento', estado:'pendiente', prioridad:'media', seccion:'Próximas semanas' },
+    { columna:'fv', tarea:'Gestionar contacto con GPSOLAR', detalle:'Contactar en Alibaba/1688 · solicitar precios FOB y MOQ mínimo', estado:'pendiente', prioridad:'baja', seccion:'Próximas semanas' },
+  ];
+  await db.from('hes_tareas').insert(defaults);
+
+  // Seed proveedores iniciales
+  const { data: provData } = await db.from('hes_proveedores').select('id').limit(1);
+  if (!provData || provData.length === 0) {
+    await db.from('hes_proveedores').insert([
+      { nombre:'Solarsol', web:'solarsol.com.ar', tipo:'Importador directo', categoria:'termica', prioridad:'alta', estado:'contactado', productos:'Colect. tubulares + termotanques atmosféricos y presurizados · kits', certs:'ISO 9001 · CE · Solar Keymark EN12975 · SRCC', notas:'Canal mayorista activo · dimensionamiento incluido · envíos nacionales' },
+      { nombre:'Enertik Argentina', web:'enertik.com/ar', tipo:'Importador directo', categoria:'ambos', prioridad:'alta', estado:'contactado', productos:'Colect. tubulares heat-pipe 20T · termotanques · también FV', certs:'CE · ISO', notas:'Catálogo completo FV + térmica · cotizar colectores 20T presurizado' },
+      { nombre:'Hissuma Solar', web:'hissuma-materiales.com.ar', tipo:'Especialista térmica', categoria:'termica', prioridad:'media', estado:'contactado', productos:'Colector plano propio (cobre tipo arpa) · tubos de vacío · repuestos', certs:'CE', notas:'Foco piletas y piso radiante · precio competitivo · climas cálidos' },
+      { nombre:'Termosol', web:'termosol.com.ar', tipo:'Especialista térmica', categoria:'termica', prioridad:'media', estado:'contactado', productos:'Colectores tubulares al vacío · sistemas atmosférico y presurizado', certs:'CE · ISO', notas:'Especialista tubos vacío · mercado hotelero/industrial · modular' },
+      { nombre:'Energe', web:'energe.com.ar', tipo:'FV + Térmica', categoria:'ambos', prioridad:'media', estado:'contactado', productos:'Solar térmica + FV · 7 provincias + Uruguay', certs:'ISO 9001:2015 · INTI', notas:'Posible aliado para proyectos en interior · cert. INTI ya gestionada' },
+      { nombre:'INTEVA', web:'inteva.com.ar', tipo:'FV + Térmica', categoria:'accesorios', prioridad:'baja', estado:'contactado', productos:'Termotanques termosifónicos · controladores diferenciales · accesorios · FV', certs:'CE', notas:'Útil como proveedor de accesorios y componentes del sistema' },
+    ]);
+  }
+}
+
+async function init() {
+  renderProveedores();
+  calcular();
+  calcularFV();
+  try {
+    await seedIfEmpty();
+    await loadTasks();
+    await loadProveedores();
+    await loadPresupuestos();
+    await loadClientes();
+  } catch(e) {
+    setSyncState('error');
+  }
+}
+
+init();
+</script>
+</body>
+</html>

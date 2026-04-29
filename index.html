@@ -114,6 +114,10 @@
   /* ── Providers page ── */
   .prov-grid { display: flex; flex-direction: column; gap: 10px; }
   .prov-card { background: var(--card-bg); border: 1px solid var(--gris-borde); border-radius: 10px; padding: 16px; }
+  .prov-card.dragging { opacity: 0.4; border: 2px dashed var(--verde); }
+  .prov-card.drag-over { border: 2px solid var(--verde); background: var(--verde-light); }
+  .drag-handle { cursor: grab; color: var(--muted); font-size: 16px; padding: 0 8px 0 0; flex-shrink: 0; user-select: none; }
+  .drag-handle:active { cursor: grabbing; }
   .prov-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
   .prov-name { font-size: 15px; font-weight: 600; }
   .prov-web { font-size: 12px; color: var(--teal); margin-top: 1px; }
@@ -183,7 +187,7 @@
 <div class="header">
   <div>
     <h1 style="font-size:18px;font-weight:600;letter-spacing:-0.3px;color:#fff">Proyecto de Energías Renovables</h1>
-    <div class="header-sub">Solar Térmica + Fotovoltaico · De Energía</div>
+    <div class="header-sub">Solar Térmica + Fotovoltaico</div>
   </div>
   <div class="sync-badge">
     <div class="sync-dot loading" id="sync-dot"></div>
@@ -210,7 +214,7 @@
         <div class="bar-pct" id="pct-termica">0 / 0</div>
       </div>
       <div class="progress-card">
-        <div class="progress-label"><span class="dot dot-azul"></span>Fotovoltaico (con Adri)</div>
+        <div class="progress-label"><span class="dot dot-azul"></span>Fotovoltaico</div>
         <div class="bar-wrap"><div class="bar bar-azul" id="bar-fv" style="width:0%"></div></div>
         <div class="bar-pct" id="pct-fv">0 / 0</div>
       </div>
@@ -224,7 +228,7 @@
     <div style="height:20px"></div>
 
     <!-- Fotovoltaico -->
-    <div class="section-label">⚡ Fotovoltaico (con Adri)</div>
+    <div class="section-label">⚡ Fotovoltaico</div>
     <div class="tasks" id="tasks-fv"></div>
     <button class="add-btn" onclick="openModal('fv')">＋ Agregar tarea</button>
 
@@ -733,31 +737,73 @@ function renderProveedores() {
     grid.innerHTML = '<div class="empty">No hay proveedores cargados — agregá el primero con el botón de arriba</div>';
     return;
   }
-  grid.innerHTML = proveedores.map(p => {
+  grid.innerHTML = proveedores.map((p, idx) => {
     const est = ESTADO_PROV[p.estado] || { label: p.estado, cls: 'badge-pend' };
     const prioMap = { alta:'prio-alta 🔴 Alta', media:'prio-media 🟡 Media', baja:'prio-baja 🟢 Baja' };
     const [prioCls, prioLbl] = (prioMap[p.prioridad] || 'prio-baja 🟢 Baja').split(' ').reduce((a,v,i) => i===0?[v,a[1]||'']:[a[0],a[1]+' '+v], ['','']);
     return `
-    <div class="prov-card" style="cursor:pointer" onclick="openProvModal('${p.id}')">
-      <div class="prov-header">
-        <div>
-          <div class="prov-name">${p.nombre}</div>
-          <div class="prov-web">${p.web || ''}</div>
+    <div class="prov-card" draggable="true" data-idx="${idx}" data-id="${p.id}"
+      ondragstart="dragStart(event,${idx})"
+      ondragover="dragOver(event)"
+      ondragleave="dragLeave(event)"
+      ondrop="dragDrop(event,${idx})"
+      ondragend="dragEnd(event)">
+      <div style="display:flex;align-items:flex-start;gap:4px">
+        <span class="drag-handle" title="Arrastrá para reordenar">⠿</span>
+        <div style="flex:1">
+          <div class="prov-header">
+            <div>
+              <div class="prov-name">${p.nombre}</div>
+              <div class="prov-web">${p.web || ''}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+              <span class="prio-pill ${prioCls}">${prioLbl.trim()}</span>
+              <span class="badge ${est.cls}" style="font-size:11px">${est.label}</span>
+              <button onclick="openProvModal('${p.id}')" style="font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid var(--gris-borde);background:#fff;cursor:pointer;color:var(--muted)">Editar</button>
+            </div>
+          </div>
+          <div class="prov-rows">
+            <div class="prov-row"><strong>Tipo:</strong> ${p.tipo || '—'}</div>
+            <div class="prov-row"><strong>Categoría:</strong> ${p.categoria || '—'}</div>
+            ${p.certs ? `<div class="prov-row" style="grid-column:1/-1"><strong>Cert:</strong> ${p.certs}</div>` : ''}
+            ${p.productos ? `<div class="prov-row" style="grid-column:1/-1"><strong>Productos:</strong> ${p.productos}</div>` : ''}
+            ${p.notas ? `<div class="prov-row" style="grid-column:1/-1;margin-top:4px;padding-top:6px;border-top:1px solid var(--gris-borde);color:var(--muted);font-style:italic">${p.notas}</div>` : ''}
+          </div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
-          <span class="prio-pill ${prioCls}">${prioLbl.trim()}</span>
-          <span class="badge ${est.cls}" style="font-size:11px">${est.label}</span>
-        </div>
-      </div>
-      <div class="prov-rows">
-        <div class="prov-row"><strong>Tipo:</strong> ${p.tipo || '—'}</div>
-        <div class="prov-row"><strong>Categoría:</strong> ${p.categoria || '—'}</div>
-        ${p.certs ? `<div class="prov-row" style="grid-column:1/-1"><strong>Cert:</strong> ${p.certs}</div>` : ''}
-        ${p.productos ? `<div class="prov-row" style="grid-column:1/-1"><strong>Productos:</strong> ${p.productos}</div>` : ''}
-        ${p.notas ? `<div class="prov-row" style="grid-column:1/-1;margin-top:4px;padding-top:6px;border-top:1px solid var(--gris-borde);color:var(--muted);font-style:italic">${p.notas}</div>` : ''}
       </div>
     </div>`;
   }).join('');
+}
+
+// ── Drag & drop proveedores ───────────────────────────────────────────────────
+let dragSrcIdx = null;
+
+function dragStart(e, idx) {
+  dragSrcIdx = idx;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function dragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+function dragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+function dragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.prov-card').forEach(c => c.classList.remove('drag-over'));
+}
+function dragDrop(e, targetIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
+  const moved = proveedores.splice(dragSrcIdx, 1)[0];
+  proveedores.splice(targetIdx, 0, moved);
+  dragSrcIdx = null;
+  renderProveedores();
+  toast('Orden actualizado');
 }
 
 function openProvModal(id = null) {

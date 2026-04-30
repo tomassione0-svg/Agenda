@@ -727,7 +727,7 @@ const ESTADO_PROV = {
 async function loadProveedores() {
   const { data, error } = await db.from('hes_proveedores').select('*').order('created_at');
   if (error) { setSyncState('error'); return; }
-  proveedores = data || [];
+  proveedores = applyProvOrder(data || []);
   renderProveedores();
 }
 
@@ -778,6 +778,28 @@ function renderProveedores() {
 // ── Drag & drop proveedores ───────────────────────────────────────────────────
 let dragSrcIdx = null;
 
+function saveProvOrder() {
+  const order = proveedores.map(p => p.id);
+  localStorage.setItem('prov_order', JSON.stringify(order));
+}
+
+function applyProvOrder(data) {
+  try {
+    const order = JSON.parse(localStorage.getItem('prov_order') || '[]');
+    if (!order.length) return data;
+    const sorted = [];
+    order.forEach(id => {
+      const found = data.find(p => p.id == id);
+      if (found) sorted.push(found);
+    });
+    // agregar los que no estaban en el orden guardado (proveedores nuevos)
+    data.forEach(p => {
+      if (!sorted.find(s => s.id == p.id)) sorted.push(p);
+    });
+    return sorted;
+  } catch(e) { return data; }
+}
+
 function dragStart(e, idx) {
   dragSrcIdx = idx;
   e.currentTarget.classList.add('dragging');
@@ -802,8 +824,9 @@ function dragDrop(e, targetIdx) {
   const moved = proveedores.splice(dragSrcIdx, 1)[0];
   proveedores.splice(targetIdx, 0, moved);
   dragSrcIdx = null;
+  saveProvOrder();
   renderProveedores();
-  toast('Orden actualizado');
+  toast('Orden guardado ✓');
 }
 
 function openProvModal(id = null) {

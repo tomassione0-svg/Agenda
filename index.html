@@ -467,13 +467,30 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
       <label>Tipo</label>
       <select id="adj-tipo" onchange="toggleAdjTipo()" style="margin-bottom:8px;width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:14px">
         <option value="link">🔗 Link / URL</option>
-        <option value="foto">📷 Foto (URL de imagen)</option>
+        <option value="foto">📷 Foto (subir desde dispositivo)</option>
+        <option value="foto_url">🖼 Foto (URL de imagen)</option>
         <option value="doc">📄 Documento (URL)</option>
       </select>
       <label>Título</label><input type="text" id="adj-titulo" placeholder="Ej: Lista de precios Marzo 2026" style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:14px;margin-bottom:8px">
-      <label id="adj-url-label">URL / Link</label>
-      <input type="url" id="adj-url" placeholder="https://..." style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:14px;margin-bottom:8px">
-      <button class="btn btn-primary" style="width:100%" onclick="saveAdjunto()">＋ Agregar</button>
+
+      <!-- Subida de archivo (para tipo foto) -->
+      <div id="adj-upload-block" style="display:none">
+        <label>Seleccionar foto</label>
+        <input type="file" id="adj-file" accept="image/*" capture="environment"
+          style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:14px;margin-bottom:8px;background:#fff">
+        <div id="adj-upload-preview" style="display:none;margin-bottom:8px">
+          <img id="adj-preview-img" style="width:100%;max-height:200px;object-fit:contain;border-radius:7px;border:1px solid var(--gris-borde)">
+        </div>
+        <div id="adj-upload-progress" style="display:none;font-size:12px;color:var(--muted);margin-bottom:8px;text-align:center">Subiendo... ⏳</div>
+      </div>
+
+      <!-- URL (para link, foto_url, doc) -->
+      <div id="adj-url-block">
+        <label id="adj-url-label">URL / Link</label>
+        <input type="url" id="adj-url" placeholder="https://..." style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:14px;margin-bottom:8px">
+      </div>
+
+      <button class="btn btn-primary" style="width:100%" id="adj-btn-agregar" onclick="saveAdjunto()">＋ Agregar</button>
     </div>
     <div id="adj-lista"></div>
     <div class="modal-actions" style="margin-top:8px">
@@ -828,10 +845,9 @@ function renderProveedores() {
           ${fotos.length?`<div class="photo-grid">${fotos.map(f=>`<img class="photo-thumb" src="${f.url}" alt="${f.titulo||''}" onclick="verFoto('${f.url}')" onerror="this.style.display='none'">`).join('')}</div>`:''}
 
           ${links.length?`<div class="attach-list">${links.map(a=>`
-            <a class="attach-item" href="${a.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+            <a class="attach-item" href="${a.url}" target="_blank" rel="noopener">
               <span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span>
               <span class="attach-label">${a.titulo||a.url}</span>
-              <span style="font-size:11px;color:var(--teal);flex-shrink:0">Abrir ↗</span>
             </a>`).join('')}</div>`:''}
 
           ${provPre.length?`<div style="margin-top:8px"><div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;text-transform:uppercase">PRECIOS (${provPre.length})</div>
@@ -940,8 +956,29 @@ function openAdjuntosModal(provId, provNombre) {
 }
 
 function toggleAdjTipo() {
-  const tipo=document.getElementById('adj-tipo').value;
-  document.getElementById('adj-url-label').textContent = tipo==='foto'?'URL de la imagen (pegar link directo)':'URL / Link';
+  const tipo = document.getElementById('adj-tipo').value;
+  const uploadBlock = document.getElementById('adj-upload-block');
+  const urlBlock    = document.getElementById('adj-url-block');
+  if (tipo === 'foto') {
+    uploadBlock.style.display = 'block';
+    urlBlock.style.display    = 'none';
+    document.getElementById('adj-file').onchange = function() {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('adj-preview-img').src = e.target.result;
+        document.getElementById('adj-upload-preview').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    };
+  } else {
+    uploadBlock.style.display = 'none';
+    urlBlock.style.display    = 'block';
+    document.getElementById('adj-upload-preview').style.display = 'none';
+    document.getElementById('adj-url-label').textContent =
+      tipo === 'foto_url' ? 'URL de la imagen (pegar link directo)' : 'URL / Link';
+  }
 }
 
 function renderAdjLista(provId) {
@@ -953,19 +990,61 @@ function renderAdjLista(provId) {
   lista.innerHTML=(fotos.length?`<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">FOTOS / IMÁGENES</div>
     <div class="photo-grid">${fotos.map(f=>`<div style="position:relative"><img class="photo-thumb" src="${f.url}" alt="${f.titulo||''}" onclick="verFoto('${f.url}')">
       <button onclick="deleteAdj(${f.id})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;padding:1px 5px">✕</button></div>`).join('')}</div></div>`:'') +
-  (otros.length?`<div class="attach-list">${otros.map(a=>`<div style="display:flex;align-items:center;gap:6px"><a class="attach-item" href="${a.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="flex:1"><span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span><span class="attach-label">${a.titulo||a.url}</span><span style="font-size:11px;color:var(--teal);flex-shrink:0">Abrir ↗</span></a>
+  (otros.length?`<div class="attach-list">${otros.map(a=>`<div style="display:flex;align-items:center;gap:6px"><a class="attach-item" href="${a.url}" target="_blank" rel="noopener" style="flex:1"><span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span><span class="attach-label">${a.titulo||a.url}</span></a>
     <button onclick="deleteAdj(${a.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">✕</button></div>`).join('')}</div>`:'');
 }
 
 async function saveAdjunto() {
-  const provId=document.getElementById('adj-prov-id').value;
-  const url=document.getElementById('adj-url').value.trim();
-  if(!url){toast('Ingresá una URL');return;}
-  const payload={proveedor_id:parseInt(provId),tipo:document.getElementById('adj-tipo').value,titulo:document.getElementById('adj-titulo').value.trim(),url};
-  const {error}=await db.from('hes_adjuntos').insert(payload);
-  if(!error){
-    document.getElementById('adj-titulo').value='';
-    document.getElementById('adj-url').value='';
+  const provId = document.getElementById('adj-prov-id').value;
+  const tipo   = document.getElementById('adj-tipo').value;
+  const titulo = document.getElementById('adj-titulo').value.trim();
+  let url = '';
+
+  if (tipo === 'foto') {
+    // ── Subida real al Storage de Supabase ──
+    const fileInput = document.getElementById('adj-file');
+    const file = fileInput.files[0];
+    if (!file) { toast('Seleccioná una foto'); return; }
+
+    // Nombre único: provId_timestamp.ext
+    const ext  = file.name.split('.').pop();
+    const path = `prov_${provId}/${Date.now()}.${ext}`;
+
+    document.getElementById('adj-upload-progress').style.display = 'block';
+    document.getElementById('adj-btn-agregar').disabled = true;
+
+    const { data: upData, error: upErr } = await db.storage
+      .from('hes-archivos')
+      .upload(path, file, { upsert: false, contentType: file.type });
+
+    document.getElementById('adj-upload-progress').style.display = 'none';
+    document.getElementById('adj-btn-agregar').disabled = false;
+
+    if (upErr) { toast('Error al subir: ' + upErr.message); return; }
+
+    const { data: pubData } = db.storage
+      .from('hes-archivos')
+      .getPublicUrl(path);
+
+    url = pubData.publicUrl;
+
+  } else {
+    // ── URL manual (link, foto_url, doc) ──
+    url = document.getElementById('adj-url').value.trim();
+    if (!url) { toast('Ingresá una URL'); return; }
+  }
+
+  // Guardar en la tabla hes_adjuntos
+  // Normalizar tipo: foto_url → foto para que se muestre como imagen
+  const tipoGuardado = tipo === 'foto_url' ? 'foto' : tipo;
+  const payload = { proveedor_id: parseInt(provId), tipo: tipoGuardado, titulo, url };
+  const { error } = await db.from('hes_adjuntos').insert(payload);
+
+  if (!error) {
+    document.getElementById('adj-titulo').value = '';
+    document.getElementById('adj-url').value    = '';
+    document.getElementById('adj-file').value   = '';
+    document.getElementById('adj-upload-preview').style.display = 'none';
     await loadAdjuntos();
     renderAdjLista(provId);
     renderProveedores();

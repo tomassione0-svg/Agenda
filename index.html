@@ -828,9 +828,10 @@ function renderProveedores() {
           ${fotos.length?`<div class="photo-grid">${fotos.map(f=>`<img class="photo-thumb" src="${f.url}" alt="${f.titulo||''}" onclick="verFoto('${f.url}')" onerror="this.style.display='none'">`).join('')}</div>`:''}
 
           ${links.length?`<div class="attach-list">${links.map(a=>`
-            <a class="attach-item" href="${a.url}" target="_blank" rel="noopener">
+            <a class="attach-item" href="${a.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
               <span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span>
               <span class="attach-label">${a.titulo||a.url}</span>
+              <span style="font-size:11px;color:var(--teal);flex-shrink:0">Abrir ↗</span>
             </a>`).join('')}</div>`:''}
 
           ${provPre.length?`<div style="margin-top:8px"><div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;text-transform:uppercase">PRECIOS (${provPre.length})</div>
@@ -952,7 +953,7 @@ function renderAdjLista(provId) {
   lista.innerHTML=(fotos.length?`<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">FOTOS / IMÁGENES</div>
     <div class="photo-grid">${fotos.map(f=>`<div style="position:relative"><img class="photo-thumb" src="${f.url}" alt="${f.titulo||''}" onclick="verFoto('${f.url}')">
       <button onclick="deleteAdj(${f.id})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;padding:1px 5px">✕</button></div>`).join('')}</div></div>`:'') +
-  (otros.length?`<div class="attach-list">${otros.map(a=>`<div style="display:flex;align-items:center;gap:6px"><a class="attach-item" href="${a.url}" target="_blank" rel="noopener" style="flex:1"><span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span><span class="attach-label">${a.titulo||a.url}</span></a>
+  (otros.length?`<div class="attach-list">${otros.map(a=>`<div style="display:flex;align-items:center;gap:6px"><a class="attach-item" href="${a.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="flex:1"><span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span><span class="attach-label">${a.titulo||a.url}</span><span style="font-size:11px;color:var(--teal);flex-shrink:0">Abrir ↗</span></a>
     <button onclick="deleteAdj(${a.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">✕</button></div>`).join('')}</div>`:'');
 }
 

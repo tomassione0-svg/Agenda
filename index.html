@@ -77,21 +77,41 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   text-transform: uppercase;
   letter-spacing: .05em;
 }
-.login-input {
-  width: 100%;
-  border: 1.5px solid var(--gris-borde);
-  border-radius: 10px;
-  padding: 12px 14px;
-  font-size: 16px;
-  font-family: inherit;
-  text-align: center;
-  letter-spacing: 3px;
-  transition: border-color .2s;
-  outline: none;
+.login-pw-wrap {
+  position: relative;
   margin-bottom: 16px;
 }
+.login-input {
+  width: 100%;
+  background: #fff;
+  border: 1.5px solid var(--gris-borde);
+  border-radius: 10px;
+  padding: 13px 46px 13px 16px;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--texto);
+  letter-spacing: 2px;
+  transition: border-color .2s;
+  outline: none;
+}
+.login-input::placeholder { color: #aaa; letter-spacing: 1px; }
 .login-input:focus { border-color: var(--verde); }
 .login-input.error { border-color: var(--rojo); animation: shake .3s; }
+.login-eye {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #bbb;
+  font-size: 18px;
+  padding: 2px;
+  line-height: 1;
+  transition: color .2s;
+}
+.login-eye:hover { color: var(--verde); }
 @keyframes shake {
   0%,100%{transform:translateX(0)}
   20%{transform:translateX(-6px)}
@@ -127,10 +147,13 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .header{background:var(--verde);color:#fff;padding:14px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
 .header h1{font-size:16px;font-weight:700;line-height:1.3;}
 .header-sub{font-size:11px;opacity:.75;margin-top:2px;}
-.sync-badge{font-size:11px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:20px;white-space:nowrap;display:flex;align-items:center;gap:5px;flex-shrink:0;margin-top:2px;}
+.header-right{display:flex;flex-direction:row;align-items:center;gap:10px;flex-shrink:0;}
+.sync-badge{font-size:11px;background:rgba(255,255,255,.15);padding:5px 10px;border-radius:20px;white-space:nowrap;display:flex;align-items:center;gap:5px;}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;}
 .sync-dot.offline{background:#f87171;}
 .sync-dot.loading{background:#fbbf24;animation:pulse 1s infinite;}
+.salir-btn{font-size:11px;font-weight:600;background:transparent;border:1.5px solid rgba(239,68,68,.6);color:#fca5a5;border-radius:20px;padding:4px 10px;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;transition:background .15s,border-color .15s;}
+.salir-btn:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.9);}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* Tabs */
@@ -303,15 +326,20 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
     <div class="login-title">Proyecto Energías Renovables</div>
     <div class="login-sub">Solar Térmica + Fotovoltaico</div>
     <label class="login-label">Contraseña</label>
-    <input
-      type="password"
-      id="login-input"
-      class="login-input"
-      placeholder="••••••••"
-      maxlength="20"
-      autocomplete="current-password"
-      onkeydown="if(event.key==='Enter') checkLogin()"
-    >
+    <div class="login-pw-wrap">
+      <input
+        type="password"
+        id="login-input"
+        class="login-input"
+        placeholder="Contraseña"
+        maxlength="20"
+        autocomplete="current-password"
+        onkeydown="if(event.key==='Enter') checkLogin()"
+      >
+      <button class="login-eye" type="button" onclick="togglePwVisibility()" id="eye-btn" title="Mostrar/ocultar">
+        <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
     <button class="login-btn" onclick="checkLogin()">Ingresar →</button>
     <div class="login-error" id="login-error"></div>
   </div>
@@ -325,9 +353,12 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
     <h1>Proyecto de Energías Renovables</h1>
     <div class="header-sub">Solar Térmica + Fotovoltaico</div>
   </div>
-  <div class="sync-badge">
-    <div class="sync-dot loading" id="sync-dot"></div>
-    <span id="sync-label">Conectando...</span>
+  <div class="header-right">
+    <div class="sync-badge">
+      <div class="sync-dot loading" id="sync-dot"></div>
+      <span id="sync-label">Conectando...</span>
+    </div>
+    <button class="salir-btn" onclick="logout()">⊘ Salir</button>
   </div>
 </div>
 
@@ -697,6 +728,27 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 const PASSWORD = 'Solar2026';
 const SESSION_KEY = 'hes_auth';
 
+function togglePwVisibility() {
+  const input = document.getElementById('login-input');
+  const icon  = document.getElementById('eye-icon');
+  if (input.type === 'password') {
+    input.type = 'text';
+    // Ojo tachado
+    icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  } else {
+    input.type = 'password';
+    icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem(SESSION_KEY);
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-input').value = '';
+  document.getElementById('login-error').textContent = '';
+}
+
 function checkLogin() {
   const input = document.getElementById('login-input');
   const val = input.value;
@@ -778,14 +830,41 @@ function renderCol(col) {
   container.innerHTML = '';
   if(!colTasks.length){container.innerHTML='<div class="empty">Sin tareas — agregá la primera</div>';return;}
   const secOrder = ['Esta semana','Semana que viene','Próximas semanas'];
-  const secs = [...new Set(colTasks.map(t=>t.seccion))].sort((a,b)=>secOrder.indexOf(a)-secOrder.indexOf(b));
-  secs.forEach(sec => {
+  const allSecs = secOrder;
+
+  allSecs.forEach((sec, secIdx) => {
     const st = colTasks.filter(t=>t.seccion===sec);
-    if(!st.length)return;
-    const lbl = document.createElement('div');
-    lbl.style.cssText='font-size:10px;font-weight:600;color:var(--muted);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.05em';
-    lbl.textContent = sec;
-    container.appendChild(lbl);
+
+    // Drop zone HEADER — permite soltar en esta sección (aunque esté vacía)
+    const secHeader = document.createElement('div');
+    secHeader.className = 'sec-drop-zone';
+    secHeader.dataset.sec = sec;
+    secHeader.dataset.col = col;
+    secHeader.style.cssText = 'font-size:10px;font-weight:600;color:var(--muted);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.05em;padding:4px 6px;border-radius:5px;transition:background .15s,color .15s;';
+    secHeader.textContent = sec;
+
+    // Drop-over visual en el label de sección
+    secHeader.addEventListener('dragover', e => {
+      e.preventDefault();
+      secHeader.style.background = 'var(--verde-light)';
+      secHeader.style.color = 'var(--verde)';
+    });
+    secHeader.addEventListener('dragleave', () => {
+      secHeader.style.background = '';
+      secHeader.style.color = 'var(--muted)';
+    });
+    secHeader.addEventListener('drop', e => {
+      e.preventDefault();
+      secHeader.style.background = '';
+      secHeader.style.color = 'var(--muted)';
+      taskDragDropToSection(e, sec, col);
+    });
+
+    // Solo mostrar la sección si tiene tareas O si es la primera con tareas
+    if(st.length || secIdx === 0) {
+      container.appendChild(secHeader);
+    }
+
     st.forEach(t => container.appendChild(renderTaskCard(t, col)));
   });
 }
@@ -835,18 +914,51 @@ async function taskDragDrop(e, targetId, targetCol) {
   e.preventDefault();
   e.currentTarget.classList.remove('drag-over');
   if(!taskDragId || taskDragId === targetId) return;
-  const col = taskDragCol;
-  const colTasks = tasks.filter(t=>t.columna===col);
-  const srcIdx = colTasks.findIndex(t=>t.id==taskDragId);
-  const tgtIdx = colTasks.findIndex(t=>t.id==targetId);
-  if(srcIdx===-1||tgtIdx===-1){taskDragId=null;return;}
-  const moved = colTasks.splice(srcIdx,1)[0];
-  colTasks.splice(tgtIdx,0,moved);
-  const updates = colTasks.map((t,i) => db.from('hes_tareas').update({orden:i}).eq('id',t.id));
+
+  const srcTask = tasks.find(t=>t.id==taskDragId);
+  const tgtTask = tasks.find(t=>t.id==targetId);
+  if(!srcTask||!tgtTask){taskDragId=null;return;}
+
+  setSyncState('loading');
+
+  // Si cambia de sección, actualizar sección + reordenar en destino
+  const updates = [];
+  if(srcTask.seccion !== tgtTask.seccion) {
+    updates.push(db.from('hes_tareas').update({seccion: tgtTask.seccion}).eq('id', srcTask.id));
+    srcTask.seccion = tgtTask.seccion;
+  }
+
+  // Reordenar dentro de la sección destino
+  const secTasks = tasks.filter(t=>t.columna===srcTask.columna && t.seccion===tgtTask.seccion);
+  const srcIdx = secTasks.findIndex(t=>t.id==taskDragId);
+  const tgtIdx = secTasks.findIndex(t=>t.id==targetId);
+  if(srcIdx!==-1 && tgtIdx!==-1) {
+    const moved = secTasks.splice(srcIdx,1)[0];
+    secTasks.splice(tgtIdx,0,moved);
+    secTasks.forEach((t,i) => updates.push(db.from('hes_tareas').update({orden:i}).eq('id',t.id)));
+  }
+
   await Promise.all(updates);
   taskDragId = null;
   await loadTasks();
-  toast('Orden guardado ✓');
+  toast('Movido ✓');
+}
+
+// Drop sobre el label de sección (mover a esa sección, al final)
+async function taskDragDropToSection(e, targetSec, targetCol) {
+  if(!taskDragId) return;
+  const srcTask = tasks.find(t=>t.id==taskDragId);
+  if(!srcTask || srcTask.seccion === targetSec) { taskDragId=null; return; }
+
+  setSyncState('loading');
+  // Calcular nuevo orden: al final de esa sección
+  const secTasks = tasks.filter(t=>t.columna===targetCol && t.seccion===targetSec);
+  const newOrden = secTasks.length;
+
+  await db.from('hes_tareas').update({seccion: targetSec, orden: newOrden}).eq('id', srcTask.id);
+  taskDragId = null;
+  await loadTasks();
+  toast('Movido a "' + targetSec + '" ✓');
 }
 
 async function toggleTask(e, id, col) {

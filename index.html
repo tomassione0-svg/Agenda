@@ -302,7 +302,19 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;}
 .toast.show{opacity:1;}
 
-/* Dimtabs */
+/* Logout confirm modal */
+.logout-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9998;display:none;align-items:center;justify-content:center;padding:24px;}
+.logout-overlay.open{display:flex;}
+.logout-card{background:#fff;border-radius:18px;padding:32px 28px 24px;width:100%;max-width:320px;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.2);}
+.logout-icon{font-size:38px;margin-bottom:12px;display:block;}
+.logout-title{font-size:18px;font-weight:700;color:var(--texto);margin-bottom:8px;}
+.logout-sub{font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:24px;}
+.logout-btns{display:flex;gap:10px;}
+.logout-no{flex:1;padding:12px;border-radius:10px;border:1.5px solid var(--gris-borde);background:#fff;color:var(--texto);font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;}
+.logout-no:hover{background:var(--gris);}
+.logout-si{flex:1;padding:12px;border-radius:10px;border:none;background:var(--verde);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s;}
+.logout-si:hover{background:var(--verde-mid);}
+
 .dimtab-btn{flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;}
 
 /* Empty */
@@ -719,6 +731,19 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   </div>
 </div>
 
+<!-- ══ MODAL CONFIRMAR SALIR ══ -->
+<div class="logout-overlay" id="modal-logout">
+  <div class="logout-card">
+    <span class="logout-icon">🔒</span>
+    <div class="logout-title">¿Salir de la app?</div>
+    <div class="logout-sub">Se cerrará la sesión y tendrás que ingresar la contraseña de nuevo.</div>
+    <div class="logout-btns">
+      <button class="logout-no" onclick="document.getElementById('modal-logout').classList.remove('open')">No</button>
+      <button class="logout-si" onclick="confirmarLogout()">Sí, salir</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- /app -->
 
 <div class="toast" id="toast"></div>
@@ -742,6 +767,11 @@ function togglePwVisibility() {
 }
 
 function logout() {
+  document.getElementById('modal-logout').classList.add('open');
+}
+
+function confirmarLogout() {
+  document.getElementById('modal-logout').classList.remove('open');
   sessionStorage.removeItem(SESSION_KEY);
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').classList.remove('hidden');

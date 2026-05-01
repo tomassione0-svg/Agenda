@@ -29,6 +29,100 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--texto);min-height:100vh;}
 
+/* ── LOGIN SCREEN ─────────────────────────────────────────────────────── */
+#login-screen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #0f3d1c 0%, #1B6B2F 50%, #0d5a25 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 24px;
+}
+#login-screen.hidden { display: none; }
+
+.login-card {
+  background: rgba(255,255,255,0.97);
+  border-radius: 20px;
+  padding: 36px 32px 32px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+  text-align: center;
+}
+.login-logo {
+  font-size: 42px;
+  margin-bottom: 8px;
+  display: block;
+}
+.login-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--verde);
+  margin-bottom: 4px;
+}
+.login-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+.login-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: left;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.login-input {
+  width: 100%;
+  border: 1.5px solid var(--gris-borde);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 16px;
+  font-family: inherit;
+  text-align: center;
+  letter-spacing: 3px;
+  transition: border-color .2s;
+  outline: none;
+  margin-bottom: 16px;
+}
+.login-input:focus { border-color: var(--verde); }
+.login-input.error { border-color: var(--rojo); animation: shake .3s; }
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-6px)}
+  40%{transform:translateX(6px)}
+  60%{transform:translateX(-4px)}
+  80%{transform:translateX(4px)}
+}
+.login-btn {
+  width: 100%;
+  background: var(--verde);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+}
+.login-btn:hover { background: var(--verde-mid); }
+.login-error {
+  color: var(--rojo);
+  font-size: 12px;
+  margin-top: 10px;
+  min-height: 18px;
+}
+
+/* ── APP (hidden until login) ─────────────────────────────────────────── */
+#app { display: none; }
+#app.visible { display: block; }
+
 /* Header */
 .header{background:var(--verde);color:#fff;padding:14px 16px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
 .header h1{font-size:16px;font-weight:700;line-height:1.3;}
@@ -201,6 +295,30 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   const SUPA_URL = 'https://venvzyzbuduzbyqlrtcm.supabase.co';
   const SUPA_KEY = 'sb_publishable_j-I3Ckl63BOTjUP9JmYyNA_-VYscbRU';
 </script>
+
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="login-screen">
+  <div class="login-card">
+    <span class="login-logo">☀️</span>
+    <div class="login-title">Proyecto Energías Renovables</div>
+    <div class="login-sub">Solar Térmica + Fotovoltaico</div>
+    <label class="login-label">Contraseña</label>
+    <input
+      type="password"
+      id="login-input"
+      class="login-input"
+      placeholder="••••••••"
+      maxlength="20"
+      autocomplete="current-password"
+      onkeydown="if(event.key==='Enter') checkLogin()"
+    >
+    <button class="login-btn" onclick="checkLogin()">Ingresar →</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
 
 <div class="header">
   <div>
@@ -473,7 +591,6 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
       </select>
       <label>Título</label><input type="text" id="adj-titulo" placeholder="Ej: Lista de precios Marzo 2026" style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:14px;margin-bottom:8px">
 
-      <!-- Subida de archivo (para tipo foto) -->
       <div id="adj-upload-block" style="display:none">
         <label>Seleccionar foto</label>
         <input type="file" id="adj-file" accept="image/*" capture="environment"
@@ -484,7 +601,6 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
         <div id="adj-upload-progress" style="display:none;font-size:12px;color:var(--muted);margin-bottom:8px;text-align:center">Subiendo... ⏳</div>
       </div>
 
-      <!-- URL (para link, foto_url, doc) -->
       <div id="adj-url-block">
         <label id="adj-url-label">URL / Link</label>
         <input type="url" id="adj-url" placeholder="https://..." style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:14px;margin-bottom:8px">
@@ -572,9 +688,41 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   </div>
 </div>
 
+</div><!-- /app -->
+
 <div class="toast" id="toast"></div>
 
 <script>
+// ── LOGIN ──────────────────────────────────────────────────────────────────
+const PASSWORD = 'Solar2026';
+const SESSION_KEY = 'hes_auth';
+
+function checkLogin() {
+  const input = document.getElementById('login-input');
+  const val = input.value;
+  if (val === PASSWORD) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.add('visible');
+    init();
+  } else {
+    input.classList.add('error');
+    document.getElementById('login-error').textContent = 'Contraseña incorrecta. Intentá de nuevo.';
+    input.value = '';
+    setTimeout(() => {
+      input.classList.remove('error');
+      input.focus();
+    }, 500);
+  }
+}
+
+// Check if already authenticated in this session
+if (sessionStorage.getItem(SESSION_KEY) === '1') {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+}
+
+// ── SUPABASE ───────────────────────────────────────────────────────────────
 const { createClient } = supabase;
 const db = createClient(SUPA_URL, SUPA_KEY);
 
@@ -677,7 +825,6 @@ function renderTaskCard(t, col) {
   return card;
 }
 
-// task drag
 let taskDragId = null, taskDragCol = null;
 function taskDragStart(e, id, col) {
   taskDragId = id; taskDragCol = col;
@@ -688,7 +835,6 @@ async function taskDragDrop(e, targetId, targetCol) {
   e.preventDefault();
   e.currentTarget.classList.remove('drag-over');
   if(!taskDragId || taskDragId === targetId) return;
-  // Reorder in same col
   const col = taskDragCol;
   const colTasks = tasks.filter(t=>t.columna===col);
   const srcIdx = colTasks.findIndex(t=>t.id==taskDragId);
@@ -696,7 +842,6 @@ async function taskDragDrop(e, targetId, targetCol) {
   if(srcIdx===-1||tgtIdx===-1){taskDragId=null;return;}
   const moved = colTasks.splice(srcIdx,1)[0];
   colTasks.splice(tgtIdx,0,moved);
-  // Update orden field
   const updates = colTasks.map((t,i) => db.from('hes_tareas').update({orden:i}).eq('id',t.id));
   await Promise.all(updates);
   taskDragId = null;
@@ -841,20 +986,16 @@ function renderProveedores() {
             ${p.productos?`<div class="prov-row"><strong>Productos:</strong> ${p.productos}</div>`:''}
             ${p.notas?`<div class="prov-row" style="margin-top:5px;padding-top:6px;border-top:1px solid var(--gris-borde);color:var(--muted);font-style:italic">${p.notas}</div>`:''}
           </div>
-
           ${fotos.length?`<div class="photo-grid">${fotos.map(f=>`<img class="photo-thumb" src="${f.url}" alt="${f.titulo||''}" onclick="verFoto('${f.url}')" onerror="this.style.display='none'">`).join('')}</div>`:''}
-
           ${links.length?`<div class="attach-list">${links.map(a=>`
             <a class="attach-item" href="${a.url}" target="_blank" rel="noopener">
               <span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span>
               <span class="attach-label">${a.titulo||a.url}</span>
             </a>`).join('')}</div>`:''}
-
           ${provPre.length?`<div style="margin-top:8px"><div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;text-transform:uppercase">PRECIOS (${provPre.length})</div>
             <table class="price-table"><thead><tr><th>Producto</th><th>Precio</th><th>Unidad</th></tr></thead><tbody>
             ${provPre.map(r=>`<tr><td>${r.producto}</td><td>${r.precio} ${r.moneda}</td><td>${r.unidad||'—'}</td></tr>`).join('')}
             </tbody></table></div>`:''}
-
           <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
             <button onclick="openProvModal('${p.id}')" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--gris-borde);background:#fff;cursor:pointer">✏ Editar</button>
             <button onclick="openAdjuntosModal('${p.id}','${p.nombre}')" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--gris-borde);background:#fff;cursor:pointer">📎 Archivos (${provAdj.length})</button>
@@ -866,7 +1007,6 @@ function renderProveedores() {
   }).join('');
 }
 
-// prov drag - saves to Supabase
 let provDragIdx = null;
 function provDragStart(e, idx) {
   provDragIdx = idx;
@@ -878,10 +1018,9 @@ async function provDragDrop(e, targetIdx) {
   e.currentTarget.classList.remove('drag-over');
   if(provDragIdx===null||provDragIdx===targetIdx){provDragIdx=null;return;}
   const moved = proveedores.splice(provDragIdx,1)[0];
-  proveedores.splice(targetIdx,0,moved);
+proveedores.splice(targetIdx,0,moved);
   provDragIdx = null;
   renderProveedores();
-  // Save order to Supabase
   setSyncState('loading');
   const updates = proveedores.map((p,i) => db.from('hes_proveedores').update({orden:i}).eq('id',p.id));
   await Promise.all(updates);
@@ -1001,41 +1140,26 @@ async function saveAdjunto() {
   let url = '';
 
   if (tipo === 'foto') {
-    // ── Subida real al Storage de Supabase ──
     const fileInput = document.getElementById('adj-file');
     const file = fileInput.files[0];
     if (!file) { toast('Seleccioná una foto'); return; }
-
-    // Nombre único: provId_timestamp.ext
     const ext  = file.name.split('.').pop();
     const path = `prov_${provId}/${Date.now()}.${ext}`;
-
     document.getElementById('adj-upload-progress').style.display = 'block';
     document.getElementById('adj-btn-agregar').disabled = true;
-
     const { data: upData, error: upErr } = await db.storage
       .from('hes-archivos')
       .upload(path, file, { upsert: false, contentType: file.type });
-
     document.getElementById('adj-upload-progress').style.display = 'none';
     document.getElementById('adj-btn-agregar').disabled = false;
-
     if (upErr) { toast('Error al subir: ' + upErr.message); return; }
-
-    const { data: pubData } = db.storage
-      .from('hes-archivos')
-      .getPublicUrl(path);
-
+    const { data: pubData } = db.storage.from('hes-archivos').getPublicUrl(path);
     url = pubData.publicUrl;
-
   } else {
-    // ── URL manual (link, foto_url, doc) ──
     url = document.getElementById('adj-url').value.trim();
     if (!url) { toast('Ingresá una URL'); return; }
   }
 
-  // Guardar en la tabla hes_adjuntos
-  // Normalizar tipo: foto_url → foto para que se muestre como imagen
   const tipoGuardado = tipo === 'foto_url' ? 'foto' : tipo;
   const payload = { proveedor_id: parseInt(provId), tipo: tipoGuardado, titulo, url };
   const { error } = await db.from('hes_adjuntos').insert(payload);
@@ -1271,7 +1395,7 @@ async function seedIfEmpty() {
   ]);
 }
 
-// ── INIT ───────────────────────────────────────────────────────────────────
+// ── INIT (solo corre después del login) ────────────────────────────────────
 async function init() {
   calcular(); calcularFV();
   try {
@@ -1281,7 +1405,10 @@ async function init() {
   } catch(e){ setSyncState('error'); }
 }
 
-init();
+// Si ya estaba autenticado, correr init de entrada
+if (sessionStorage.getItem(SESSION_KEY) === '1') {
+  init();
+}
 </script>
 </body>
 </html>

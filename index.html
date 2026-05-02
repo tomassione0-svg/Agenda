@@ -337,6 +337,16 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
     <span class="login-logo">☀️</span>
     <div class="login-title">Proyecto Energías Renovables</div>
     <div class="login-sub">Solar Térmica + Fotovoltaico</div>
+    <label class="login-label">Email</label>
+    <input
+      type="email"
+      id="login-email"
+      class="login-input"
+      style="margin-bottom:12px;letter-spacing:normal;"
+      placeholder="tu@email.com"
+      autocomplete="email"
+      onkeydown="if(event.key==='Enter') document.getElementById('login-input').focus()"
+    >
     <label class="login-label">Contraseña</label>
     <div class="login-pw-wrap">
       <input
@@ -352,7 +362,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
         <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
     </div>
-    <button class="login-btn" onclick="checkLogin()">Ingresar →</button>
+    <button class="login-btn" id="login-btn" onclick="checkLogin()">Ingresar →</button>
     <div class="login-error" id="login-error"></div>
   </div>
 </div>
@@ -749,16 +759,16 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 <div class="toast" id="toast"></div>
 
 <script>
-// ── LOGIN ──────────────────────────────────────────────────────────────────
-const PASSWORD = 'Solar2026';
-const SESSION_KEY = 'hes_auth';
+// ── SUPABASE CLIENT ────────────────────────────────────────────────────────
+const { createClient } = supabase;
+const db = createClient(SUPA_URL, SUPA_KEY);
 
+// ── AUTH ───────────────────────────────────────────────────────────────────
 function togglePwVisibility() {
   const input = document.getElementById('login-input');
   const icon  = document.getElementById('eye-icon');
   if (input.type === 'password') {
     input.type = 'text';
-    // Ojo tachado
     icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
   } else {
     input.type = 'password';
@@ -766,47 +776,67 @@ function togglePwVisibility() {
   }
 }
 
-function logout() {
-  document.getElementById('modal-logout').classList.add('open');
+function showApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  init();
 }
 
-function confirmarLogout() {
-  document.getElementById('modal-logout').classList.remove('open');
-  sessionStorage.removeItem(SESSION_KEY);
+function showLogin() {
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('login-input').value = '';
   document.getElementById('login-error').textContent = '';
 }
 
-function checkLogin() {
-  const input = document.getElementById('login-input');
-  const val = input.value;
-  if (val === PASSWORD) {
-    sessionStorage.setItem(SESSION_KEY, '1');
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('app').classList.add('visible');
-    init();
+// Escuchar cambios de sesión (login / logout / refresh)
+db.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    showApp();
   } else {
-    input.classList.add('error');
-    document.getElementById('login-error').textContent = 'Contraseña incorrecta. Intentá de nuevo.';
-    input.value = '';
-    setTimeout(() => {
-      input.classList.remove('error');
-      input.focus();
-    }, 500);
+    showLogin();
   }
+});
+
+async function checkLogin() {
+  const emailInput = document.getElementById('login-email');
+  const pwInput    = document.getElementById('login-input');
+  const email    = emailInput ? emailInput.value.trim() : '';
+  const password = pwInput.value;
+
+  if (!password) { 
+    pwInput.classList.add('error');
+    document.getElementById('login-error').textContent = 'Ingresá la contraseña.';
+    setTimeout(() => pwInput.classList.remove('error'), 500);
+    return;
+  }
+
+  document.getElementById('login-btn').textContent = 'Ingresando...';
+  document.getElementById('login-btn').disabled = true;
+
+  const { error } = await db.auth.signInWithPassword({ email, password });
+
+  document.getElementById('login-btn').textContent = 'Ingresar →';
+  document.getElementById('login-btn').disabled = false;
+
+  if (error) {
+    pwInput.classList.add('error');
+    document.getElementById('login-error').textContent = 'Credenciales incorrectas. Intentá de nuevo.';
+    pwInput.value = '';
+    setTimeout(() => { pwInput.classList.remove('error'); pwInput.focus(); }, 500);
+  }
+  // Si ok, onAuthStateChange llama showApp() automáticamente
 }
 
-// Check if already authenticated in this session
-if (sessionStorage.getItem(SESSION_KEY) === '1') {
-  document.getElementById('login-screen').classList.add('hidden');
-  document.getElementById('app').classList.add('visible');
+function logout() {
+  document.getElementById('modal-logout').classList.add('open');
 }
 
-// ── SUPABASE ───────────────────────────────────────────────────────────────
-const { createClient } = supabase;
-const db = createClient(SUPA_URL, SUPA_KEY);
+async function confirmarLogout() {
+  document.getElementById('modal-logout').classList.remove('open');
+  await db.auth.signOut();
+  // onAuthStateChange llama showLogin() automáticamente
+}
 
 let tasks = [], proveedores = [], clientes = [], presupuestos = [], adjuntos = [], precios = [];
 let dragSrcIdx = null, dragSrcCol = null;
@@ -1537,7 +1567,7 @@ async function seedIfEmpty() {
   ]);
 }
 
-// ── INIT (solo corre después del login) ────────────────────────────────────
+// ── INIT ───────────────────────────────────────────────────────────────────
 async function init() {
   calcular(); calcularFV();
   try {
@@ -1545,11 +1575,6 @@ async function init() {
     await Promise.all([loadTasks(), loadProveedores(), loadAdjuntos(), loadPrecios(), loadPresupuestos(), loadClientes()]);
     setSyncState('ok');
   } catch(e){ setSyncState('error'); }
-}
-
-// Si ya estaba autenticado, correr init de entrada
-if (sessionStorage.getItem(SESSION_KEY) === '1') {
-  init();
 }
 </script>
 </body>

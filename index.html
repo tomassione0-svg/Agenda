@@ -1111,6 +1111,8 @@ async function loadProveedores() {
   const {data,error} = await db.from('hes_proveedores').select('*').order('orden').order('created_at');
   if(error){setSyncState('error');return;}
   proveedores = data||[];
+  // Siempre esperar adjuntos y precios antes de renderizar
+  await Promise.all([loadAdjuntos(), loadPrecios()]);
   renderProveedores();
 }
 
@@ -1703,7 +1705,8 @@ async function init() {
   calcular(); calcularFV();
   try {
     await seedIfEmpty();
-    await Promise.all([loadTasks(), loadProveedores(), loadAdjuntos(), loadPrecios(), loadPresupuestos(), loadClientes()]);
+    // loadProveedores ya carga adjuntos y precios internamente
+    await Promise.all([loadTasks(), loadProveedores(), loadPresupuestos(), loadClientes()]);
     setSyncState('ok');
   } catch(e){ setSyncState('error'); }
 }

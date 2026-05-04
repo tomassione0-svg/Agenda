@@ -184,7 +184,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 
 /* Task cards */
 .tasks{display:flex;flex-direction:column;gap:5px;}
-.task-card{background:var(--card-bg);border:1px solid var(--gris-borde);border-radius:8px;padding:11px 12px;display:flex;align-items:flex-start;gap:10px;transition:border-color .15s;touch-action:none;}
+.task-card{background:var(--card-bg);border:1px solid var(--gris-borde);border-radius:8px;padding:11px 12px;display:flex;align-items:flex-start;gap:10px;transition:border-color .15s;touch-action:pan-y;}
 .task-card.done{opacity:.55;}
 .task-card.done .task-title{text-decoration:line-through;color:var(--muted);}
 .task-card.dragging{opacity:.35;border:2px dashed var(--verde);}
@@ -206,7 +206,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .badge-alta{background:var(--rojo-light);color:var(--rojo);}
 .badge-media{background:var(--amber-light);color:var(--amber);}
 .badge-baja{background:var(--verde-badge);color:var(--verde);}
-.drag-handle{cursor:grab;color:var(--muted);font-size:15px;flex-shrink:0;padding:0 4px 0 0;user-select:none;line-height:1.4;}
+.drag-handle{cursor:grab;color:var(--muted);font-size:15px;flex-shrink:0;padding:0 4px 0 0;user-select:none;line-height:1.4;touch-action:none;}
 .drag-handle:active{cursor:grabbing;}
 
 /* Add btn */
@@ -961,6 +961,11 @@ function renderTaskCard(t, col) {
         <span class="badge ${pCls}">${pTxt}</span>
       </div>
     </div>`;
+
+  // Touch drag via handle only
+  const handle = card.querySelector('.drag-handle');
+  addTouchDrag(handle, card, 'task', t.id, col);
+
   return card;
 }
 
@@ -1177,6 +1182,12 @@ function renderProveedores() {
       </div>
     </div>`;
   }).join('');
+
+  // Add touch drag to each prov card handle
+  document.querySelectorAll('.prov-card').forEach((card, idx) => {
+    const handle = card.querySelector('.drag-handle');
+    if (handle) addTouchDrag(handle, card, 'prov', null, null);
+  });
 }
 
 let provDragIdx = null;
@@ -1568,6 +1579,126 @@ async function seedIfEmpty() {
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
+// ── TOUCH DRAG SYSTEM ─────────────────────────────────────────────────────
+// Works for both task cards and provider cards via the ⠿ handle
+let touchDragState = null;
+let touchClone = null;
+let touchScrollInterval = null;
+
+function addTouchDrag(handle, card, type, id, col) {
+  handle.addEventListener('touchstart', e => {
+    e.stopPropagation();
+    const touch = e.touches[0];
+    touchDragState = { type, id, col, card, startX: touch.clientX, startY: touch.clientY, moved: false };
+
+    // Delay to distinguish tap from drag
+    touchDragState.timer = setTimeout(() => {
+      if (!touchDragState) return;
+      touchDragState.active = true;
+      card.classList.add('dragging');
+
+      // Create floating clone
+      const rect = card.getBoundingClientRect();
+      touchClone = card.cloneNode(true);
+      touchClone.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;opacity:.85;pointer-events:none;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);border-radius:8px;transform:scale(1.02);transition:none;`;
+      document.body.appendChild(touchClone);
+    }, 180);
+  }, { passive: true });
+
+  handle.addEventListener('touchmove', e => {
+    if (!touchDragState || !touchDragState.active) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchDragState.startX;
+    const dy = touch.clientY - touchDragState.startY;
+
+    // Move clone
+    if (touchClone) {
+      const rect = touchDragState.card.getBoundingClientRect();
+      touchClone.style.left = (rect.left + dx) + 'px';
+      touchClone.style.top  = (rect.top  + dy) + 'px';
+    }
+
+    // Auto-scroll when near edges
+    const scrollEl = document.scrollingElement || document.documentElement;
+    const threshold = 80;
+    if (touch.clientY < threshold) {
+      scrollEl.scrollTop -= 8;
+    } else if (touch.clientY > window.innerHeight - threshold) {
+      scrollEl.scrollTop += 8;
+    }
+
+    // Find card under finger
+    if (touchClone) touchClone.style.display = 'none';
+    const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (touchClone) touchClone.style.display = '';
+
+    // Highlight target
+    document.querySelectorAll('.task-card,.prov-card').forEach(c => c.classList.remove('drag-over'));
+    const targetCard = elUnder ? elUnder.closest('.task-card, .prov-card') : null;
+    if (targetCard && targetCard !== touchDragState.card) {
+      targetCard.classList.add('drag-over');
+    }
+  }, { passive: false });
+
+  handle.addEventListener('touchend', async e => {
+    clearTimeout(touchDragState?.timer);
+    if (!touchDragState?.active) { touchDragState = null; return; }
+
+    const touch = e.changedTouches[0];
+    if (touchClone) { touchClone.remove(); touchClone = null; }
+    touchDragState.card.classList.remove('dragging');
+    document.querySelectorAll('.task-card,.prov-card').forEach(c => c.classList.remove('drag-over'));
+
+    // Find drop target
+    if (touchClone) touchClone.style.display = 'none';
+    const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+    const targetCard = elUnder ? elUnder.closest('.task-card, .prov-card') : null;
+
+    if (targetCard && targetCard !== touchDragState.card) {
+      if (touchDragState.type === 'task') {
+        const targetId = targetCard.dataset.id;
+        const targetCol = targetCard.dataset.col;
+        if (targetId && targetId !== String(touchDragState.id)) {
+          await doTaskReorder(touchDragState.id, touchDragState.col, targetId, targetCol);
+        }
+      } else if (touchDragState.type === 'prov') {
+        const targetIdx = parseInt(targetCard.dataset.idx);
+        const srcIdx = parseInt(touchDragState.card.dataset.idx);
+        if (!isNaN(targetIdx) && targetIdx !== srcIdx) {
+          await doProvReorder(srcIdx, targetIdx);
+        }
+      }
+    }
+    touchDragState = null;
+  }, { passive: true });
+}
+
+async function doTaskReorder(srcId, srcCol, tgtId, tgtCol) {
+  const col = srcCol;
+  const colTasks = tasks.filter(t=>t.columna===col);
+  const srcIdx = colTasks.findIndex(t=>String(t.id)===String(srcId));
+  const tgtIdx = colTasks.findIndex(t=>String(t.id)===String(tgtId));
+  if(srcIdx===-1||tgtIdx===-1)return;
+  const moved = colTasks.splice(srcIdx,1)[0];
+  colTasks.splice(tgtIdx,0,moved);
+  const updates = colTasks.map((t,i) => db.from('hes_tareas').update({orden:i}).eq('id',t.id));
+  await Promise.all(updates);
+  await loadTasks();
+  toast('Orden guardado ✓');
+}
+
+async function doProvReorder(srcIdx, tgtIdx) {
+  const moved = proveedores.splice(srcIdx,1)[0];
+  proveedores.splice(tgtIdx,0,moved);
+  renderProveedores();
+  setSyncState('loading');
+  const updates = proveedores.map((p,i) => db.from('hes_proveedores').update({orden:i}).eq('id',p.id));
+  await Promise.all(updates);
+  setSyncState('ok');
+  toast('Orden guardado ✓');
+}
+
 async function init() {
   calcular(); calcularFV();
   try {

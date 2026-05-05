@@ -761,7 +761,16 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 <script>
 // ── SUPABASE CLIENT ────────────────────────────────────────────────────────
 const { createClient } = supabase;
-const db = createClient(SUPA_URL, SUPA_KEY);
+const db = createClient(SUPA_URL, SUPA_KEY, {
+  auth: {
+    persistSession: false,
+    storage: {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {}
+    }
+  }
+});
 
 // ── AUTH ───────────────────────────────────────────────────────────────────
 function togglePwVisibility() {

@@ -800,9 +800,14 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
     <label>Teléfono / Email</label><input type="text" id="cli-contacto" placeholder="11-xxxx-xxxx">
     <label>Tipo de sistema</label>
     <select id="cli-tipo">
-      <option>Solar Térmica — ACS</option><option>Solar Térmica — Pileta</option>
-      <option>Solar Térmica — Calefacción</option><option>Fotovoltaico On-Grid</option>
+      <option>Solar Térmica — ACS</option>
+      <option>Solar Térmica — Pileta</option>
+      <option>Solar Térmica — Calefacción</option>
+      <option>Fotovoltaico On-Grid</option>
+      <option>Fotovoltaico Off-Grid</option>
+      <option>Fotovoltaico</option>
       <option>Térmica + FV</option>
+      <option>No estoy seguro</option>
     </select>
     <label>Estado</label>
     <select id="cli-estado">
@@ -1854,6 +1859,39 @@ async function loadPresupuestos() {
   listaF.innerHTML=!f.length?'<div class="empty">Sin presupuestos FV</div>':f.map(p=>{let ex={};try{ex=JSON.parse(p.extra_json||'{}')}catch(e){}return`<div class="prov-card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div><strong>${p.cliente}</strong><div style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleDateString('es-AR')}</div></div><button onclick="deleteDim(${p.id})" style="background:var(--rojo-light);color:var(--rojo);border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">Eliminar</button></div><div class="prov-rows"><div class="prov-row"><strong>kWp:</strong> ${p.area}</div><div class="prov-row"><strong>Paneles:</strong> ${p.colectores}</div><div class="prov-row"><strong>Inversor:</strong> ${ex.inversor||'—'} kW</div><div class="prov-row"><strong>Generación:</strong> ${ex.generacion_mensual||'—'} kWh/mes</div><div class="prov-row"><strong>Ahorro:</strong> ${ex.ahorro_mensual?moneyARS(ex.ahorro_mensual):'—'}/mes</div><div class="prov-row"><strong>Sistema:</strong> ${ex.sistema==='offgrid'?'Off-Grid':'On-Grid'}</div></div></div>`}).join('');
 }
 
+
+function normalizarTipoCliente(tipo) {
+  const raw = (tipo || '').trim();
+  const lower = raw.toLowerCase();
+
+  if (!raw) return 'No estoy seguro';
+
+  if (lower.includes('off') && lower.includes('grid')) return 'Fotovoltaico Off-Grid';
+  if (lower.includes('on') && lower.includes('grid')) return 'Fotovoltaico On-Grid';
+  if (lower.includes('fotovoltaico') || lower.includes('fv')) return 'Fotovoltaico';
+  if (lower.includes('pileta')) return 'Solar Térmica — Pileta';
+  if (lower.includes('calef')) return 'Solar Térmica — Calefacción';
+  if (lower.includes('térmica') && lower.includes('fv')) return 'Térmica + FV';
+  if (lower.includes('termica') && lower.includes('fv')) return 'Térmica + FV';
+  if (lower.includes('solar térmico') || lower.includes('solar termico') || lower.includes('solar térmica') || lower.includes('solar termica')) return 'Solar Térmica — ACS';
+
+  return raw;
+}
+
+function setSelectValuePreservingOption(selectEl, value) {
+  const normalized = normalizarTipoCliente(value);
+  const exists = Array.from(selectEl.options).some(opt => opt.value === normalized || opt.textContent === normalized);
+
+  if (!exists && normalized) {
+    const opt = document.createElement('option');
+    opt.textContent = normalized;
+    opt.value = normalized;
+    selectEl.appendChild(opt);
+  }
+
+  selectEl.value = normalized;
+}
+
 // ── CLIENTES ───────────────────────────────────────────────────────────────
 async function loadClientes() {
   const {data}=await db.from('hes_clientes').select('*').order('created_at',{ascending:false});
@@ -1866,7 +1904,7 @@ async function loadClientes() {
 function openClienteModal(id=null) {
   document.getElementById('cli-id').value=id||'';
   document.getElementById('cli-btn-delete').style.display=id?'block':'none';
-  if(id){const c=clientes.find(c=>c.id==id);if(!c)return;document.getElementById('cli-nombre').value=c.nombre;document.getElementById('cli-contacto').value=c.contacto||'';document.getElementById('cli-tipo').value=c.tipo;document.getElementById('cli-estado').value=c.estado;document.getElementById('cli-notas').value=c.notas||'';}
+  if(id){const c=clientes.find(c=>c.id==id);if(!c)return;document.getElementById('cli-nombre').value=c.nombre;document.getElementById('cli-contacto').value=c.contacto||'';setSelectValuePreservingOption(document.getElementById('cli-tipo'), c.tipo);document.getElementById('cli-estado').value=c.estado;document.getElementById('cli-notas').value=c.notas||'';}
   else{['cli-nombre','cli-contacto','cli-notas'].forEach(id=>document.getElementById(id).value='');document.getElementById('cli-tipo').value='Solar Térmica — ACS';document.getElementById('cli-estado').value='consulta';}
   openOverlay('modal-cliente');
   setTimeout(()=>document.getElementById('cli-nombre').focus(),80);
@@ -1874,7 +1912,7 @@ function openClienteModal(id=null) {
 
 async function saveCliente() {
   const id=document.getElementById('cli-id').value;
-  const payload={nombre:document.getElementById('cli-nombre').value.trim(),contacto:document.getElementById('cli-contacto').value.trim(),tipo:document.getElementById('cli-tipo').value,estado:document.getElementById('cli-estado').value,notas:document.getElementById('cli-notas').value.trim()};
+  const payload={nombre:document.getElementById('cli-nombre').value.trim(),contacto:document.getElementById('cli-contacto').value.trim(),tipo:normalizarTipoCliente(document.getElementById('cli-tipo').value),estado:document.getElementById('cli-estado').value,notas:document.getElementById('cli-notas').value.trim()};
   if(!payload.nombre){toast('Ingresá el nombre');return;}
   setSyncState('loading');
   let error;

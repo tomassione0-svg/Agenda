@@ -2091,6 +2091,7 @@ function exportarPresupuestoActualPDF() {
 }
 
 
+
 async function loadPresupuestos() {
   const { data, error } = await db.from('hes_presupuestos').select('*').order('created_at', { ascending: false });
   if (error) {
@@ -2121,9 +2122,9 @@ async function loadPresupuestos() {
         <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
-        <button onclick="verPresupuesto(${p.id})" class="btn btn-secondary" style="font-size:11px;padding:6px">Ver</button>
-        <button onclick="exportarPresupuestoPDF(${p.id})" class="btn btn-primary" style="font-size:11px;padding:6px">PDF</button>
-        <button onclick="deleteDim(${p.id})" class="btn btn-delete" style="font-size:11px;padding:6px">Eliminar</button>
+        <button onclick="verPresupuesto(${p.id})" class="btn btn-secondary" style="font-size:11px;padding:7px 4px">Ver detalle</button>
+        <button onclick="exportarPresupuestoPDF(${p.id})" class="btn btn-primary" style="font-size:11px;padding:7px 4px">Exportar PDF</button>
+        <button onclick="deleteDim(${p.id})" class="btn btn-delete" style="font-size:11px;padding:7px 4px">Eliminar</button>
       </div>
     </div>`).join('');
 
@@ -2146,13 +2147,60 @@ async function loadPresupuestos() {
         <div class="prov-row"><strong>${fv.ahorro}</strong></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
-        <button onclick="verPresupuesto(${p.id})" class="btn btn-secondary" style="font-size:11px;padding:6px">Ver</button>
-        <button onclick="exportarPresupuestoPDF(${p.id})" class="btn btn-primary" style="font-size:11px;padding:6px">PDF</button>
-        <button onclick="deleteDim(${p.id})" class="btn btn-delete" style="font-size:11px;padding:6px">Eliminar</button>
+        <button onclick="verPresupuesto(${p.id})" class="btn btn-secondary" style="font-size:11px;padding:7px 4px">Ver detalle</button>
+        <button onclick="exportarPresupuestoPDF(${p.id})" class="btn btn-primary" style="font-size:11px;padding:7px 4px">Exportar PDF</button>
+        <button onclick="deleteDim(${p.id})" class="btn btn-delete" style="font-size:11px;padding:7px 4px">Eliminar</button>
       </div>
     </div>`}).join('');
 }
 
+
+
+function normalizarTipoCliente(tipo, notas = '') {
+  const raw = (tipo || '').trim();
+  const texto = `${raw} ${notas || ''}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (texto.includes('off') && texto.includes('grid')) return 'Fotovoltaico Off-Grid';
+  if (texto.includes('on') && texto.includes('grid')) return 'Fotovoltaico On-Grid';
+  if (texto.includes('pileta')) return 'Solar Térmica — Pileta';
+  if (texto.includes('calef')) return 'Solar Térmica — Calefacción';
+  if ((texto.includes('termica') || texto.includes('solar termico') || texto.includes('solar termica')) && texto.includes('fv')) return 'Térmica + FV';
+  if (texto.includes('solar termico')) return 'Solar Térmico';
+  if (texto.includes('solar termica')) return 'Solar Térmica — ACS';
+  if (texto.includes('no se') || texto.includes('todavia') || texto.includes('no estoy seguro')) return 'No sé todavía';
+  if (texto.includes('fotovoltaico') || texto.includes('fv')) return 'Fotovoltaico On-Grid';
+
+  return raw;
+}
+
+function setSelectValuePreservingOption(selectEl, value, notas = '') {
+  const normalized = normalizarTipoCliente(value, notas);
+
+  if (!normalized) {
+    selectEl.value = '';
+    return;
+  }
+
+  let option = Array.from(selectEl.options).find(opt =>
+    opt.value === normalized || opt.textContent.trim() === normalized
+  );
+
+  if (!option) {
+    option = document.createElement('option');
+    option.value = normalized;
+    option.textContent = normalized;
+    selectEl.appendChild(option);
+  }
+
+  selectEl.value = option.value;
+}
+
+function tipoClienteDisplay(c) {
+  return normalizarTipoCliente(c.tipo, c.notas) || 'Sin especificar';
+}
 
 // ── CLIENTES ───────────────────────────────────────────────────────────────
 async function loadClientes() {
@@ -2342,5 +2390,6 @@ async function init() {
 <!-- FIX presupuestos sin columna tipo_dim FINAL -->
 <!-- VERSION FINAL SIN tipo_dim - guardar presupuestos OK -->
 <!-- VERSION con Ver y PDF en presupuestos guardados -->
+<!-- VERSION FINAL clientes-web + offgrid + presupuestos ver detalle/pdf -->
 </body>
 </html>

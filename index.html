@@ -1833,17 +1833,17 @@ function limpiarDimensionFV() {
 }
 
 
+
 async function guardarDim() {
   const cliente=document.getElementById('d-cliente').value.trim();
   if(!cliente){toast('Ingresá el nombre del cliente');return;}
 
   const payload={
-    tipo_dim:'termica',
     cliente,
     personas:parseInt(document.getElementById('d-personas').value)||0,
     litros_dia:parseInt(document.getElementById('d-litros').value)||0,
     zona:document.getElementById('d-zona').options[document.getElementById('d-zona').selectedIndex].text,
-    tipo:document.getElementById('d-tipo').options[document.getElementById('d-tipo').selectedIndex].text,
+    tipo:'Térmica | ' + document.getElementById('d-tipo').options[document.getElementById('d-tipo').selectedIndex].text,
     colectores:parseInt(document.getElementById('r-colectores').textContent)||0,
     acumulador:parseInt(document.getElementById('r-acum').textContent)||0,
     bomba:parseInt(document.getElementById('r-bomba').textContent)||0,
@@ -1872,29 +1872,20 @@ async function guardarDimFV() {
   if(!cliente){toast('Ingresá el nombre del cliente');return;}
 
   const d=getFVData();
+  const zonaTxt=document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text;
+  const panelTxt=document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text;
+  const sistemaTxt=d.sistema==='offgrid'?'Off-Grid':'On-Grid';
+
   const payload={
-    tipo_dim:'fv',
     cliente,
-    zona:document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text,
-    tipo:document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text,
+    personas:0,
+    litros_dia:Math.round(d.promedio)||0,
+    zona:zonaTxt,
+    tipo:`FV | ${sistemaTxt} | ${panelTxt} | Inv ${d.inversor} kW | ${Math.round(d.genMes)} kWh/mes | Ahorro ${moneyARS(d.ahorroMes)}/mes`,
     colectores:d.paneles,
-    area:parseFloat(d.kwpReal.toFixed(2)),
-    extra_json:JSON.stringify({
-      ubicacion:document.getElementById('fv-ubicacion') ? document.getElementById('fv-ubicacion').value.trim() : '',
-      sistema:d.sistema,
-      inversor:d.inversor,
-      bateria:d.bateria,
-      consumos:d.consumos,
-      consumo_anual:Math.round(d.anual),
-      promedio_mensual:Math.round(d.promedio),
-      generacion_mensual:Math.round(d.genMes),
-      generacion_anual:Math.round(d.genAnual),
-      ahorro_mensual:Math.round(d.ahorroMes),
-      ahorro_anual:Math.round(d.ahorroAnual),
-      co2_anual:Math.round(d.co2),
-      tarifa:d.tarifa,
-      cobertura:d.cobertura
-    })
+    acumulador:d.sistema==='offgrid' ? parseInt(d.bateria)||0 : 0,
+    bomba:Math.round(d.ahorroAnual)||0,
+    area:parseFloat(d.kwpReal.toFixed(2))
   };
 
   setSyncState('loading');
@@ -1919,62 +1910,71 @@ async function deleteDim(id) {
   await loadPresupuestos(); toast('Eliminado');
 }
 
+
 async function loadPresupuestos() {
-  const {data}=await db.from('hes_presupuestos').select('*').order('created_at',{ascending:false});
-  presupuestos=data||[];
-  const t=presupuestos.filter(p=>!p.tipo_dim||p.tipo_dim==='termica');
-  const f=presupuestos.filter(p=>p.tipo_dim==='fv');
-  const listaT=document.getElementById('dim-lista'), listaF=document.getElementById('fv-dim-lista');
-  listaT.innerHTML=!t.length?'<div class="empty">Sin presupuestos térmicos</div>':t.map(p=>`<div class="prov-card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div><strong>${p.cliente}</strong><div style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleDateString('es-AR')}</div></div><button onclick="deleteDim(${p.id})" style="background:var(--rojo-light);color:var(--rojo);border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">Eliminar</button></div><div class="prov-rows"><div class="prov-row"><strong>Colectores:</strong> ${p.colectores} × 2m²</div><div class="prov-row"><strong>Acumulador:</strong> ${p.acumulador}L</div><div class="prov-row"><strong>Bomba:</strong> ${p.bomba} L/h</div><div class="prov-row"><strong>Zona:</strong> ${p.zona}</div></div></div>`).join('');
-  listaF.innerHTML=!f.length?'<div class="empty">Sin presupuestos FV</div>':f.map(p=>{let ex={};try{ex=JSON.parse(p.extra_json||'{}')}catch(e){}return`<div class="prov-card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div><strong>${p.cliente}</strong><div style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleDateString('es-AR')}</div></div><button onclick="deleteDim(${p.id})" style="background:var(--rojo-light);color:var(--rojo);border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">Eliminar</button></div><div class="prov-rows"><div class="prov-row"><strong>kWp:</strong> ${p.area}</div><div class="prov-row"><strong>Paneles:</strong> ${p.colectores}</div><div class="prov-row"><strong>Inversor:</strong> ${ex.inversor||'—'} kW</div><div class="prov-row"><strong>Generación:</strong> ${ex.generacion_mensual||'—'} kWh/mes</div><div class="prov-row"><strong>Ahorro:</strong> ${ex.ahorro_mensual?moneyARS(ex.ahorro_mensual):'—'}/mes</div><div class="prov-row"><strong>Sistema:</strong> ${ex.sistema==='offgrid'?'Off-Grid':'On-Grid'}</div></div></div>`}).join('');
-}
-
-
-function normalizarTipoCliente(tipo, notas = '') {
-  const raw = (tipo || '').trim();
-  const texto = `${raw} ${notas || ''}`
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-
-  if (texto.includes('off') && texto.includes('grid')) return 'Fotovoltaico Off-Grid';
-  if (texto.includes('on') && texto.includes('grid')) return 'Fotovoltaico On-Grid';
-  if (texto.includes('pileta')) return 'Solar Térmica — Pileta';
-  if (texto.includes('calef')) return 'Solar Térmica — Calefacción';
-  if ((texto.includes('termica') || texto.includes('solar termico') || texto.includes('solar termica')) && texto.includes('fv')) return 'Térmica + FV';
-  if (texto.includes('solar termico')) return 'Solar Térmico';
-  if (texto.includes('solar termica')) return 'Solar Térmica — ACS';
-  if (texto.includes('no se') || texto.includes('todavia') || texto.includes('no estoy seguro')) return 'No sé todavía';
-  if (texto.includes('fotovoltaico') || texto.includes('fv')) return 'Fotovoltaico On-Grid';
-
-  return raw;
-}
-
-function setSelectValuePreservingOption(selectEl, value, notas = '') {
-  const normalized = normalizarTipoCliente(value, notas);
-
-  if (!normalized) {
-    selectEl.value = '';
+  const {data,error}=await db.from('hes_presupuestos').select('*').order('created_at',{ascending:false});
+  if(error){
+    console.error('Error cargando presupuestos:', error);
     return;
   }
 
-  let option = Array.from(selectEl.options).find(opt =>
-    opt.value === normalized || opt.textContent.trim() === normalized
-  );
+  presupuestos=data||[];
 
-  if (!option) {
-    option = document.createElement('option');
-    option.value = normalized;
-    option.textContent = normalized;
-    selectEl.appendChild(option);
-  }
+  const esFV = p => (p.tipo||'').toLowerCase().startsWith('fv |');
+  const f=presupuestos.filter(esFV);
+  const t=presupuestos.filter(p=>!esFV(p));
 
-  selectEl.value = option.value;
+  const listaT=document.getElementById('dim-lista');
+  const listaF=document.getElementById('fv-dim-lista');
+
+  listaT.innerHTML=!t.length?'<div class="empty">Sin presupuestos térmicos</div>':t.map(p=>`
+    <div class="prov-card" style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div>
+          <strong>${p.cliente}</strong>
+          <div style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleDateString('es-AR')}</div>
+        </div>
+        <button onclick="deleteDim(${p.id})" style="background:var(--rojo-light);color:var(--rojo);border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">Eliminar</button>
+      </div>
+      <div class="prov-rows">
+        <div class="prov-row"><strong>Colectores:</strong> ${p.colectores||0} × 2m²</div>
+        <div class="prov-row"><strong>Acumulador:</strong> ${p.acumulador||0}L</div>
+        <div class="prov-row"><strong>Bomba:</strong> ${p.bomba||0} L/h</div>
+        <div class="prov-row"><strong>Área:</strong> ${p.area||0} m²</div>
+        <div class="prov-row"><strong>Zona:</strong> ${p.zona||'—'}</div>
+        <div class="prov-row"><strong>Tipo:</strong> ${(p.tipo||'').replace('Térmica | ','')}</div>
+      </div>
+    </div>`).join('');
+
+  listaF.innerHTML=!f.length?'<div class="empty">Sin presupuestos FV</div>':f.map(p=>{
+    const partes=(p.tipo||'').split('|').map(x=>x.trim());
+    const sistema=partes[1]||'FV';
+    const panel=partes[2]||'Panel';
+    const inv=partes[3]||'Inv —';
+    const gen=partes[4]||'Generación —';
+    const ahorro=partes[5]||'Ahorro —';
+
+    return `
+    <div class="prov-card" style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div>
+          <strong>${p.cliente}</strong>
+          <div style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleDateString('es-AR')}</div>
+        </div>
+        <button onclick="deleteDim(${p.id})" style="background:var(--rojo-light);color:var(--rojo);border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">Eliminar</button>
+      </div>
+      <div class="prov-rows">
+        <div class="prov-row"><strong>Sistema:</strong> ${sistema}</div>
+        <div class="prov-row"><strong>kWp:</strong> ${p.area||0}</div>
+        <div class="prov-row"><strong>Paneles:</strong> ${p.colectores||0}</div>
+        <div class="prov-row"><strong>${inv}</strong></div>
+        <div class="prov-row"><strong>${gen}</strong></div>
+        <div class="prov-row"><strong>${ahorro}</strong></div>
+        <div class="prov-row"><strong>Zona:</strong> ${p.zona||'—'}</div>
+      </div>
+    </div>`}).join('');
 }
 
-function tipoClienteDisplay(c) {
-  return normalizarTipoCliente(c.tipo, c.notas) || 'Sin especificar';
-}
 
 // ── CLIENTES ───────────────────────────────────────────────────────────────
 async function loadClientes() {

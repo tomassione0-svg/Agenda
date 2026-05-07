@@ -826,6 +826,19 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   </div>
 </div>
 
+
+<!-- ══ MODAL PRESUPUESTO GUARDADO ══ -->
+<div class="modal-overlay" id="modal-presupuesto">
+  <div class="modal" style="max-width:720px">
+    <h2 id="presu-title">Presupuesto guardado</h2>
+    <div id="presu-detalle"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-presupuesto')">Cerrar</button>
+      <button class="btn btn-primary" onclick="exportarPresupuestoActualPDF()">Exportar PDF</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ MODAL VER FOTO ══ -->
 <div class="modal-overlay" id="modal-foto">
   <div class="modal" style="padding:8px;background:#000;border-radius:12px">
@@ -1919,6 +1932,165 @@ async function deleteDim(id) {
 
 
 
+
+let presupuestoActual = null;
+
+function esPresupuestoFV(p) {
+  return (p.tipo || '').toLowerCase().startsWith('fv |');
+}
+
+function parsePresupuestoFV(p) {
+  const partes = (p.tipo || '').split('|').map(x => x.trim());
+  return {
+    sistema: partes[1] || 'FV',
+    panel: partes[2] || 'Panel no especificado',
+    inversor: partes[3] || 'Inv —',
+    generacion: partes[4] || 'Generación —',
+    ahorro: partes[5] || 'Ahorro —'
+  };
+}
+
+function detallePresupuestoHTML(p) {
+  const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-AR') : '—';
+
+  if (esPresupuestoFV(p)) {
+    const fv = parsePresupuestoFV(p);
+    return `
+      <div class="prov-card" style="margin-bottom:12px">
+        <div style="font-size:18px;font-weight:700;margin-bottom:4px">${p.cliente || 'Cliente'}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${fecha} · Fotovoltaico</div>
+        <div class="result-grid">
+          <div class="result-box"><div class="result-val">${p.area || 0}</div><div class="result-label">kWp</div></div>
+          <div class="result-box"><div class="result-val">${p.colectores || 0}</div><div class="result-label">paneles</div></div>
+          <div class="result-box accent"><div class="result-val">${fv.sistema}</div><div class="result-label">sistema</div></div>
+          <div class="result-box accent"><div class="result-val">${p.acumulador || 0}</div><div class="result-label">kWh batería</div></div>
+        </div>
+        <div class="prov-rows" style="margin-top:12px">
+          <div class="prov-row"><strong>Panel:</strong> ${fv.panel}</div>
+          <div class="prov-row"><strong>${fv.inversor}</strong></div>
+          <div class="prov-row"><strong>${fv.generacion}</strong></div>
+          <div class="prov-row"><strong>${fv.ahorro}</strong></div>
+          <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div class="prov-card" style="margin-bottom:12px">
+      <div style="font-size:18px;font-weight:700;margin-bottom:4px">${p.cliente || 'Cliente'}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${fecha} · Solar Térmica</div>
+      <div class="result-grid">
+        <div class="result-box"><div class="result-val">${p.area || 0}</div><div class="result-label">m² colector</div></div>
+        <div class="result-box"><div class="result-val">${p.colectores || 0}</div><div class="result-label">colectores</div></div>
+        <div class="result-box accent"><div class="result-val">${p.acumulador || 0}</div><div class="result-label">litros acumulador</div></div>
+        <div class="result-box accent"><div class="result-val">${p.bomba || 0}</div><div class="result-label">L/h bomba</div></div>
+      </div>
+      <div class="prov-rows" style="margin-top:12px">
+        <div class="prov-row"><strong>Personas:</strong> ${p.personas || 0}</div>
+        <div class="prov-row"><strong>Litros/día por persona:</strong> ${p.litros_dia || 0}</div>
+        <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
+        <div class="prov-row"><strong>Tipo:</strong> ${(p.tipo || '').replace('Térmica | ', '')}</div>
+      </div>
+    </div>`;
+}
+
+function verPresupuesto(id) {
+  const p = presupuestos.find(x => String(x.id) === String(id));
+  if (!p) {
+    toast('No encontré ese presupuesto');
+    return;
+  }
+  presupuestoActual = p;
+  document.getElementById('presu-title').textContent = esPresupuestoFV(p) ? 'Presupuesto FV guardado' : 'Presupuesto térmico guardado';
+  document.getElementById('presu-detalle').innerHTML = detallePresupuestoHTML(p);
+  openOverlay('modal-presupuesto');
+}
+
+function construirPDFPresupuestoGuardado(p) {
+  const fecha = p.created_at ? new Date(p.created_at).toLocaleDateString('es-AR') : new Date().toLocaleDateString('es-AR');
+
+  if (esPresupuestoFV(p)) {
+    const fv = parsePresupuestoFV(p);
+    return `
+    <div class="pdf-page">
+      <div class="pdf-head">
+        <div>
+          <div class="pdf-brand">ExerGrid</div>
+          <div class="pdf-sub">Soluciones en Energías Renovables · Solar Fotovoltaica</div>
+        </div>
+        <div class="pdf-date">Presupuesto guardado<br><strong>${fecha}</strong></div>
+      </div>
+      <div class="pdf-title">Dimensionamiento fotovoltaico guardado</div>
+      <div class="pdf-client"><strong>Cliente:</strong> ${p.cliente || 'Cliente'}<br><strong>Sistema:</strong> ${fv.sistema}<br><strong>Zona:</strong> ${p.zona || '—'}</div>
+      <div class="pdf-kpis">
+        <div class="pdf-kpi"><div class="v">${p.area || 0}</div><div class="l">kWp instalados</div></div>
+        <div class="pdf-kpi"><div class="v">${p.colectores || 0}</div><div class="l">paneles</div></div>
+        <div class="pdf-kpi"><div class="v">${fv.sistema}</div><div class="l">sistema</div></div>
+        <div class="pdf-kpi"><div class="v">${p.acumulador || 0}</div><div class="l">kWh batería</div></div>
+      </div>
+      <div class="pdf-section"><h3>Detalle técnico y comercial</h3>
+        <table class="pdf-table"><tbody>
+          <tr><td>Panel</td><td><strong>${fv.panel}</strong></td></tr>
+          <tr><td>Inversor</td><td><strong>${fv.inversor}</strong></td></tr>
+          <tr><td>Generación estimada</td><td><strong>${fv.generacion}</strong></td></tr>
+          <tr><td>Ahorro estimado</td><td><strong>${fv.ahorro}</strong></td></tr>
+          <tr><td>Zona</td><td><strong>${p.zona || '—'}</strong></td></tr>
+        </tbody></table>
+      </div>
+      <div class="pdf-note">Documento generado desde un presupuesto guardado en el CRM técnico de ExerGrid. Valores preliminares sujetos a relevamiento técnico y condiciones comerciales vigentes.</div>
+    </div>`;
+  }
+
+  return `
+  <div class="pdf-page">
+    <div class="pdf-head">
+      <div>
+        <div class="pdf-brand">ExerGrid</div>
+        <div class="pdf-sub">Energías Renovables · Solar Térmica + Fotovoltaico</div>
+      </div>
+      <div class="pdf-date">Presupuesto guardado<br><strong>${fecha}</strong></div>
+    </div>
+    <div class="pdf-title">Dimensionamiento solar térmico guardado</div>
+    <div class="pdf-client"><strong>Cliente:</strong> ${p.cliente || 'Cliente'}<br><strong>Zona:</strong> ${p.zona || '—'}<br><strong>Tipo:</strong> ${(p.tipo || '').replace('Térmica | ', '')}</div>
+    <div class="pdf-kpis">
+      <div class="pdf-kpi"><div class="v">${p.area || 0}</div><div class="l">m² colector</div></div>
+      <div class="pdf-kpi"><div class="v">${p.colectores || 0}</div><div class="l">colectores</div></div>
+      <div class="pdf-kpi"><div class="v">${p.acumulador || 0}</div><div class="l">litros acumulador</div></div>
+      <div class="pdf-kpi"><div class="v">${p.bomba || 0}</div><div class="l">L/h bomba</div></div>
+    </div>
+    <div class="pdf-section"><h3>Datos guardados</h3>
+      <table class="pdf-table"><tbody>
+        <tr><td>Personas</td><td><strong>${p.personas || 0}</strong></td></tr>
+        <tr><td>Litros/día por persona</td><td><strong>${p.litros_dia || 0}</strong></td></tr>
+        <tr><td>Área colectora</td><td><strong>${p.area || 0} m²</strong></td></tr>
+        <tr><td>Colectores</td><td><strong>${p.colectores || 0}</strong></td></tr>
+        <tr><td>Acumulador</td><td><strong>${p.acumulador || 0} L</strong></td></tr>
+        <tr><td>Bomba</td><td><strong>${p.bomba || 0} L/h</strong></td></tr>
+      </tbody></table>
+    </div>
+    <div class="pdf-note">Documento generado desde un presupuesto guardado en el CRM técnico de ExerGrid. Valores preliminares sujetos a relevamiento técnico y condiciones comerciales vigentes.</div>
+  </div>`;
+}
+
+function exportarPresupuestoPDF(id) {
+  const p = presupuestos.find(x => String(x.id) === String(id));
+  if (!p) {
+    toast('No encontré ese presupuesto');
+    return;
+  }
+  document.getElementById('pdf-propuesta').innerHTML = construirPDFPresupuestoGuardado(p);
+  setTimeout(() => window.print(), 120);
+}
+
+function exportarPresupuestoActualPDF() {
+  if (!presupuestoActual) {
+    toast('No hay presupuesto seleccionado');
+    return;
+  }
+  exportarPresupuestoPDF(presupuestoActual.id);
+}
+
+
 async function loadPresupuestos() {
   const { data, error } = await db.from('hes_presupuestos').select('*').order('created_at', { ascending: false });
   if (error) {
@@ -1928,9 +2100,8 @@ async function loadPresupuestos() {
 
   presupuestos = data || [];
 
-  const esFV = p => (p.tipo || '').toLowerCase().startsWith('fv |');
-  const f = presupuestos.filter(esFV);
-  const t = presupuestos.filter(p => !esFV(p));
+  const f = presupuestos.filter(esPresupuestoFV);
+  const t = presupuestos.filter(p => !esPresupuestoFV(p));
 
   const listaT = document.getElementById('dim-lista');
   const listaF = document.getElementById('fv-dim-lista');
@@ -1942,26 +2113,22 @@ async function loadPresupuestos() {
           <strong>${p.cliente}</strong>
           <div style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleDateString('es-AR')}</div>
         </div>
-        <button onclick="deleteDim(${p.id})" style="background:var(--rojo-light);color:var(--rojo);border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">Eliminar</button>
       </div>
       <div class="prov-rows">
         <div class="prov-row"><strong>Colectores:</strong> ${p.colectores || 0} × 2m²</div>
         <div class="prov-row"><strong>Acumulador:</strong> ${p.acumulador || 0}L</div>
         <div class="prov-row"><strong>Bomba:</strong> ${p.bomba || 0} L/h</div>
-        <div class="prov-row"><strong>Área:</strong> ${p.area || 0} m²</div>
         <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
-        <div class="prov-row"><strong>Tipo:</strong> ${(p.tipo || '').replace('Térmica | ', '')}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
+        <button onclick="verPresupuesto(${p.id})" class="btn btn-secondary" style="font-size:11px;padding:6px">Ver</button>
+        <button onclick="exportarPresupuestoPDF(${p.id})" class="btn btn-primary" style="font-size:11px;padding:6px">PDF</button>
+        <button onclick="deleteDim(${p.id})" class="btn btn-delete" style="font-size:11px;padding:6px">Eliminar</button>
       </div>
     </div>`).join('');
 
   listaF.innerHTML = !f.length ? '<div class="empty">Sin presupuestos FV</div>' : f.map(p => {
-    const partes = (p.tipo || '').split('|').map(x => x.trim());
-    const sistema = partes[1] || 'FV';
-    const panel = partes[2] || 'Panel';
-    const inv = partes[3] || 'Inv —';
-    const gen = partes[4] || 'Generación —';
-    const ahorro = partes[5] || 'Ahorro —';
-
+    const fv = parsePresupuestoFV(p);
     return `
     <div class="prov-card" style="margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -1969,20 +2136,23 @@ async function loadPresupuestos() {
           <strong>${p.cliente}</strong>
           <div style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleDateString('es-AR')}</div>
         </div>
-        <button onclick="deleteDim(${p.id})" style="background:var(--rojo-light);color:var(--rojo);border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">Eliminar</button>
       </div>
       <div class="prov-rows">
-        <div class="prov-row"><strong>Sistema:</strong> ${sistema}</div>
+        <div class="prov-row"><strong>Sistema:</strong> ${fv.sistema}</div>
         <div class="prov-row"><strong>kWp:</strong> ${p.area || 0}</div>
         <div class="prov-row"><strong>Paneles:</strong> ${p.colectores || 0}</div>
-        <div class="prov-row"><strong>${inv}</strong></div>
-        <div class="prov-row"><strong>${gen}</strong></div>
-        <div class="prov-row"><strong>${ahorro}</strong></div>
-        <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
+        <div class="prov-row"><strong>${fv.inversor}</strong></div>
+        <div class="prov-row"><strong>${fv.generacion}</strong></div>
+        <div class="prov-row"><strong>${fv.ahorro}</strong></div>
       </div>
-    </div>`;
-  }).join('');
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
+        <button onclick="verPresupuesto(${p.id})" class="btn btn-secondary" style="font-size:11px;padding:6px">Ver</button>
+        <button onclick="exportarPresupuestoPDF(${p.id})" class="btn btn-primary" style="font-size:11px;padding:6px">PDF</button>
+        <button onclick="deleteDim(${p.id})" class="btn btn-delete" style="font-size:11px;padding:6px">Eliminar</button>
+      </div>
+    </div>`}).join('');
 }
+
 
 // ── CLIENTES ───────────────────────────────────────────────────────────────
 async function loadClientes() {
@@ -2171,5 +2341,6 @@ async function init() {
 </script>
 <!-- FIX presupuestos sin columna tipo_dim FINAL -->
 <!-- VERSION FINAL SIN tipo_dim - guardar presupuestos OK -->
+<!-- VERSION con Ver y PDF en presupuestos guardados -->
 </body>
 </html>

@@ -809,6 +809,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
       <option value="Solar Térmico">Solar Térmico</option>
       <option value="Térmica + FV">Térmica + FV</option>
       <option value="No sé todavía">No sé todavía</option>
+      <option value="No estoy seguro">No estoy seguro</option>
     </select>
     <label>Estado</label>
     <select id="cli-estado">
@@ -1803,26 +1804,67 @@ function exportarPDFTermica() {
 async function guardarDim() {
   const cliente=document.getElementById('d-cliente').value.trim();
   if(!cliente){toast('Ingresá el nombre del cliente');return;}
-  const payload={tipo_dim:'termica',cliente,personas:parseInt(document.getElementById('d-personas').value),litros_dia:parseInt(document.getElementById('d-litros').value),zona:document.getElementById('d-zona').options[document.getElementById('d-zona').selectedIndex].text,tipo:document.getElementById('d-tipo').options[document.getElementById('d-tipo').selectedIndex].text,colectores:parseInt(document.getElementById('r-colectores').textContent),acumulador:parseInt(document.getElementById('r-acum').textContent),bomba:parseInt(document.getElementById('r-bomba').textContent),area:parseFloat(document.getElementById('r-area').textContent)};
+
+  const payloadFull={
+    tipo_dim:'termica',
+    cliente,
+    personas:parseInt(document.getElementById('d-personas').value)||0,
+    litros_dia:parseInt(document.getElementById('d-litros').value)||0,
+    zona:document.getElementById('d-zona').options[document.getElementById('d-zona').selectedIndex].text,
+    tipo:document.getElementById('d-tipo').options[document.getElementById('d-tipo').selectedIndex].text,
+    colectores:parseInt(document.getElementById('r-colectores').textContent)||0,
+    acumulador:parseInt(document.getElementById('r-acum').textContent)||0,
+    bomba:parseInt(document.getElementById('r-bomba').textContent)||0,
+    area:parseFloat(document.getElementById('r-area').textContent)||0
+  };
+
+  const payloadMin={
+    cliente:payloadFull.cliente,
+    tipo:payloadFull.tipo,
+    zona:payloadFull.zona,
+    colectores:payloadFull.colectores,
+    acumulador:payloadFull.acumulador,
+    bomba:payloadFull.bomba,
+    area:payloadFull.area
+  };
+
   setSyncState('loading');
-  const {error}=await db.from('hes_presupuestos').insert(payload);
-  if(!error){await loadPresupuestos();toast('Guardado ✓');setSyncState('ok');}
-  else{setSyncState('error');toast('Error');}
+  let {error}=await db.from('hes_presupuestos').insert(payloadFull);
+
+  if(error){
+    console.warn('Insert térmica completo falló, reintentando simple:', error.message);
+    ({error}=await db.from('hes_presupuestos').insert(payloadMin));
+  }
+
+  if(!error){
+    await loadPresupuestos();
+    toast('Presupuesto térmico guardado ✓');
+    setSyncState('ok');
+  }else{
+    console.error('Error guardando térmica:', error);
+    setSyncState('error');
+    toast('Error al guardar térmica: ' + (error.message || 'revisar tabla'));
+  }
 }
 
 async function guardarDimFV() {
   const cliente=document.getElementById('fv-cliente').value.trim();
   if(!cliente){toast('Ingresá el nombre del cliente');return;}
+
   const d=getFVData();
-  const payload={
+  const zonaTxt=document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text;
+  const panelTxt=document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text;
+  const sistemaTxt=d.sistema==='offgrid'?'Off-Grid':'On-Grid';
+
+  const payloadFull={
     tipo_dim:'fv',
     cliente,
-    zona:document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text,
-    tipo:document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text,
+    zona:zonaTxt,
+    tipo:panelTxt,
     colectores:d.paneles,
     area:parseFloat(d.kwpReal.toFixed(2)),
     extra_json:JSON.stringify({
-      ubicacion:document.getElementById('fv-ubicacion').value.trim(),
+      ubicacion:document.getElementById('fv-ubicacion') ? document.getElementById('fv-ubicacion').value.trim() : '',
       sistema:d.sistema,
       inversor:d.inversor,
       bateria:d.bateria,
@@ -1838,10 +1880,32 @@ async function guardarDimFV() {
       cobertura:d.cobertura
     })
   };
+
+  const payloadMin={
+    cliente,
+    zona:zonaTxt,
+    tipo:`Fotovoltaico ${sistemaTxt} · ${panelTxt}`,
+    colectores:d.paneles,
+    area:parseFloat(d.kwpReal.toFixed(2))
+  };
+
   setSyncState('loading');
-  const {error}=await db.from('hes_presupuestos').insert(payload);
-  if(!error){await loadPresupuestos();toast('Presupuesto FV guardado ✓');setSyncState('ok');}
-  else{setSyncState('error');toast('Error al guardar');}
+  let {error}=await db.from('hes_presupuestos').insert(payloadFull);
+
+  if(error){
+    console.warn('Insert FV completo falló, reintentando simple:', error.message);
+    ({error}=await db.from('hes_presupuestos').insert(payloadMin));
+  }
+
+  if(!error){
+    await loadPresupuestos();
+    toast('Presupuesto FV guardado ✓');
+    setSyncState('ok');
+  }else{
+    console.error('Error guardando FV:', error);
+    setSyncState('error');
+    toast('Error al guardar FV: ' + (error.message || 'revisar tabla'));
+  }
 }
 
 async function deleteDim(id) {
@@ -1863,16 +1927,20 @@ async function loadPresupuestos() {
 
 function normalizarTipoCliente(tipo, notas = '') {
   const raw = (tipo || '').trim();
-  const texto = `${raw} ${notas || ''}`.toLowerCase();
+  const texto = `${raw} ${notas || ''}`
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 
   if (texto.includes('off') && texto.includes('grid')) return 'Fotovoltaico Off-Grid';
   if (texto.includes('on') && texto.includes('grid')) return 'Fotovoltaico On-Grid';
-  if (texto.includes('solar térmico') || texto.includes('solar termico')) return 'Solar Térmico';
-  if (texto.includes('solar térmica') || texto.includes('solar termica')) return 'Solar Térmica — ACS';
   if (texto.includes('pileta')) return 'Solar Térmica — Pileta';
   if (texto.includes('calef')) return 'Solar Térmica — Calefacción';
-  if ((texto.includes('termica') || texto.includes('térmica')) && texto.includes('fv')) return 'Térmica + FV';
-  if (texto.includes('no sé') || texto.includes('no se') || texto.includes('todavía') || texto.includes('todavia')) return 'No sé todavía';
+  if ((texto.includes('termica') || texto.includes('solar termico') || texto.includes('solar termica')) && texto.includes('fv')) return 'Térmica + FV';
+  if (texto.includes('solar termico')) return 'Solar Térmico';
+  if (texto.includes('solar termica')) return 'Solar Térmica — ACS';
+  if (texto.includes('fotovoltaico') || texto.includes('fv')) return 'Fotovoltaico On-Grid';
+  if (texto.includes('no se') || texto.includes('todavia') || texto.includes('no estoy seguro')) return 'No sé todavía';
 
   return raw;
 }
@@ -1899,13 +1967,18 @@ function setSelectValuePreservingOption(selectEl, value, notas = '') {
   selectEl.value = option.value;
 }
 
+
+function tipoClienteDisplay(c) {
+  return normalizarTipoCliente(c.tipo, c.notas) || 'Sin especificar';
+}
+
 // ── CLIENTES ───────────────────────────────────────────────────────────────
 async function loadClientes() {
   const {data}=await db.from('hes_clientes').select('*').order('created_at',{ascending:false});
   clientes=data||[];
   const list=document.getElementById('cliente-list');
   const statusMap={consulta:['status-consulta','Consulta'],cotizando:['status-cotizando','En cotización'],enviado:['status-enviado','Ppto. enviado'],cerrado:['status-cerrado','Cerrado ✅'],perdido:['status-perdido','Perdido ❌']};
-  list.innerHTML=!clientes.length?'<div class="empty">Sin clientes todavía</div>':clientes.map(c=>{const[cls,lbl]=statusMap[c.estado]||['status-consulta','Consulta'];return`<div class="cliente-card"><div><div class="cliente-name">${c.nombre}</div><div class="cliente-meta">${c.tipo||'Sin especificar'} · ${c.contacto||'—'}</div>${c.notas?`<div class="cliente-meta">${c.notas}</div>`:''}</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><span class="cliente-status-pill ${cls}">${lbl}</span><button class="edit-btn" onclick="openClienteModal('${c.id}')">✎</button></div></div>`;}).join('');
+  list.innerHTML=!clientes.length?'<div class="empty">Sin clientes todavía</div>':clientes.map(c=>{const[cls,lbl]=statusMap[c.estado]||['status-consulta','Consulta'];return`<div class="cliente-card"><div><div class="cliente-name">${c.nombre}</div><div class="cliente-meta">${tipoClienteDisplay(c)} · ${c.contacto||'—'}</div>${c.notas?`<div class="cliente-meta">${c.notas}</div>`:''}</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><span class="cliente-status-pill ${cls}">${lbl}</span><button class="edit-btn" onclick="openClienteModal('${c.id}')">✎</button></div></div>`;}).join('');
 }
 
 function openClienteModal(id=null) {
@@ -1919,7 +1992,7 @@ function openClienteModal(id=null) {
 
 async function saveCliente() {
   const id=document.getElementById('cli-id').value;
-  const payload={nombre:document.getElementById('cli-nombre').value.trim(),contacto:document.getElementById('cli-contacto').value.trim(),tipo:normalizarTipoCliente(document.getElementById('cli-tipo').value, document.getElementById('cli-notas').value),estado:document.getElementById('cli-estado').value,notas:document.getElementById('cli-notas').value.trim()};
+  const payload={nombre:document.getElementById('cli-nombre').value.trim(),contacto:document.getElementById('cli-contacto').value.trim(),tipo:normalizarTipoCliente(document.getElementById('cli-tipo').value, document.getElementById('cli-notas').value), document.getElementById('cli-notas').value),estado:document.getElementById('cli-estado').value,notas:document.getElementById('cli-notas').value.trim()};
   if(!payload.nombre){toast('Ingresá el nombre');return;}
   setSyncState('loading');
   let error;

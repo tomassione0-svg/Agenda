@@ -800,14 +800,15 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
     <label>Teléfono / Email</label><input type="text" id="cli-contacto" placeholder="11-xxxx-xxxx">
     <label>Tipo de sistema</label>
     <select id="cli-tipo">
-      <option>Solar Térmica — ACS</option>
-      <option>Solar Térmica — Pileta</option>
-      <option>Solar Térmica — Calefacción</option>
-      <option>Fotovoltaico On-Grid</option>
-      <option>Fotovoltaico Off-Grid</option>
-      <option>Fotovoltaico</option>
-      <option>Térmica + FV</option>
-      <option>No estoy seguro</option>
+      <option value="">Seleccionar tipo de sistema</option>
+      <option value="Fotovoltaico On-Grid">Fotovoltaico On-Grid</option>
+      <option value="Fotovoltaico Off-Grid">Fotovoltaico Off-Grid</option>
+      <option value="Solar Térmica — ACS">Solar Térmica — ACS</option>
+      <option value="Solar Térmica — Pileta">Solar Térmica — Pileta</option>
+      <option value="Solar Térmica — Calefacción">Solar Térmica — Calefacción</option>
+      <option value="Solar Térmico">Solar Térmico</option>
+      <option value="Térmica + FV">Térmica + FV</option>
+      <option value="No sé todavía">No sé todavía</option>
     </select>
     <label>Estado</label>
     <select id="cli-estado">
@@ -1860,36 +1861,42 @@ async function loadPresupuestos() {
 }
 
 
-function normalizarTipoCliente(tipo) {
+function normalizarTipoCliente(tipo, notas = '') {
   const raw = (tipo || '').trim();
-  const lower = raw.toLowerCase();
+  const texto = `${raw} ${notas || ''}`.toLowerCase();
 
-  if (!raw) return 'No estoy seguro';
-
-  if (lower.includes('off') && lower.includes('grid')) return 'Fotovoltaico Off-Grid';
-  if (lower.includes('on') && lower.includes('grid')) return 'Fotovoltaico On-Grid';
-  if (lower.includes('fotovoltaico') || lower.includes('fv')) return 'Fotovoltaico';
-  if (lower.includes('pileta')) return 'Solar Térmica — Pileta';
-  if (lower.includes('calef')) return 'Solar Térmica — Calefacción';
-  if (lower.includes('térmica') && lower.includes('fv')) return 'Térmica + FV';
-  if (lower.includes('termica') && lower.includes('fv')) return 'Térmica + FV';
-  if (lower.includes('solar térmico') || lower.includes('solar termico') || lower.includes('solar térmica') || lower.includes('solar termica')) return 'Solar Térmica — ACS';
+  if (texto.includes('off') && texto.includes('grid')) return 'Fotovoltaico Off-Grid';
+  if (texto.includes('on') && texto.includes('grid')) return 'Fotovoltaico On-Grid';
+  if (texto.includes('solar térmico') || texto.includes('solar termico')) return 'Solar Térmico';
+  if (texto.includes('solar térmica') || texto.includes('solar termica')) return 'Solar Térmica — ACS';
+  if (texto.includes('pileta')) return 'Solar Térmica — Pileta';
+  if (texto.includes('calef')) return 'Solar Térmica — Calefacción';
+  if ((texto.includes('termica') || texto.includes('térmica')) && texto.includes('fv')) return 'Térmica + FV';
+  if (texto.includes('no sé') || texto.includes('no se') || texto.includes('todavía') || texto.includes('todavia')) return 'No sé todavía';
 
   return raw;
 }
 
-function setSelectValuePreservingOption(selectEl, value) {
-  const normalized = normalizarTipoCliente(value);
-  const exists = Array.from(selectEl.options).some(opt => opt.value === normalized || opt.textContent === normalized);
+function setSelectValuePreservingOption(selectEl, value, notas = '') {
+  const normalized = normalizarTipoCliente(value, notas);
 
-  if (!exists && normalized) {
-    const opt = document.createElement('option');
-    opt.textContent = normalized;
-    opt.value = normalized;
-    selectEl.appendChild(opt);
+  if (!normalized) {
+    selectEl.value = '';
+    return;
   }
 
-  selectEl.value = normalized;
+  let option = Array.from(selectEl.options).find(opt =>
+    opt.value === normalized || opt.textContent.trim() === normalized
+  );
+
+  if (!option) {
+    option = document.createElement('option');
+    option.value = normalized;
+    option.textContent = normalized;
+    selectEl.appendChild(option);
+  }
+
+  selectEl.value = option.value;
 }
 
 // ── CLIENTES ───────────────────────────────────────────────────────────────
@@ -1898,13 +1905,13 @@ async function loadClientes() {
   clientes=data||[];
   const list=document.getElementById('cliente-list');
   const statusMap={consulta:['status-consulta','Consulta'],cotizando:['status-cotizando','En cotización'],enviado:['status-enviado','Ppto. enviado'],cerrado:['status-cerrado','Cerrado ✅'],perdido:['status-perdido','Perdido ❌']};
-  list.innerHTML=!clientes.length?'<div class="empty">Sin clientes todavía</div>':clientes.map(c=>{const[cls,lbl]=statusMap[c.estado]||['status-consulta','Consulta'];return`<div class="cliente-card"><div><div class="cliente-name">${c.nombre}</div><div class="cliente-meta">${c.tipo} · ${c.contacto||'—'}</div>${c.notas?`<div class="cliente-meta">${c.notas}</div>`:''}</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><span class="cliente-status-pill ${cls}">${lbl}</span><button class="edit-btn" onclick="openClienteModal('${c.id}')">✎</button></div></div>`;}).join('');
+  list.innerHTML=!clientes.length?'<div class="empty">Sin clientes todavía</div>':clientes.map(c=>{const[cls,lbl]=statusMap[c.estado]||['status-consulta','Consulta'];return`<div class="cliente-card"><div><div class="cliente-name">${c.nombre}</div><div class="cliente-meta">${c.tipo||'Sin especificar'} · ${c.contacto||'—'}</div>${c.notas?`<div class="cliente-meta">${c.notas}</div>`:''}</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><span class="cliente-status-pill ${cls}">${lbl}</span><button class="edit-btn" onclick="openClienteModal('${c.id}')">✎</button></div></div>`;}).join('');
 }
 
 function openClienteModal(id=null) {
   document.getElementById('cli-id').value=id||'';
   document.getElementById('cli-btn-delete').style.display=id?'block':'none';
-  if(id){const c=clientes.find(c=>c.id==id);if(!c)return;document.getElementById('cli-nombre').value=c.nombre;document.getElementById('cli-contacto').value=c.contacto||'';setSelectValuePreservingOption(document.getElementById('cli-tipo'), c.tipo);document.getElementById('cli-estado').value=c.estado;document.getElementById('cli-notas').value=c.notas||'';}
+  if(id){const c=clientes.find(c=>c.id==id);if(!c)return;document.getElementById('cli-nombre').value=c.nombre;document.getElementById('cli-contacto').value=c.contacto||'';setSelectValuePreservingOption(document.getElementById('cli-tipo'), c.tipo, c.notas);document.getElementById('cli-estado').value=c.estado;document.getElementById('cli-notas').value=c.notas||'';}
   else{['cli-nombre','cli-contacto','cli-notas'].forEach(id=>document.getElementById(id).value='');document.getElementById('cli-tipo').value='Solar Térmica — ACS';document.getElementById('cli-estado').value='consulta';}
   openOverlay('modal-cliente');
   setTimeout(()=>document.getElementById('cli-nombre').focus(),80);
@@ -1912,7 +1919,7 @@ function openClienteModal(id=null) {
 
 async function saveCliente() {
   const id=document.getElementById('cli-id').value;
-  const payload={nombre:document.getElementById('cli-nombre').value.trim(),contacto:document.getElementById('cli-contacto').value.trim(),tipo:normalizarTipoCliente(document.getElementById('cli-tipo').value),estado:document.getElementById('cli-estado').value,notas:document.getElementById('cli-notas').value.trim()};
+  const payload={nombre:document.getElementById('cli-nombre').value.trim(),contacto:document.getElementById('cli-contacto').value.trim(),tipo:normalizarTipoCliente(document.getElementById('cli-tipo').value, document.getElementById('cli-notas').value),estado:document.getElementById('cli-estado').value,notas:document.getElementById('cli-notas').value.trim()};
   if(!payload.nombre){toast('Ingresá el nombre');return;}
   setSyncState('loading');
   let error;

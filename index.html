@@ -1837,7 +1837,10 @@ function limpiarDimensionFV() {
 
 async function guardarDim() {
   const cliente = document.getElementById('d-cliente').value.trim();
-  if(!cliente){ toast('Ingresá el nombre del cliente'); return; }
+  if (!cliente) {
+    toast('Ingresá el nombre del cliente');
+    return;
+  }
 
   const payload = {
     cliente: cliente,
@@ -1854,7 +1857,7 @@ async function guardarDim() {
   setSyncState('loading');
   const { error } = await db.from('hes_presupuestos').insert([payload]);
 
-  if(error){
+  if (error) {
     console.error('Error guardando térmica:', error);
     setSyncState('error');
     toast('Error al guardar térmica: ' + (error.message || 'revisar Supabase'));
@@ -1867,11 +1870,12 @@ async function guardarDim() {
   setSyncState('ok');
 }
 
-
-
 async function guardarDimFV() {
   const cliente = document.getElementById('fv-cliente').value.trim();
-  if(!cliente){ toast('Ingresá el nombre del cliente'); return; }
+  if (!cliente) {
+    toast('Ingresá el nombre del cliente');
+    return;
+  }
 
   const d = getFVData();
   const zonaTxt = document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text;
@@ -1893,7 +1897,7 @@ async function guardarDimFV() {
   setSyncState('loading');
   const { error } = await db.from('hes_presupuestos').insert([payload]);
 
-  if(error){
+  if (error) {
     console.error('Error guardando FV:', error);
     setSyncState('error');
     toast('Error al guardar FV: ' + (error.message || 'revisar Supabase'));
@@ -1916,8 +1920,8 @@ async function deleteDim(id) {
 
 
 async function loadPresupuestos() {
-  const { data, error } = await db.from('hes_presupuestos').select('*').order('created_at',{ascending:false});
-  if(error){
+  const { data, error } = await db.from('hes_presupuestos').select('*').order('created_at', { ascending: false });
+  if (error) {
     console.error('Error cargando presupuestos:', error);
     return;
   }
@@ -1946,7 +1950,7 @@ async function loadPresupuestos() {
         <div class="prov-row"><strong>Bomba:</strong> ${p.bomba || 0} L/h</div>
         <div class="prov-row"><strong>Área:</strong> ${p.area || 0} m²</div>
         <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
-        <div class="prov-row"><strong>Tipo:</strong> ${(p.tipo || '').replace('Térmica | ','')}</div>
+        <div class="prov-row"><strong>Tipo:</strong> ${(p.tipo || '').replace('Térmica | ', '')}</div>
       </div>
     </div>`).join('');
 
@@ -1976,9 +1980,9 @@ async function loadPresupuestos() {
         <div class="prov-row"><strong>${ahorro}</strong></div>
         <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
       </div>
-    </div>`}).join('');
+    </div>`;
+  }).join('');
 }
-
 
 // ── CLIENTES ───────────────────────────────────────────────────────────────
 async function loadClientes() {
@@ -2166,5 +2170,6 @@ async function init() {
 }
 </script>
 <!-- FIX presupuestos sin columna tipo_dim FINAL -->
+<!-- VERSION FINAL SIN tipo_dim - guardar presupuestos OK -->
 </body>
 </html>

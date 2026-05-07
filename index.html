@@ -264,6 +264,44 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .result-label{font-size:11px;color:var(--muted);margin-top:3px;}
 .result-note{font-size:10px;color:var(--muted);font-style:italic;}
 
+
+
+/* Dimensionamiento FV profesional */
+.fv-months-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
+.month-input{background:#fff;border:1px solid var(--gris-borde);border-radius:8px;padding:8px;}
+.month-input label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px;display:block;}
+.month-input input{width:100%;border:0!important;padding:2px 0!important;font-size:14px!important;background:transparent;outline:none;}
+.fv-summary-card{background:#fff;border:1px solid var(--gris-borde);border-radius:10px;padding:12px;margin-top:12px;}
+.fv-summary-row{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:6px 0;border-bottom:1px solid #eee;}
+.fv-summary-row:last-child{border-bottom:0;}
+.fv-summary-row strong{color:var(--texto);}
+.pdf-preview{display:none;}
+.pdf-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.btn-outline{background:#fff;color:var(--verde);border:1.5px solid var(--verde);}
+@media(max-width:520px){.fv-months-grid{grid-template-columns:repeat(2,1fr)}.pdf-actions{grid-template-columns:1fr}}
+@media print{
+  body *{visibility:hidden!important;}
+  #pdf-propuesta, #pdf-propuesta *{visibility:visible!important;}
+  #pdf-propuesta{display:block!important;position:absolute;left:0;top:0;width:100%;background:#fff;color:#111;padding:0;}
+  .pdf-page{width:190mm;margin:0 auto;padding:14mm;font-family:Arial,sans-serif;}
+  .pdf-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B6B2F;padding-bottom:14px;margin-bottom:18px;}
+  .pdf-brand{font-size:26px;font-weight:800;color:#1B6B2F;}
+  .pdf-sub{font-size:12px;color:#555;margin-top:4px;}
+  .pdf-date{text-align:right;font-size:11px;color:#555;}
+  .pdf-title{font-size:22px;font-weight:800;margin:18px 0 8px;color:#1a1a1a;}
+  .pdf-client{background:#EAF5EC;border:1px solid #D6EEDD;border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;}
+  .pdf-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0;}
+  .pdf-kpi{border:1px solid #ddd;border-radius:10px;padding:10px;background:#fafafa;}
+  .pdf-kpi .v{font-size:22px;font-weight:800;color:#1B6B2F;line-height:1;}
+  .pdf-kpi .l{font-size:10px;color:#666;margin-top:5px;}
+  .pdf-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:11px;}
+  .pdf-table th{background:#1B6B2F;color:#fff;text-align:left;padding:7px;}
+  .pdf-table td{border-bottom:1px solid #ddd;padding:7px;}
+  .pdf-section{margin-top:16px;}
+  .pdf-section h3{font-size:14px;color:#1B6B2F;margin-bottom:6px;border-bottom:1px solid #ddd;padding-bottom:5px;}
+  .pdf-note{font-size:10px;color:#666;line-height:1.45;margin-top:16px;border-top:1px solid #ddd;padding-top:10px;}
+}
+
 /* Clientes */
 .cliente-card{background:var(--card-bg);border:1px solid var(--gris-borde);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;}
 .cliente-name{font-size:14px;font-weight:600;}
@@ -322,6 +360,31 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 
 /* Separator */
 .section-sep{height:16px;}
+
+/* FIX LAYOUT: mantener el CRM centrado como antes */
+.main{
+  max-width:700px !important;
+  margin:0 auto !important;
+  padding:16px 12px !important;
+  width:100% !important;
+}
+.page{
+  width:100% !important;
+}
+#page-clientes,
+#page-agenda,
+#page-proveedores,
+#page-dimension{
+  max-width:700px !important;
+  margin:0 auto !important;
+}
+.cliente-card,
+.prov-card,
+.calc-card,
+.progress-card{
+  max-width:100% !important;
+}
+
 </style>
 </head>
 <body>
@@ -475,7 +538,10 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
           <div class="result-box accent"><div class="result-val" id="r-bomba">0</div><div class="result-label">L/h bomba</div></div>
         </div>
         <div style="margin-top:12px;background:var(--gris);border-radius:8px;padding:10px;font-size:12px;line-height:1.8" id="r-resumen">—</div>
-        <button class="btn btn-primary" style="width:100%;margin-top:12px" onclick="guardarDim()">Guardar presupuesto</button>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-primary" style="flex:1" onclick="guardarDim()">Guardar presupuesto</button>
+          <button class="btn btn-secondary" style="flex:1" onclick="exportarPDFTermica()">Exportar PDF</button>
+        </div>
       </div>
     </div>
     <div class="section-sep"></div>
@@ -485,14 +551,16 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   <div id="dim-fv" style="display:none">
     <div class="calc-grid">
       <div class="calc-card">
-        <h3>Datos del proyecto</h3>
-        <div class="calc-field"><label>Cliente</label><input type="text" id="fv-cliente" placeholder="Nombre del cliente"></div>
-        <div class="calc-field"><label>Consumo mensual (kWh/mes)</label><input type="number" id="fv-consumo" value="300" oninput="calcularFV()"><span style="font-size:10px;color:var(--muted)">Del recibo de luz</span></div>
+        <h3>Datos del proyecto FV profesional</h3>
+        <div class="calc-field"><label>Cliente / Empresa</label><input type="text" id="fv-cliente" placeholder="Nombre del cliente"></div>
+        <div class="calc-field"><label>Ubicación / Provincia</label><input type="text" id="fv-ubicacion" placeholder="Ej: Buenos Aires, Córdoba, Mendoza"></div>
+        <div class="calc-field"><label>Tarifa estimada ($/kWh)</label><input type="number" id="fv-tarifa" value="120" min="0" oninput="calcularFV()"><span style="font-size:10px;color:var(--muted)">Usar valor aproximado de factura. Sirve para estimar ahorro.</span></div>
         <div class="calc-field"><label>% consumo a cubrir</label>
           <select id="fv-cobertura" onchange="calcularFV()">
+            <option value="0.50">50%</option>
             <option value="0.75">75%</option>
             <option value="1.00" selected>100%</option>
-            <option value="0.50">50%</option>
+            <option value="1.20">120% con excedente</option>
           </select></div>
         <div class="calc-field"><label>Zona / HSP</label>
           <select id="fv-zona" onchange="calcularFV()">
@@ -506,38 +574,56 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
         <div class="calc-field"><label>Panel</label>
           <select id="fv-panel" onchange="calcularFV()">
             <option value="400">400W — estándar</option>
-            <option value="430" selected>430W — N-Type TOPCon (GPSOLAR)</option>
+            <option value="430" selected>430W — N-Type TOPCon</option>
             <option value="550">550W — comercial</option>
             <option value="600">600W — industrial</option>
           </select></div>
         <div class="calc-field"><label>Performance Ratio</label>
           <select id="fv-pr" onchange="calcularFV()">
-            <option value="0.75">0.75 — básico</option>
+            <option value="0.75">0.75 — conservador</option>
             <option value="0.80" selected>0.80 — estándar</option>
             <option value="0.85">0.85 — óptimo</option>
           </select></div>
         <div class="calc-field"><label>Sistema</label>
           <select id="fv-sistema" onchange="calcularFV()">
-            <option value="ongrid">On-Grid (conectado a red)</option>
-            <option value="offgrid">Off-Grid (autónomo)</option>
+            <option value="ongrid">On-Grid con medidor bidireccional</option>
+            <option value="offgrid">Off-Grid autónomo</option>
           </select></div>
       </div>
       <div class="calc-card">
-        <h3>Resultados</h3>
-        <div class="result-grid">
-          <div class="result-box"><div class="result-val" id="fv-r-kwp">0</div><div class="result-label">kWp</div></div>
-          <div class="result-box"><div class="result-val" id="fv-r-paneles">0</div><div class="result-label" id="fv-r-wpanel">paneles 430W</div></div>
-          <div class="result-box accent"><div class="result-val" id="fv-r-inversor">0</div><div class="result-label">kW inversor</div></div>
-          <div class="result-box accent"><div class="result-val" id="fv-r-bateria">—</div><div class="result-label" id="fv-r-bat-note">kWh batería</div></div>
+        <h3>Consumos mensuales de las 12 facturas</h3>
+        <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-bottom:8px">Cargá los kWh de cada factura. Si dejás meses vacíos, el sistema calcula con los meses cargados.</div>
+        <div class="fv-months-grid" id="fv-months-grid"></div>
+        <div class="fv-summary-card">
+          <div class="fv-summary-row"><span>Consumo anual</span><strong id="fv-consumo-anual">0 kWh</strong></div>
+          <div class="fv-summary-row"><span>Promedio mensual</span><strong id="fv-promedio-mensual">0 kWh</strong></div>
+          <div class="fv-summary-row"><span>Mes de mayor consumo</span><strong id="fv-pico-mensual">0 kWh</strong></div>
         </div>
-        <div style="margin-top:12px;background:var(--gris);border-radius:8px;padding:10px;font-size:12px;line-height:1.8" id="fv-r-resumen">—</div>
-        <button class="btn btn-azul" style="width:100%;margin-top:12px" onclick="guardarDimFV()">Guardar presupuesto FV</button>
+      </div>
+    </div>
+
+    <div class="calc-card" style="margin-top:12px">
+      <h3>Resultados técnicos y comerciales</h3>
+      <div class="result-grid">
+        <div class="result-box"><div class="result-val" id="fv-r-kwp">0</div><div class="result-label">kWp recomendados</div></div>
+        <div class="result-box"><div class="result-val" id="fv-r-paneles">0</div><div class="result-label" id="fv-r-wpanel">paneles 430W</div></div>
+        <div class="result-box accent"><div class="result-val" id="fv-r-inversor">0</div><div class="result-label">kW inversor</div></div>
+        <div class="result-box accent"><div class="result-val" id="fv-r-bateria">—</div><div class="result-label" id="fv-r-bat-note">solo Off-Grid</div></div>
+        <div class="result-box"><div class="result-val" id="fv-r-gen-mes">0</div><div class="result-label">kWh/mes estimados</div></div>
+        <div class="result-box"><div class="result-val" id="fv-r-ahorro-mes">$0</div><div class="result-label">ahorro mensual estimado</div></div>
+        <div class="result-box accent"><div class="result-val" id="fv-r-ahorro-anual">$0</div><div class="result-label">ahorro anual estimado</div></div>
+        <div class="result-box accent"><div class="result-val" id="fv-r-co2">0</div><div class="result-label">kg CO₂ evitados/año</div></div>
+      </div>
+      <div style="margin-top:12px;background:var(--gris);border-radius:8px;padding:10px;font-size:12px;line-height:1.8" id="fv-r-resumen">—</div>
+      <div class="pdf-actions">
+        <button class="btn btn-azul" onclick="guardarDimFV()">Guardar presupuesto FV</button>
+        <button class="btn btn-outline" onclick="exportarPDFfv()">Exportar propuesta PDF</button>
       </div>
     </div>
     <div class="section-sep"></div>
     <div class="section-label">Presupuestos guardados — Fotovoltaico</div>
     <div id="fv-dim-lista"></div>
-  </div>
+  </div></div>
 </div>
 
 <!-- ══ CLIENTES ══ -->
@@ -756,6 +842,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 
 </div><!-- /app -->
 
+<div id="pdf-propuesta" class="pdf-preview"></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1479,27 +1566,233 @@ function calcular() {
   document.getElementById('r-resumen').innerHTML=`<b>${colectores} colectores</b> ${tipoL} · Acumulador: <b>${Math.round(area*65)}L</b> · Bomba: <b>${Math.round(area*35)} L/h</b> · Cobertura: <b>${Math.round(cobertura*100)}%</b>`;
 }
 
-function calcularFV() {
-  const consumo=parseFloat(document.getElementById('fv-consumo').value)||0;
-  const cobertura=parseFloat(document.getElementById('fv-cobertura').value)||1;
-  const hsp=parseFloat(document.getElementById('fv-zona').value)||4.2;
-  const panelW=parseFloat(document.getElementById('fv-panel').value)||430;
-  const pr=parseFloat(document.getElementById('fv-pr').value)||0.80;
-  const sistema=document.getElementById('fv-sistema').value;
-  const Ed=(consumo*cobertura)/30;
-  const kwp=Ed/(hsp*pr);
-  const paneles=Math.ceil(kwp*1000/panelW);
-  const kwpReal=(paneles*panelW)/1000;
-  const inversor=+(kwpReal*0.85).toFixed(1);
-  const bateria=sistema==='offgrid'?Math.ceil(Ed*2):'—';
-  document.getElementById('fv-r-kwp').textContent=kwpReal.toFixed(1);
-  document.getElementById('fv-r-paneles').textContent=paneles;
-  document.getElementById('fv-r-wpanel').textContent=`paneles ${panelW}W`;
-  document.getElementById('fv-r-inversor').textContent=inversor;
-  document.getElementById('fv-r-bateria').textContent=bateria;
-  document.getElementById('fv-r-bat-note').textContent=sistema==='offgrid'?'kWh batería':'solo Off-Grid';
-  document.getElementById('fv-r-resumen').innerHTML=`<b>${paneles} paneles</b> de ${panelW}W = <b>${kwpReal.toFixed(1)} kWp</b> · Inversor: <b>${inversor} kW</b> · ${sistema==='offgrid'?`Batería: <b>${bateria} kWh</b>`:'On-Grid con medidor bidireccional'}`;
+function initFVMonths() {
+  const grid = document.getElementById('fv-months-grid');
+  if(!grid || grid.dataset.ready) return;
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  grid.innerHTML = meses.map((m,i)=>`
+    <div class="month-input">
+      <label>${m}</label>
+      <input type="number" min="0" id="fv-mes-${i}" placeholder="kWh" oninput="calcularFV()">
+    </div>`).join('');
+  grid.dataset.ready = '1';
 }
+
+function getFVData() {
+  initFVMonths();
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const consumos = meses.map((m,i)=>({mes:m,kwh:parseFloat(document.getElementById('fv-mes-'+i)?.value)||0}));
+  const cargados = consumos.filter(x=>x.kwh>0);
+  const totalCargado = cargados.reduce((a,b)=>a+b.kwh,0);
+  const promedio = cargados.length ? totalCargado / cargados.length : 300;
+  const anual = cargados.length >= 12 ? totalCargado : promedio * 12;
+  const pico = cargados.length ? Math.max(...cargados.map(x=>x.kwh)) : promedio;
+  const consumoBaseMensual = anual / 12;
+  const cobertura = parseFloat(document.getElementById('fv-cobertura').value)||1;
+  const hsp = parseFloat(document.getElementById('fv-zona').value)||4.2;
+  const panelW = parseFloat(document.getElementById('fv-panel').value)||430;
+  const pr = parseFloat(document.getElementById('fv-pr').value)||0.80;
+  const sistema = document.getElementById('fv-sistema').value;
+  const tarifa = parseFloat(document.getElementById('fv-tarifa').value)||0;
+  const energiaObjetivoDia = (anual * cobertura) / 365;
+  const kwpNecesario = energiaObjetivoDia / (hsp * pr);
+  const paneles = Math.max(1, Math.ceil(kwpNecesario*1000/panelW));
+  const kwpReal = (paneles*panelW)/1000;
+  const genAnual = kwpReal*hsp*pr*365;
+  const genMes = genAnual/12;
+  const inversor = +(kwpReal*0.85).toFixed(1);
+  const bateria = sistema==='offgrid' ? Math.ceil((consumoBaseMensual/30)*2) : '—';
+  const ahorroMes = Math.min(genMes, consumoBaseMensual)*tarifa;
+  const ahorroAnual = ahorroMes*12;
+  const co2 = genAnual*0.4;
+  return {meses, consumos, cargados, anual, promedio:consumoBaseMensual, pico, cobertura, hsp, panelW, pr, sistema, tarifa, kwpReal, paneles, genAnual, genMes, inversor, bateria, ahorroMes, ahorroAnual, co2};
+}
+
+function moneyARS(n){return '$'+Math.round(n||0).toLocaleString('es-AR');}
+
+function calcularFV() {
+  initFVMonths();
+  const d = getFVData();
+  document.getElementById('fv-consumo-anual').textContent = Math.round(d.anual).toLocaleString('es-AR')+' kWh';
+  document.getElementById('fv-promedio-mensual').textContent = Math.round(d.promedio).toLocaleString('es-AR')+' kWh';
+  document.getElementById('fv-pico-mensual').textContent = Math.round(d.pico).toLocaleString('es-AR')+' kWh';
+  document.getElementById('fv-r-kwp').textContent=d.kwpReal.toFixed(1);
+  document.getElementById('fv-r-paneles').textContent=d.paneles;
+  document.getElementById('fv-r-wpanel').textContent=`paneles ${d.panelW}W`;
+  document.getElementById('fv-r-inversor').textContent=d.inversor;
+  document.getElementById('fv-r-bateria').textContent=d.bateria;
+  document.getElementById('fv-r-bat-note').textContent=d.sistema==='offgrid'?'kWh batería':'solo Off-Grid';
+  document.getElementById('fv-r-gen-mes').textContent=Math.round(d.genMes).toLocaleString('es-AR');
+  document.getElementById('fv-r-ahorro-mes').textContent=moneyARS(d.ahorroMes);
+  document.getElementById('fv-r-ahorro-anual').textContent=moneyARS(d.ahorroAnual);
+  document.getElementById('fv-r-co2').textContent=Math.round(d.co2).toLocaleString('es-AR');
+  document.getElementById('fv-r-resumen').innerHTML=`<b>${d.paneles} paneles</b> de ${d.panelW}W = <b>${d.kwpReal.toFixed(1)} kWp</b> · Generación estimada: <b>${Math.round(d.genMes)} kWh/mes</b> · Inversor: <b>${d.inversor} kW</b> · ${d.sistema==='offgrid'?`Batería sugerida: <b>${d.bateria} kWh</b>`:'On-Grid con medidor bidireccional'} · Ahorro estimado: <b>${moneyARS(d.ahorroMes)}/mes</b>`;
+}
+
+function construirPropuestaFV() {
+  const d = getFVData();
+  const cliente = document.getElementById('fv-cliente').value.trim() || 'Cliente';
+  const ubicacion = document.getElementById('fv-ubicacion').value.trim() || 'No especificada';
+  const zonaTxt = document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text;
+  const panelTxt = document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text;
+  const fecha = new Date().toLocaleDateString('es-AR');
+  const filasConsumo = d.consumos.map(x=>`<tr><td>${x.mes}</td><td>${x.kwh?Math.round(x.kwh).toLocaleString('es-AR'):'—'}</td></tr>`).join('');
+  return `
+  <div class="pdf-page">
+    <div class="pdf-head">
+      <div>
+        <div class="pdf-brand">ExerGrid</div>
+        <div class="pdf-sub">Soluciones en Energías Renovables · Solar Fotovoltaica</div>
+      </div>
+      <div class="pdf-date">Propuesta preliminar<br><strong>${fecha}</strong></div>
+    </div>
+    <div class="pdf-title">Dimensionamiento fotovoltaico preliminar</div>
+    <div class="pdf-client"><strong>Cliente:</strong> ${cliente}<br><strong>Ubicación:</strong> ${ubicacion}<br><strong>Sistema:</strong> ${d.sistema==='offgrid'?'Off-Grid autónomo':'On-Grid con medidor bidireccional'}</div>
+    <div class="pdf-kpis">
+      <div class="pdf-kpi"><div class="v">${d.kwpReal.toFixed(1)}</div><div class="l">kWp instalados</div></div>
+      <div class="pdf-kpi"><div class="v">${d.paneles}</div><div class="l">paneles de ${d.panelW}W</div></div>
+      <div class="pdf-kpi"><div class="v">${d.inversor}</div><div class="l">kW inversor sugerido</div></div>
+      <div class="pdf-kpi"><div class="v">${Math.round(d.genMes)}</div><div class="l">kWh/mes estimados</div></div>
+    </div>
+    <div class="pdf-section"><h3>Resumen energético</h3>
+      <table class="pdf-table"><tbody>
+        <tr><td>Consumo anual estimado</td><td><strong>${Math.round(d.anual).toLocaleString('es-AR')} kWh/año</strong></td></tr>
+        <tr><td>Promedio mensual</td><td><strong>${Math.round(d.promedio).toLocaleString('es-AR')} kWh/mes</strong></td></tr>
+        <tr><td>Cobertura objetivo</td><td><strong>${Math.round(d.cobertura*100)}%</strong></td></tr>
+        <tr><td>Zona solar considerada</td><td><strong>${zonaTxt}</strong></td></tr>
+        <tr><td>Panel considerado</td><td><strong>${panelTxt}</strong></td></tr>
+      </tbody></table>
+    </div>
+    <div class="pdf-section"><h3>Impacto económico y ambiental</h3>
+      <table class="pdf-table"><tbody>
+        <tr><td>Ahorro mensual estimado</td><td><strong>${moneyARS(d.ahorroMes)}</strong></td></tr>
+        <tr><td>Ahorro anual estimado</td><td><strong>${moneyARS(d.ahorroAnual)}</strong></td></tr>
+        <tr><td>Generación anual estimada</td><td><strong>${Math.round(d.genAnual).toLocaleString('es-AR')} kWh/año</strong></td></tr>
+        <tr><td>Emisiones evitadas</td><td><strong>${Math.round(d.co2).toLocaleString('es-AR')} kg CO₂/año</strong></td></tr>
+      </tbody></table>
+    </div>
+    <div class="pdf-section"><h3>Consumos cargados desde facturas</h3>
+      <table class="pdf-table"><thead><tr><th>Mes</th><th>Consumo kWh</th></tr></thead><tbody>${filasConsumo}</tbody></table>
+    </div>
+    <div class="pdf-note">Documento preliminar de dimensionamiento. Los resultados son estimativos y deben validarse con relevamiento técnico, disponibilidad de superficie, orientación, sombras, estructura, normativa de la distribuidora y condiciones comerciales vigentes.</div>
+  </div>`;
+}
+
+function exportarPDFfv() {
+  const cliente=document.getElementById('fv-cliente').value.trim();
+  if(!cliente){toast('Ingresá el nombre del cliente antes de exportar');return;}
+  document.getElementById('pdf-propuesta').innerHTML = construirPropuestaFV();
+  setTimeout(()=>window.print(),120);
+}
+
+
+function construirPropuestaTermica() {
+  const cliente = document.getElementById('d-cliente').value.trim() || 'Cliente';
+  const personas = parseFloat(document.getElementById('d-personas').value) || 0;
+  const litros = parseFloat(document.getElementById('d-litros').value) || 0;
+  const tacum = parseFloat(document.getElementById('d-tacum').value) || 55;
+  const tred = parseFloat(document.getElementById('d-tred').value) || 15;
+  const zona = document.getElementById('d-zona').options[document.getElementById('d-zona').selectedIndex].text;
+  const tipo = document.getElementById('d-tipo').options[document.getElementById('d-tipo').selectedIndex].text;
+  const cobertura = parseFloat(document.getElementById('d-cobertura').value) || 0.70;
+
+  const area = document.getElementById('r-area').textContent;
+  const colectores = document.getElementById('r-colectores').textContent;
+  const acumulador = document.getElementById('r-acum').textContent;
+  const bomba = document.getElementById('r-bomba').textContent;
+
+  const litrosTotales = personas * litros;
+  const energiaDia = (litrosTotales * (tacum - tred) * 1.16 / 1000);
+  const energiaAnual = energiaDia * 365;
+  const aporteSolar = energiaAnual * cobertura;
+  const ahorroGasM3 = aporteSolar / 10.7;
+  const co2 = ahorroGasM3 * 1.9;
+
+  return `
+  <div class="pdf-page">
+    <div class="pdf-head">
+      <div>
+        <div class="pdf-brand">ExerGrid</div>
+        <div class="pdf-sub">Energías Renovables · Solar Térmica + Fotovoltaico</div>
+      </div>
+      <div class="pdf-date">
+        Propuesta técnica preliminar<br>
+        ${new Date().toLocaleDateString('es-AR')}
+      </div>
+    </div>
+
+    <div class="pdf-title">Dimensionamiento Solar Térmico</div>
+
+    <div class="pdf-client">
+      <strong>Cliente:</strong> ${cliente}<br>
+      <strong>Aplicación:</strong> Agua caliente sanitaria / apoyo térmico<br>
+      <strong>Zona de instalación:</strong> ${zona}
+    </div>
+
+    <div class="pdf-kpis">
+      <div class="pdf-kpi"><div class="v">${area}</div><div class="l">m² de área colectora</div></div>
+      <div class="pdf-kpi"><div class="v">${colectores}</div><div class="l">colectores solares</div></div>
+      <div class="pdf-kpi"><div class="v">${acumulador}</div><div class="l">litros de acumulación</div></div>
+      <div class="pdf-kpi"><div class="v">${bomba}</div><div class="l">L/h caudal de bomba</div></div>
+    </div>
+
+    <div class="pdf-section">
+      <h3>Datos de cálculo</h3>
+      <table class="pdf-table">
+        <tbody>
+          <tr><td>Personas consideradas</td><td><strong>${personas}</strong></td></tr>
+          <tr><td>Consumo diario estimado</td><td><strong>${litrosTotales.toFixed(0)} litros/día</strong></td></tr>
+          <tr><td>Litros por persona</td><td><strong>${litros} L/día</strong></td></tr>
+          <tr><td>Temperatura de acumulación</td><td><strong>${tacum} °C</strong></td></tr>
+          <tr><td>Temperatura de agua de red</td><td><strong>${tred} °C</strong></td></tr>
+          <tr><td>Tipo de colector</td><td><strong>${tipo}</strong></td></tr>
+          <tr><td>Cobertura solar objetivo</td><td><strong>${Math.round(cobertura * 100)}%</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pdf-section">
+      <h3>Resultados técnicos recomendados</h3>
+      <table class="pdf-table">
+        <tbody>
+          <tr><td>Área colectora calculada</td><td><strong>${area} m²</strong></td></tr>
+          <tr><td>Cantidad de colectores</td><td><strong>${colectores} unidades de referencia 2 m²</strong></td></tr>
+          <tr><td>Acumulador recomendado</td><td><strong>${acumulador} litros</strong></td></tr>
+          <tr><td>Caudal de bomba estimado</td><td><strong>${bomba} L/h</strong></td></tr>
+          <tr><td>Energía térmica anual estimada</td><td><strong>${Math.round(energiaAnual).toLocaleString('es-AR')} kWh térmicos/año</strong></td></tr>
+          <tr><td>Aporte solar anual estimado</td><td><strong>${Math.round(aporteSolar).toLocaleString('es-AR')} kWh térmicos/año</strong></td></tr>
+          <tr><td>Gas natural equivalente evitado</td><td><strong>${Math.round(ahorroGasM3).toLocaleString('es-AR')} m³/año aprox.</strong></td></tr>
+          <tr><td>Emisiones evitadas estimadas</td><td><strong>${Math.round(co2).toLocaleString('es-AR')} kg CO₂/año</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pdf-section">
+      <h3>Alcance preliminar de la solución</h3>
+      <table class="pdf-table">
+        <tbody>
+          <tr><td>Colectores solares</td><td>Sistema dimensionado según demanda térmica diaria.</td></tr>
+          <tr><td>Acumulación</td><td>Tanque acumulador recomendado para disponibilidad de ACS.</td></tr>
+          <tr><td>Circulación</td><td>Bomba y controlador diferencial a definir según instalación final.</td></tr>
+          <tr><td>Integración</td><td>Compatible con sistema de respaldo existente, sujeto a relevamiento técnico.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pdf-note">
+      Documento preliminar generado por el CRM técnico de ExerGrid. Los valores son estimativos y deben validarse con relevamiento en obra, orientación, inclinación, sombras, distancia hidráulica, calidad de agua, estructura disponible y condiciones comerciales vigentes.
+    </div>
+  </div>`;
+}
+
+function exportarPDFTermica() {
+  const cliente = document.getElementById('d-cliente').value.trim();
+  if(!cliente){toast('Ingresá el nombre del cliente antes de exportar');return;}
+  calcular();
+  document.getElementById('pdf-propuesta').innerHTML = construirPropuestaTermica();
+  setTimeout(()=>window.print(),120);
+}
+
 
 async function guardarDim() {
   const cliente=document.getElementById('d-cliente').value.trim();
@@ -1514,9 +1807,35 @@ async function guardarDim() {
 async function guardarDimFV() {
   const cliente=document.getElementById('fv-cliente').value.trim();
   if(!cliente){toast('Ingresá el nombre del cliente');return;}
-  const payload={tipo_dim:'fv',cliente,zona:document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text,tipo:document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text,colectores:parseInt(document.getElementById('fv-r-paneles').textContent),area:parseFloat(document.getElementById('fv-r-kwp').textContent),extra_json:JSON.stringify({sistema:document.getElementById('fv-sistema').value,inversor:document.getElementById('fv-r-inversor').textContent,bateria:document.getElementById('fv-r-bateria').textContent,consumo:document.getElementById('fv-consumo').value})};
+  const d=getFVData();
+  const payload={
+    tipo_dim:'fv',
+    cliente,
+    zona:document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text,
+    tipo:document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text,
+    colectores:d.paneles,
+    area:parseFloat(d.kwpReal.toFixed(2)),
+    extra_json:JSON.stringify({
+      ubicacion:document.getElementById('fv-ubicacion').value.trim(),
+      sistema:d.sistema,
+      inversor:d.inversor,
+      bateria:d.bateria,
+      consumos:d.consumos,
+      consumo_anual:Math.round(d.anual),
+      promedio_mensual:Math.round(d.promedio),
+      generacion_mensual:Math.round(d.genMes),
+      generacion_anual:Math.round(d.genAnual),
+      ahorro_mensual:Math.round(d.ahorroMes),
+      ahorro_anual:Math.round(d.ahorroAnual),
+      co2_anual:Math.round(d.co2),
+      tarifa:d.tarifa,
+      cobertura:d.cobertura
+    })
+  };
+  setSyncState('loading');
   const {error}=await db.from('hes_presupuestos').insert(payload);
-  if(!error){await loadPresupuestos();toast('Guardado ✓');}
+  if(!error){await loadPresupuestos();toast('Presupuesto FV guardado ✓');setSyncState('ok');}
+  else{setSyncState('error');toast('Error al guardar');}
 }
 
 async function deleteDim(id) {
@@ -1532,7 +1851,7 @@ async function loadPresupuestos() {
   const f=presupuestos.filter(p=>p.tipo_dim==='fv');
   const listaT=document.getElementById('dim-lista'), listaF=document.getElementById('fv-dim-lista');
   listaT.innerHTML=!t.length?'<div class="empty">Sin presupuestos térmicos</div>':t.map(p=>`<div class="prov-card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div><strong>${p.cliente}</strong><div style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleDateString('es-AR')}</div></div><button onclick="deleteDim(${p.id})" style="background:var(--rojo-light);color:var(--rojo);border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">Eliminar</button></div><div class="prov-rows"><div class="prov-row"><strong>Colectores:</strong> ${p.colectores} × 2m²</div><div class="prov-row"><strong>Acumulador:</strong> ${p.acumulador}L</div><div class="prov-row"><strong>Bomba:</strong> ${p.bomba} L/h</div><div class="prov-row"><strong>Zona:</strong> ${p.zona}</div></div></div>`).join('');
-  listaF.innerHTML=!f.length?'<div class="empty">Sin presupuestos FV</div>':f.map(p=>{let ex={};try{ex=JSON.parse(p.extra_json||'{}')}catch(e){}return`<div class="prov-card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div><strong>${p.cliente}</strong><div style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleDateString('es-AR')}</div></div><button onclick="deleteDim(${p.id})" style="background:var(--rojo-light);color:var(--rojo);border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">Eliminar</button></div><div class="prov-rows"><div class="prov-row"><strong>kWp:</strong> ${p.area}</div><div class="prov-row"><strong>Paneles:</strong> ${p.colectores}</div><div class="prov-row"><strong>Inversor:</strong> ${ex.inversor||'—'} kW</div><div class="prov-row"><strong>Sistema:</strong> ${ex.sistema==='offgrid'?'Off-Grid':'On-Grid'}</div></div></div>`}).join('');
+  listaF.innerHTML=!f.length?'<div class="empty">Sin presupuestos FV</div>':f.map(p=>{let ex={};try{ex=JSON.parse(p.extra_json||'{}')}catch(e){}return`<div class="prov-card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div><strong>${p.cliente}</strong><div style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleDateString('es-AR')}</div></div><button onclick="deleteDim(${p.id})" style="background:var(--rojo-light);color:var(--rojo);border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">Eliminar</button></div><div class="prov-rows"><div class="prov-row"><strong>kWp:</strong> ${p.area}</div><div class="prov-row"><strong>Paneles:</strong> ${p.colectores}</div><div class="prov-row"><strong>Inversor:</strong> ${ex.inversor||'—'} kW</div><div class="prov-row"><strong>Generación:</strong> ${ex.generacion_mensual||'—'} kWh/mes</div><div class="prov-row"><strong>Ahorro:</strong> ${ex.ahorro_mensual?moneyARS(ex.ahorro_mensual):'—'}/mes</div><div class="prov-row"><strong>Sistema:</strong> ${ex.sistema==='offgrid'?'Off-Grid':'On-Grid'}</div></div></div>`}).join('');
 }
 
 // ── CLIENTES ───────────────────────────────────────────────────────────────

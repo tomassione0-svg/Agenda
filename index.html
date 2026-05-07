@@ -1801,11 +1801,43 @@ function exportarPDFTermica() {
 }
 
 
+
+function limpiarDimensionTermica() {
+  document.getElementById('d-cliente').value = '';
+  document.getElementById('d-personas').value = 4;
+  document.getElementById('d-litros').value = 40;
+  document.getElementById('d-tacum').value = 55;
+  document.getElementById('d-tred').value = 15;
+  document.getElementById('d-zona').selectedIndex = 0;
+  document.getElementById('d-tipo').selectedIndex = 0;
+  document.getElementById('d-cobertura').value = '0.70';
+  calcular();
+}
+
+function limpiarDimensionFV() {
+  document.getElementById('fv-cliente').value = '';
+  const ubic = document.getElementById('fv-ubicacion');
+  if (ubic) ubic.value = '';
+  const tarifa = document.getElementById('fv-tarifa');
+  if (tarifa) tarifa.value = 120;
+  document.getElementById('fv-cobertura').value = '1.00';
+  document.getElementById('fv-zona').selectedIndex = 0;
+  document.getElementById('fv-panel').value = '430';
+  document.getElementById('fv-pr').value = '0.80';
+  document.getElementById('fv-sistema').value = 'ongrid';
+  for (let i = 0; i < 12; i++) {
+    const el = document.getElementById('fv-mes-' + i);
+    if (el) el.value = '';
+  }
+  calcularFV();
+}
+
+
 async function guardarDim() {
   const cliente=document.getElementById('d-cliente').value.trim();
   if(!cliente){toast('Ingresá el nombre del cliente');return;}
 
-  const payloadFull={
+  const payload={
     tipo_dim:'termica',
     cliente,
     personas:parseInt(document.getElementById('d-personas').value)||0,
@@ -1818,49 +1850,33 @@ async function guardarDim() {
     area:parseFloat(document.getElementById('r-area').textContent)||0
   };
 
-  const payloadMin={
-    cliente:payloadFull.cliente,
-    tipo:payloadFull.tipo,
-    zona:payloadFull.zona,
-    colectores:payloadFull.colectores,
-    acumulador:payloadFull.acumulador,
-    bomba:payloadFull.bomba,
-    area:payloadFull.area
-  };
-
   setSyncState('loading');
-  let {error}=await db.from('hes_presupuestos').insert(payloadFull);
-
-  if(error){
-    console.warn('Insert térmica completo falló, reintentando simple:', error.message);
-    ({error}=await db.from('hes_presupuestos').insert(payloadMin));
-  }
+  const {error}=await db.from('hes_presupuestos').insert(payload);
 
   if(!error){
     await loadPresupuestos();
+    limpiarDimensionTermica();
     toast('Presupuesto térmico guardado ✓');
     setSyncState('ok');
-  }else{
+  } else {
     console.error('Error guardando térmica:', error);
     setSyncState('error');
-    toast('Error al guardar térmica: ' + (error.message || 'revisar tabla'));
+    toast('Error al guardar térmica: ' + (error.message || 'revisar Supabase'));
   }
 }
+
+
 
 async function guardarDimFV() {
   const cliente=document.getElementById('fv-cliente').value.trim();
   if(!cliente){toast('Ingresá el nombre del cliente');return;}
 
   const d=getFVData();
-  const zonaTxt=document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text;
-  const panelTxt=document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text;
-  const sistemaTxt=d.sistema==='offgrid'?'Off-Grid':'On-Grid';
-
-  const payloadFull={
+  const payload={
     tipo_dim:'fv',
     cliente,
-    zona:zonaTxt,
-    tipo:panelTxt,
+    zona:document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text,
+    tipo:document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text,
     colectores:d.paneles,
     area:parseFloat(d.kwpReal.toFixed(2)),
     extra_json:JSON.stringify({
@@ -1881,32 +1897,21 @@ async function guardarDimFV() {
     })
   };
 
-  const payloadMin={
-    cliente,
-    zona:zonaTxt,
-    tipo:`Fotovoltaico ${sistemaTxt} · ${panelTxt}`,
-    colectores:d.paneles,
-    area:parseFloat(d.kwpReal.toFixed(2))
-  };
-
   setSyncState('loading');
-  let {error}=await db.from('hes_presupuestos').insert(payloadFull);
-
-  if(error){
-    console.warn('Insert FV completo falló, reintentando simple:', error.message);
-    ({error}=await db.from('hes_presupuestos').insert(payloadMin));
-  }
+  const {error}=await db.from('hes_presupuestos').insert(payload);
 
   if(!error){
     await loadPresupuestos();
+    limpiarDimensionFV();
     toast('Presupuesto FV guardado ✓');
     setSyncState('ok');
-  }else{
+  } else {
     console.error('Error guardando FV:', error);
     setSyncState('error');
-    toast('Error al guardar FV: ' + (error.message || 'revisar tabla'));
+    toast('Error al guardar FV: ' + (error.message || 'revisar Supabase'));
   }
 }
+
 
 async function deleteDim(id) {
   if(!confirm('¿Eliminar?'))return;
@@ -1939,8 +1944,8 @@ function normalizarTipoCliente(tipo, notas = '') {
   if ((texto.includes('termica') || texto.includes('solar termico') || texto.includes('solar termica')) && texto.includes('fv')) return 'Térmica + FV';
   if (texto.includes('solar termico')) return 'Solar Térmico';
   if (texto.includes('solar termica')) return 'Solar Térmica — ACS';
-  if (texto.includes('fotovoltaico') || texto.includes('fv')) return 'Fotovoltaico On-Grid';
   if (texto.includes('no se') || texto.includes('todavia') || texto.includes('no estoy seguro')) return 'No sé todavía';
+  if (texto.includes('fotovoltaico') || texto.includes('fv')) return 'Fotovoltaico On-Grid';
 
   return raw;
 }
@@ -1967,7 +1972,6 @@ function setSelectValuePreservingOption(selectEl, value, notas = '') {
   selectEl.value = option.value;
 }
 
-
 function tipoClienteDisplay(c) {
   return normalizarTipoCliente(c.tipo, c.notas) || 'Sin especificar';
 }
@@ -1984,7 +1988,7 @@ async function loadClientes() {
 function openClienteModal(id=null) {
   document.getElementById('cli-id').value=id||'';
   document.getElementById('cli-btn-delete').style.display=id?'block':'none';
-  if(id){const c=clientes.find(c=>c.id==id);if(!c)return;document.getElementById('cli-nombre').value=c.nombre;document.getElementById('cli-contacto').value=c.contacto||'';setSelectValuePreservingOption(document.getElementById('cli-tipo'), c.tipo, c.notas);document.getElementById('cli-estado').value=c.estado;document.getElementById('cli-notas').value=c.notas||'';}
+  if(id){const c=clientes.find(c=>c.id==id);if(!c)return;document.getElementById('cli-nombre').value=c.nombre;document.getElementById('cli-contacto').value=c.contacto||'';document.getElementById('cli-notas').value=c.notas||'';setSelectValuePreservingOption(document.getElementById('cli-tipo'), c.tipo, c.notas);document.getElementById('cli-estado').value=c.estado;}
   else{['cli-nombre','cli-contacto','cli-notas'].forEach(id=>document.getElementById(id).value='');document.getElementById('cli-tipo').value='Solar Térmica — ACS';document.getElementById('cli-estado').value='consulta';}
   openOverlay('modal-cliente');
   setTimeout(()=>document.getElementById('cli-nombre').focus(),80);
@@ -1992,7 +1996,7 @@ function openClienteModal(id=null) {
 
 async function saveCliente() {
   const id=document.getElementById('cli-id').value;
-  const payload={nombre:document.getElementById('cli-nombre').value.trim(),contacto:document.getElementById('cli-contacto').value.trim(),tipo:normalizarTipoCliente(document.getElementById('cli-tipo').value, document.getElementById('cli-notas').value), document.getElementById('cli-notas').value),estado:document.getElementById('cli-estado').value,notas:document.getElementById('cli-notas').value.trim()};
+  const payload={nombre:document.getElementById('cli-nombre').value.trim(),contacto:document.getElementById('cli-contacto').value.trim(),tipo:normalizarTipoCliente(document.getElementById('cli-tipo').value, document.getElementById('cli-notas').value),estado:document.getElementById('cli-estado').value,notas:document.getElementById('cli-notas').value.trim()};
   if(!payload.nombre){toast('Ingresá el nombre');return;}
   setSyncState('loading');
   let error;

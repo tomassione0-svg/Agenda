@@ -1834,73 +1834,76 @@ function limpiarDimensionFV() {
 
 
 
-async function guardarDim() {
-  const cliente=document.getElementById('d-cliente').value.trim();
-  if(!cliente){toast('Ingresá el nombre del cliente');return;}
 
-  const payload={
-    cliente,
-    personas:parseInt(document.getElementById('d-personas').value)||0,
-    litros_dia:parseInt(document.getElementById('d-litros').value)||0,
-    zona:document.getElementById('d-zona').options[document.getElementById('d-zona').selectedIndex].text,
-    tipo:'Térmica | ' + document.getElementById('d-tipo').options[document.getElementById('d-tipo').selectedIndex].text,
-    colectores:parseInt(document.getElementById('r-colectores').textContent)||0,
-    acumulador:parseInt(document.getElementById('r-acum').textContent)||0,
-    bomba:parseInt(document.getElementById('r-bomba').textContent)||0,
-    area:parseFloat(document.getElementById('r-area').textContent)||0
+async function guardarDim() {
+  const cliente = document.getElementById('d-cliente').value.trim();
+  if(!cliente){ toast('Ingresá el nombre del cliente'); return; }
+
+  const payload = {
+    cliente: cliente,
+    personas: parseInt(document.getElementById('d-personas').value) || 0,
+    litros_dia: parseInt(document.getElementById('d-litros').value) || 0,
+    zona: document.getElementById('d-zona').options[document.getElementById('d-zona').selectedIndex].text,
+    tipo: 'Térmica | ' + document.getElementById('d-tipo').options[document.getElementById('d-tipo').selectedIndex].text,
+    colectores: parseInt(document.getElementById('r-colectores').textContent) || 0,
+    acumulador: parseInt(document.getElementById('r-acum').textContent) || 0,
+    bomba: parseInt(document.getElementById('r-bomba').textContent) || 0,
+    area: parseFloat(document.getElementById('r-area').textContent) || 0
   };
 
   setSyncState('loading');
-  const {error}=await db.from('hes_presupuestos').insert(payload);
+  const { error } = await db.from('hes_presupuestos').insert([payload]);
 
-  if(!error){
-    await loadPresupuestos();
-    limpiarDimensionTermica();
-    toast('Presupuesto térmico guardado ✓');
-    setSyncState('ok');
-  } else {
+  if(error){
     console.error('Error guardando térmica:', error);
     setSyncState('error');
     toast('Error al guardar térmica: ' + (error.message || 'revisar Supabase'));
+    return;
   }
+
+  await loadPresupuestos();
+  limpiarDimensionTermica();
+  toast('Presupuesto térmico guardado ✓');
+  setSyncState('ok');
 }
 
 
 
 async function guardarDimFV() {
-  const cliente=document.getElementById('fv-cliente').value.trim();
-  if(!cliente){toast('Ingresá el nombre del cliente');return;}
+  const cliente = document.getElementById('fv-cliente').value.trim();
+  if(!cliente){ toast('Ingresá el nombre del cliente'); return; }
 
-  const d=getFVData();
-  const zonaTxt=document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text;
-  const panelTxt=document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text;
-  const sistemaTxt=d.sistema==='offgrid'?'Off-Grid':'On-Grid';
+  const d = getFVData();
+  const zonaTxt = document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text;
+  const panelTxt = document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text;
+  const sistemaTxt = d.sistema === 'offgrid' ? 'Off-Grid' : 'On-Grid';
 
-  const payload={
-    cliente,
-    personas:0,
-    litros_dia:Math.round(d.promedio)||0,
-    zona:zonaTxt,
-    tipo:`FV | ${sistemaTxt} | ${panelTxt} | Inv ${d.inversor} kW | ${Math.round(d.genMes)} kWh/mes | Ahorro ${moneyARS(d.ahorroMes)}/mes`,
-    colectores:d.paneles,
-    acumulador:d.sistema==='offgrid' ? parseInt(d.bateria)||0 : 0,
-    bomba:Math.round(d.ahorroAnual)||0,
-    area:parseFloat(d.kwpReal.toFixed(2))
+  const payload = {
+    cliente: cliente,
+    personas: 0,
+    litros_dia: Math.round(d.promedio) || 0,
+    zona: zonaTxt,
+    tipo: `FV | ${sistemaTxt} | ${panelTxt} | Inv ${d.inversor} kW | ${Math.round(d.genMes)} kWh/mes | Ahorro ${moneyARS(d.ahorroMes)}/mes`,
+    colectores: d.paneles || 0,
+    acumulador: d.sistema === 'offgrid' ? (parseInt(d.bateria) || 0) : 0,
+    bomba: Math.round(d.ahorroAnual) || 0,
+    area: parseFloat(d.kwpReal.toFixed(2)) || 0
   };
 
   setSyncState('loading');
-  const {error}=await db.from('hes_presupuestos').insert(payload);
+  const { error } = await db.from('hes_presupuestos').insert([payload]);
 
-  if(!error){
-    await loadPresupuestos();
-    limpiarDimensionFV();
-    toast('Presupuesto FV guardado ✓');
-    setSyncState('ok');
-  } else {
+  if(error){
     console.error('Error guardando FV:', error);
     setSyncState('error');
     toast('Error al guardar FV: ' + (error.message || 'revisar Supabase'));
+    return;
   }
+
+  await loadPresupuestos();
+  limpiarDimensionFV();
+  toast('Presupuesto FV guardado ✓');
+  setSyncState('ok');
 }
 
 
@@ -1911,23 +1914,24 @@ async function deleteDim(id) {
 }
 
 
+
 async function loadPresupuestos() {
-  const {data,error}=await db.from('hes_presupuestos').select('*').order('created_at',{ascending:false});
+  const { data, error } = await db.from('hes_presupuestos').select('*').order('created_at',{ascending:false});
   if(error){
     console.error('Error cargando presupuestos:', error);
     return;
   }
 
-  presupuestos=data||[];
+  presupuestos = data || [];
 
-  const esFV = p => (p.tipo||'').toLowerCase().startsWith('fv |');
-  const f=presupuestos.filter(esFV);
-  const t=presupuestos.filter(p=>!esFV(p));
+  const esFV = p => (p.tipo || '').toLowerCase().startsWith('fv |');
+  const f = presupuestos.filter(esFV);
+  const t = presupuestos.filter(p => !esFV(p));
 
-  const listaT=document.getElementById('dim-lista');
-  const listaF=document.getElementById('fv-dim-lista');
+  const listaT = document.getElementById('dim-lista');
+  const listaF = document.getElementById('fv-dim-lista');
 
-  listaT.innerHTML=!t.length?'<div class="empty">Sin presupuestos térmicos</div>':t.map(p=>`
+  listaT.innerHTML = !t.length ? '<div class="empty">Sin presupuestos térmicos</div>' : t.map(p => `
     <div class="prov-card" style="margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <div>
@@ -1937,22 +1941,22 @@ async function loadPresupuestos() {
         <button onclick="deleteDim(${p.id})" style="background:var(--rojo-light);color:var(--rojo);border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">Eliminar</button>
       </div>
       <div class="prov-rows">
-        <div class="prov-row"><strong>Colectores:</strong> ${p.colectores||0} × 2m²</div>
-        <div class="prov-row"><strong>Acumulador:</strong> ${p.acumulador||0}L</div>
-        <div class="prov-row"><strong>Bomba:</strong> ${p.bomba||0} L/h</div>
-        <div class="prov-row"><strong>Área:</strong> ${p.area||0} m²</div>
-        <div class="prov-row"><strong>Zona:</strong> ${p.zona||'—'}</div>
-        <div class="prov-row"><strong>Tipo:</strong> ${(p.tipo||'').replace('Térmica | ','')}</div>
+        <div class="prov-row"><strong>Colectores:</strong> ${p.colectores || 0} × 2m²</div>
+        <div class="prov-row"><strong>Acumulador:</strong> ${p.acumulador || 0}L</div>
+        <div class="prov-row"><strong>Bomba:</strong> ${p.bomba || 0} L/h</div>
+        <div class="prov-row"><strong>Área:</strong> ${p.area || 0} m²</div>
+        <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
+        <div class="prov-row"><strong>Tipo:</strong> ${(p.tipo || '').replace('Térmica | ','')}</div>
       </div>
     </div>`).join('');
 
-  listaF.innerHTML=!f.length?'<div class="empty">Sin presupuestos FV</div>':f.map(p=>{
-    const partes=(p.tipo||'').split('|').map(x=>x.trim());
-    const sistema=partes[1]||'FV';
-    const panel=partes[2]||'Panel';
-    const inv=partes[3]||'Inv —';
-    const gen=partes[4]||'Generación —';
-    const ahorro=partes[5]||'Ahorro —';
+  listaF.innerHTML = !f.length ? '<div class="empty">Sin presupuestos FV</div>' : f.map(p => {
+    const partes = (p.tipo || '').split('|').map(x => x.trim());
+    const sistema = partes[1] || 'FV';
+    const panel = partes[2] || 'Panel';
+    const inv = partes[3] || 'Inv —';
+    const gen = partes[4] || 'Generación —';
+    const ahorro = partes[5] || 'Ahorro —';
 
     return `
     <div class="prov-card" style="margin-bottom:8px">
@@ -1965,12 +1969,12 @@ async function loadPresupuestos() {
       </div>
       <div class="prov-rows">
         <div class="prov-row"><strong>Sistema:</strong> ${sistema}</div>
-        <div class="prov-row"><strong>kWp:</strong> ${p.area||0}</div>
-        <div class="prov-row"><strong>Paneles:</strong> ${p.colectores||0}</div>
+        <div class="prov-row"><strong>kWp:</strong> ${p.area || 0}</div>
+        <div class="prov-row"><strong>Paneles:</strong> ${p.colectores || 0}</div>
         <div class="prov-row"><strong>${inv}</strong></div>
         <div class="prov-row"><strong>${gen}</strong></div>
         <div class="prov-row"><strong>${ahorro}</strong></div>
-        <div class="prov-row"><strong>Zona:</strong> ${p.zona||'—'}</div>
+        <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
       </div>
     </div>`}).join('');
 }
@@ -2161,5 +2165,6 @@ async function init() {
   } catch(e){ setSyncState('error'); }
 }
 </script>
+<!-- FIX presupuestos sin columna tipo_dim FINAL -->
 </body>
 </html>

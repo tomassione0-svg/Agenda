@@ -472,11 +472,17 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   </div>
   <div class="section-label">☀ Solar Térmica</div>
   <div class="tasks" id="tasks-termica"></div>
-  <button class="add-btn" onclick="openModal('termica')">＋ Agregar tarea</button>
+  <div style="display:flex;gap:6px;margin-top:6px">
+    <button class="add-btn" onclick="openModal('termica')" style="margin-top:0;flex:1">＋ Agregar tarea</button>
+    <button class="add-btn" onclick="startVozModal('termica')" title="Agregar por voz" style="margin-top:0;width:44px;padding:10px;flex:none;justify-content:center">🎤</button>
+  </div>
   <div class="section-sep"></div>
   <div class="section-label">⚡ Fotovoltaico</div>
   <div class="tasks" id="tasks-fv"></div>
-  <button class="add-btn" onclick="openModal('fv')">＋ Agregar tarea</button>
+  <div style="display:flex;gap:6px;margin-top:6px">
+    <button class="add-btn" onclick="openModal('fv')" style="margin-top:0;flex:1">＋ Agregar tarea</button>
+    <button class="add-btn" onclick="startVozModal('fv')" title="Agregar por voz" style="margin-top:0;width:44px;padding:10px;flex:none;justify-content:center">🎤</button>
+  </div>
 </div>
 
 <!-- ══ PROVEEDORES ══ -->
@@ -485,7 +491,10 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">CRM de Proveedores</div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px" onclick="openCompareModal()">⚖ Comparar</button>
-      <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="openProvModal()">＋ Agregar</button>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="openProvModal()">＋ Agregar</button>
+        <button class="btn btn-primary" style="font-size:12px;padding:6px 10px" onclick="startVozProv()" title="Agregar proveedor por voz">🎤</button>
+      </div>
     </div>
   </div>
   <div class="prov-grid" id="prov-grid"></div>
@@ -628,11 +637,14 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 
 <!-- ══ CLIENTES ══ -->
 <div class="page" id="page-clientes">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 4px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Pipeline de clientes</div>
-    <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="openClienteModal()">＋ Nuevo</button>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="openClienteModal()">＋ Nuevo</button>
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 10px" onclick="startVozCliente()" title="Agregar cliente por voz">🎤</button>
+    </div>
   </div>
-  <div id="cliente-list" style="padding:0 4px"></div>
+  <div id="cliente-list"></div>
 </div>
 
 </div><!-- /main -->
@@ -674,7 +686,9 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 <!-- ══ MODAL PROVEEDOR ══ -->
 <div class="modal-overlay" id="modal-prov">
   <div class="modal">
-    <h2 id="prov-modal-title">Nuevo proveedor</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0">
+      <h2 id="prov-modal-title" style="margin:0">Nuevo proveedor</h2>
+    </div>
     <input type="hidden" id="prov-id">
     <label>Nombre</label><input type="text" id="prov-nombre" placeholder="Ej: Solarsol">
     <label>Sitio web</label><input type="text" id="prov-web" placeholder="solarsol.com.ar">
@@ -794,7 +808,9 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 <!-- ══ MODAL CLIENTE ══ -->
 <div class="modal-overlay" id="modal-cliente">
   <div class="modal">
-    <h2>Cliente potencial</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0">
+      <h2 style="margin:0">Cliente potencial</h2>
+    </div>
     <input type="hidden" id="cli-id">
     <label>Nombre / Empresa</label><input type="text" id="cli-nombre" placeholder="Juan García">
     <label>Teléfono / Email</label><input type="text" id="cli-contacto" placeholder="11-xxxx-xxxx">
@@ -2391,5 +2407,593 @@ async function init() {
 <!-- VERSION FINAL SIN tipo_dim - guardar presupuestos OK -->
 <!-- VERSION con Ver y PDF en presupuestos guardados -->
 <!-- VERSION FINAL clientes-web + offgrid + presupuestos ver detalle/pdf -->
+
+<!-- ══ MODAL VOZ ══ -->
+<div class="modal-overlay" id="modal-voz" style="display:none">
+  <div class="modal" style="max-width:460px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+      <h2 style="margin:0">🎤 Nueva tarea por voz</h2>
+      <button onclick="clearVozMic();document.getElementById('modal-voz').style.display='none'"
+        style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;line-height:1;padding:0 0 0 12px"
+        title="Cerrar">×</button>
+    </div>
+    <p style="color:#666;font-size:12px;margin-bottom:16px">
+      Dictá algo como: <em>"llamar a Pedro mañana, prioridad alta, en curso"</em>
+    </p>
+
+    <!-- Botón micrófono -->
+    <div style="text-align:center;margin-bottom:12px">
+      <button id="voz-mic-btn" onclick="toggleVozMic()"
+        style="width:64px;height:64px;border-radius:50%;background:#16a34a;border:none;
+               cursor:pointer;font-size:28px;transition:all .2s;display:inline-flex;
+               align-items:center;justify-content:center">
+        🎤
+      </button>
+    </div>
+    <div id="voz-status" style="text-align:center;font-size:12px;color:#666;min-height:18px;margin-bottom:8px"></div>
+
+    <!-- Lo que dictaste -->
+    <div id="voz-transcript" style="display:none;background:#f5f5f5;border-radius:8px;
+         padding:10px 14px;margin-bottom:12px;font-size:13px;font-style:italic;color:#333">
+      <span style="font-size:10px;color:#999;display:block;margin-bottom:2px">LO QUE DICTASTE</span>
+      <span id="voz-transcript-text"></span>
+    </div>
+
+    <!-- Preview editable -->
+    <div id="voz-preview" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div style="grid-column:1/-1">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">TAREA</label>
+          <input type="text" id="voz-tarea"
+            style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">DETALLE / NOTAS</label>
+          <textarea id="voz-detalle" rows="2"
+            style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box;resize:none"></textarea>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">ESTADO</label>
+          <select id="voz-estado" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+            <option value="pendiente">⏳ Pendiente</option>
+            <option value="curso">🔄 En curso</option>
+            <option value="hecho">✅ Hecho</option>
+            <option value="urgente">🔥 Urgente</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">PRIORIDAD</label>
+          <select id="voz-prio" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+            <option value="alta">🔴 Alta</option>
+            <option value="media">🟡 Media</option>
+            <option value="baja">🟢 Baja</option>
+          </select>
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">SECCIÓN</label>
+          <select id="voz-seccion" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+            <option value="Esta semana">Esta semana</option>
+            <option value="Semana que viene">Semana que viene</option>
+            <option value="Próximas semanas">Próximas semanas</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:space-between;align-items:center">
+        <button onclick="closeModal('modal-voz')" style="background:none;border:1px solid #ddd;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px">Cancelar</button>
+        <button onclick="saveVozTask()" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer">✓ Guardar tarea</button>
+      </div>
+    </div>
+
+    <!-- Limpiar -->
+    <div style="text-align:center;margin-top:8px">
+      <button id="voz-clear-btn" onclick="clearVozMic()" style="display:none;font-size:11px;background:none;border:none;color:#999;cursor:pointer;text-decoration:underline">Limpiar y dictar de nuevo</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes voz-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(22,163,74,.5); transform: scale(1); }
+    50%  { box-shadow: 0 0 0 14px rgba(22,163,74,0); transform: scale(1.06); }
+    100% { box-shadow: 0 0 0 0 rgba(22,163,74,0); transform: scale(1); }
+  }
+  .voz-recording { animation: voz-pulse 1.2s infinite !important; background: #dc2626 !important; }
+</style>
+
+<script>
+// ══ VOZ CHECKPOINTS ══
+let _vozCol = null, _vozRec = null, _vozActive = false, _vozText = '';
+
+function startVozModal(col) {
+  _vozCol = col;
+  clearVozMic();
+  document.getElementById('modal-voz').style.display = 'flex';
+}
+
+function toggleVozMic() {
+  _vozActive ? stopVozMic() : startVozMic();
+}
+
+function startVozMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('Tu navegador no soporta reconocimiento de voz. Usá Chrome.'); return; }
+  _vozText = ''; _vozActive = true;
+  const btn = document.getElementById('voz-mic-btn');
+  btn.classList.add('voz-recording'); btn.textContent = '⏹';
+  document.getElementById('voz-status').textContent = '🔴 Escuchando...';
+  document.getElementById('voz-transcript').style.display = 'none';
+  document.getElementById('voz-preview').style.display = 'none';
+
+  _vozRec = new SR();
+  _vozRec.lang = 'es-AR';
+  _vozRec.continuous = true;
+  _vozRec.interimResults = true;
+
+  _vozRec.onresult = e => {
+    let final = '', interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    if (final) _vozText += final;
+    document.getElementById('voz-transcript-text').textContent = _vozText + interim;
+    document.getElementById('voz-transcript').style.display = 'block';
+  };
+
+  _vozRec.onerror = e => {
+    stopVozMic();
+    document.getElementById('voz-status').textContent = '⚠ Error: ' + e.error;
+  };
+
+  _vozRec.onend = () => {
+    _vozActive = false;
+    const btn2 = document.getElementById('voz-mic-btn');
+    btn2.classList.remove('voz-recording'); btn2.textContent = '🎤';
+    const text = _vozText.trim();
+    if (text.length > 2) {
+      processVozText(text);
+    } else {
+      document.getElementById('voz-status').textContent = 'No se detectó voz. Intentá de nuevo.';
+    }
+  };
+
+  _vozRec.start();
+}
+
+function stopVozMic() {
+  _vozActive = false;
+  document.getElementById('voz-status').textContent = '⏳ Procesando...';
+  if (_vozRec) { try { _vozRec.stop(); } catch(e) {} }
+}
+
+async function processVozText(text) {
+  const status = document.getElementById('voz-status');
+  status.textContent = '🤖 Interpretando con IA...';
+
+  function showForm(vals) {
+    document.getElementById('voz-tarea').value   = vals.tarea   || text;
+    document.getElementById('voz-detalle').value  = vals.detalle || '';
+    document.getElementById('voz-estado').value   = vals.estado  || 'pendiente';
+    document.getElementById('voz-prio').value     = vals.prio    || 'media';
+    document.getElementById('voz-seccion').value  = vals.seccion || 'Esta semana';
+    document.getElementById('voz-preview').style.display = 'block';
+    document.getElementById('voz-clear-btn').style.display = 'inline';
+  }
+
+  // Intentar Claude
+  let parsed = null;
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 200,
+        messages: [{ role: 'user', content: `Extraé datos de esta tarea dictada por voz: "${text}"
+Respondé SOLO JSON sin markdown:
+{"tarea":"texto corto de la tarea","detalle":"notas adicionales o vacío","estado":"pendiente|curso|hecho|urgente","prio":"alta|media|baja","seccion":"Esta semana|Semana que viene|Próximas semanas"}
+Reglas estado: urgente/urgente/ya→urgente | haciendo/en curso/hoy→curso | listo/hecho→hecho | resto→pendiente
+Reglas prioridad: importante/urgente/alta/crítico→alta | media/normal→media | baja/después→baja | si menciona "esta semana" o "hoy"→alta por defecto
+Reglas sección: hoy/esta semana/mañana→"Esta semana" | semana que viene/próxima semana→"Semana que viene" | después/próximas→"Próximas semanas" | default→"Esta semana"` }]
+      })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    const raw = (data?.content?.[0]?.text||'').replace(/\`\`\`json|\`\`\`/g,'').trim();
+    parsed = JSON.parse(raw);
+  } catch(e) {
+    console.warn('Claude falló, usando parser local:', e.message);
+    parsed = null;
+  }
+
+  if (parsed) {
+    showForm(parsed);
+    status.textContent = '✅ Revisá y guardá';
+  } else {
+    // Parser local básico
+    const t = text.toLowerCase();
+    const prio = /alta|urgente|importante|crítico/i.test(t) ? 'alta'
+               : /baja|después|luego/i.test(t) ? 'baja' : 'media';
+    const estado = /urgente|ya mismo/i.test(t) ? 'urgente'
+                 : /en curso|haciendo|hoy/i.test(t) ? 'curso'
+                 : /hecho|listo|terminado/i.test(t) ? 'hecho' : 'pendiente';
+    const seccion = /semana que viene|próxima semana/i.test(t) ? 'Semana que viene'
+                  : /después|próximas semanas/i.test(t) ? 'Próximas semanas' : 'Esta semana';
+    showForm({ tarea: text, detalle: '', estado, prio, seccion });
+    status.textContent = '✏️ Revisá los campos y guardá';
+  }
+}
+
+async function saveVozTask() {
+  const payload = {
+    columna: _vozCol,
+    tarea:   document.getElementById('voz-tarea').value.trim(),
+    detalle: document.getElementById('voz-detalle').value.trim(),
+    estado:  document.getElementById('voz-estado').value,
+    prioridad: document.getElementById('voz-prio').value,
+    seccion: document.getElementById('voz-seccion').value,
+  };
+  if (!payload.tarea) { alert('Escribí el nombre de la tarea'); return; }
+  setSyncState('loading');
+  const { error } = await db.from('hes_tareas').insert(payload);
+  document.getElementById('modal-voz').style.display = 'none';
+  if (!error) { await loadTasks(); toast('Tarea guardada por voz ✓'); }
+  else { setSyncState('error'); toast('Error al guardar'); }
+}
+
+function clearVozMic() {
+  _vozText = ''; _vozActive = false;
+  if (_vozRec) { try { _vozRec.abort(); } catch(e) {} }
+  const btn = document.getElementById('voz-mic-btn');
+  if (btn) { btn.classList.remove('voz-recording'); btn.textContent = '🎤'; }
+  document.getElementById('voz-status').textContent = '';
+  document.getElementById('voz-transcript').style.display = 'none';
+  document.getElementById('voz-transcript-text').textContent = '';
+  document.getElementById('voz-preview').style.display = 'none';
+  document.getElementById('voz-clear-btn').style.display = 'none';
+}
+</script>
+
+<!-- ══ MODAL VOZ PROVEEDOR ══ -->
+<div class="modal-overlay" id="modal-voz-prov" style="display:none">
+  <div class="modal" style="max-width:460px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <h2 style="margin:0">🎤 Nuevo proveedor por voz</h2>
+      <button onclick="clearVozProv();document.getElementById('modal-voz-prov').style.display='none'"
+        style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;padding:0 0 0 12px">×</button>
+    </div>
+    <p style="color:#666;font-size:12px;margin-bottom:16px">Ej: <em>"Solarsol, importador de solar térmica, prioridad alta, en negociación"</em></p>
+    <div style="text-align:center;margin-bottom:12px">
+      <button id="voz-prov-btn" onclick="toggleVozProv()"
+        style="width:64px;height:64px;border-radius:50%;background:#16a34a;border:none;cursor:pointer;font-size:28px;display:inline-flex;align-items:center;justify-content:center;transition:all .2s">🎤</button>
+    </div>
+    <div id="voz-prov-status" style="text-align:center;font-size:12px;color:#666;min-height:18px;margin-bottom:8px"></div>
+    <div id="voz-prov-transcript" style="display:none;background:#f5f5f5;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-style:italic;color:#333">
+      <span style="font-size:10px;color:#999;display:block;margin-bottom:2px">LO QUE DICTASTE</span>
+      <span id="voz-prov-transcript-text"></span>
+    </div>
+    <div id="voz-prov-preview" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div style="grid-column:1/-1">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">NOMBRE</label>
+          <input type="text" id="vp-nombre" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">SITIO WEB</label>
+          <input type="text" id="vp-web" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">TIPO</label>
+          <select id="vp-tipo" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+            <option>Importador directo</option><option>Especialista térmica</option>
+            <option>FV + Térmica</option><option>Fabricante</option>
+            <option>Distribuidor</option><option>Otro</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">CATEGORÍA</label>
+          <select id="vp-cat" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+            <option value="termica">Solar Térmica</option><option value="fv">Fotovoltaico</option>
+            <option value="ambos">Ambos</option><option value="accesorios">Accesorios</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">PRIORIDAD</label>
+          <select id="vp-prio" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+            <option value="alta">🔴 Alta</option><option value="media">🟡 Media</option><option value="baja">🟢 Baja</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">ESTADO</label>
+          <select id="vp-estado" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+            <option value="sin_contacto">📋 Sin contacto</option>
+            <option value="contactado">📞 Contactado</option>
+            <option value="esperando">⏳ Esperando</option>
+            <option value="en_negociacion">💬 En negociación</option>
+            <option value="ppto_recibido">📄 Presupuesto recibido</option>
+            <option value="acuerdo">🤝 Acuerdo cerrado</option>
+            <option value="descartado">❌ Descartado</option>
+          </select>
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">NOTAS</label>
+          <textarea id="vp-notas" rows="2" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box;resize:none"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:space-between">
+        <button onclick="clearVozProv();document.getElementById('modal-voz-prov').style.display='none'"
+          style="background:none;border:1px solid #ddd;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px">Cancelar</button>
+        <button onclick="saveVozProv()"
+          style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer">✓ Guardar proveedor</button>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:8px">
+      <button id="voz-prov-clear" onclick="clearVozProv()" style="display:none;font-size:11px;background:none;border:none;color:#999;cursor:pointer;text-decoration:underline">Limpiar y dictar de nuevo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL VOZ CLIENTE ══ -->
+<div class="modal-overlay" id="modal-voz-cli" style="display:none">
+  <div class="modal" style="max-width:460px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <h2 style="margin:0">🎤 Nuevo cliente por voz</h2>
+      <button onclick="clearVozCli();document.getElementById('modal-voz-cli').style.display='none'"
+        style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;padding:0 0 0 12px">×</button>
+    </div>
+    <p style="color:#666;font-size:12px;margin-bottom:16px">Ej: <em>"Juan García, quiere solar térmica ACS, está en cotización"</em></p>
+    <div style="text-align:center;margin-bottom:12px">
+      <button id="voz-cli-btn" onclick="toggleVozCli()"
+        style="width:64px;height:64px;border-radius:50%;background:#16a34a;border:none;cursor:pointer;font-size:28px;display:inline-flex;align-items:center;justify-content:center;transition:all .2s">🎤</button>
+    </div>
+    <div id="voz-cli-status" style="text-align:center;font-size:12px;color:#666;min-height:18px;margin-bottom:8px"></div>
+    <div id="voz-cli-transcript" style="display:none;background:#f5f5f5;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;font-style:italic;color:#333">
+      <span style="font-size:10px;color:#999;display:block;margin-bottom:2px">LO QUE DICTASTE</span>
+      <span id="voz-cli-transcript-text"></span>
+    </div>
+    <div id="voz-cli-preview" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div style="grid-column:1/-1">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">NOMBRE / EMPRESA</label>
+          <input type="text" id="vc-nombre" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">TELÉFONO / EMAIL</label>
+          <input type="text" id="vc-contacto" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+        </div>
+        <div>
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">TIPO DE SISTEMA</label>
+          <select id="vc-tipo" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+            <option value="">Seleccionar...</option>
+            <option value="Fotovoltaico On-Grid">Fotovoltaico On-Grid</option>
+            <option value="Fotovoltaico Off-Grid">Fotovoltaico Off-Grid</option>
+            <option value="Solar Térmica — ACS">Solar Térmica — ACS</option>
+            <option value="Solar Térmica — Pileta">Solar Térmica — Pileta</option>
+            <option value="Solar Térmica — Calefacción">Solar Térmica — Calefacción</option>
+            <option value="Térmica + FV">Térmica + FV</option>
+            <option value="No sé todavía">No sé todavía</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">ESTADO</label>
+          <select id="vc-estado" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box">
+            <option value="consulta">Consulta inicial</option>
+            <option value="cotizando">En cotización</option>
+            <option value="enviado">Presupuesto enviado</option>
+            <option value="cerrado">Cerrado ✅</option>
+            <option value="perdido">Perdido ❌</option>
+          </select>
+        </div>
+        <div style="grid-column:1/-1">
+          <label style="font-size:11px;color:#666;display:block;margin-bottom:3px">NOTAS</label>
+          <textarea id="vc-notas" rows="2" style="width:100%;border:1px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;box-sizing:border-box;resize:none"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:space-between">
+        <button onclick="clearVozCli();document.getElementById('modal-voz-cli').style.display='none'"
+          style="background:none;border:1px solid #ddd;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px">Cancelar</button>
+        <button onclick="saveVozCli()"
+          style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer">✓ Guardar cliente</button>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:8px">
+      <button id="voz-cli-clear" onclick="clearVozCli()" style="display:none;font-size:11px;background:none;border:none;color:#999;cursor:pointer;text-decoration:underline">Limpiar y dictar de nuevo</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ VOZ PROVEEDORES ══
+let _vpRec=null, _vpActive=false, _vpText='';
+
+function startVozProv() { clearVozProv(); document.getElementById('modal-voz-prov').style.display='flex'; }
+function toggleVozProv() { _vpActive ? stopVozProv() : startVozRecProv(); }
+
+function startVozRecProv() {
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert('Usá Chrome para reconocimiento de voz');return;}
+  _vpText=''; _vpActive=true;
+  const btn=document.getElementById('voz-prov-btn');
+  btn.classList.add('voz-recording'); btn.textContent='⏹';
+  document.getElementById('voz-prov-status').textContent='🔴 Escuchando...';
+  document.getElementById('voz-prov-transcript').style.display='none';
+  document.getElementById('voz-prov-preview').style.display='none';
+  _vpRec=new SR(); _vpRec.lang='es-AR'; _vpRec.continuous=true; _vpRec.interimResults=true;
+  _vpRec.onresult=e=>{
+    let f='',i='';
+    for(let x=e.resultIndex;x<e.results.length;x++){if(e.results[x].isFinal)f+=e.results[x][0].transcript;else i+=e.results[x][0].transcript;}
+    if(f)_vpText+=f;
+    document.getElementById('voz-prov-transcript-text').textContent=_vpText+i;
+    document.getElementById('voz-prov-transcript').style.display='block';
+  };
+  _vpRec.onerror=e=>{stopVozProv();document.getElementById('voz-prov-status').textContent='⚠ Error: '+e.error;};
+  _vpRec.onend=()=>{
+    _vpActive=false;
+    const btn2=document.getElementById('voz-prov-btn');
+    btn2.classList.remove('voz-recording');btn2.textContent='🎤';
+    const t=_vpText.trim();
+    if(t.length>2)processVozProv(t);
+    else document.getElementById('voz-prov-status').textContent='No se detectó voz. Intentá de nuevo.';
+  };
+  _vpRec.start();
+}
+
+function stopVozProv(){_vpActive=false;document.getElementById('voz-prov-status').textContent='⏳ Procesando...';if(_vpRec)try{_vpRec.stop();}catch(e){}}
+
+async function processVozProv(text) {
+  const status=document.getElementById('voz-prov-status');
+  status.textContent='🤖 Interpretando...';
+  function show(v){
+    document.getElementById('vp-nombre').value=v.nombre||text;
+    document.getElementById('vp-web').value=v.web||'';
+    const tp=document.getElementById('vp-tipo');
+    [...tp.options].forEach(o=>{if(v.tipo&&o.value.toLowerCase().includes(v.tipo.toLowerCase()))tp.value=o.value;});
+    const cats={termica:'termica',fv:'fv',fotovoltaico:'fv',ambos:'ambos',accesorios:'accesorios'};
+    document.getElementById('vp-cat').value=cats[v.categoria]||'termica';
+    document.getElementById('vp-prio').value=v.prio||'media';
+    document.getElementById('vp-estado').value=v.estado||'sin_contacto';
+    document.getElementById('vp-notas').value=v.notas||'';
+    document.getElementById('voz-prov-preview').style.display='block';
+    document.getElementById('voz-prov-clear').style.display='inline';
+  }
+  let parsed=null;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:250,
+        messages:[{role:'user',content:`Extraé datos de este proveedor dictado: "${text}"
+Respondé SOLO JSON sin markdown:
+{"nombre":"nombre empresa","web":"sitio o vacío","tipo":"Importador directo|Especialista térmica|FV + Térmica|Fabricante|Distribuidor|Otro","categoria":"termica|fv|ambos|accesorios","prio":"alta|media|baja","estado":"sin_contacto|contactado|esperando|en_negociacion|ppto_recibido|acuerdo|descartado","notas":"notas o vacío"}
+Reglas: térmica/solar térmica→termica | fotovoltaico/fv/paneles→fv | ambos/todo→ambos
+Estado: sin contacto→sin_contacto | contactado/llamé/hablé→contactado | esperando/espero→esperando | negociación/negociando→en_negociacion | presupuesto→ppto_recibido | acuerdo/cerrado→acuerdo | descartado→descartado`}]})});
+    if(!r.ok)throw new Error(r.status);
+    const d=await r.json();
+    parsed=JSON.parse((d?.content?.[0]?.text||'').replace(/```json|```/g,'').trim());
+  }catch(e){console.warn('Claude falló:',e.message);}
+  if(parsed){show(parsed);status.textContent='✅ Revisá y guardá';}
+  else{
+    const t=text.toLowerCase();
+    show({nombre:text,categoria:/fotovoltaico|fv|panel/i.test(t)?'fv':/ambos|todo/i.test(t)?'ambos':'termica',
+      prio:/alta|importante/i.test(t)?'alta':/baja/i.test(t)?'baja':'media',
+      estado:/negociaci/i.test(t)?'en_negociacion':/contact/i.test(t)?'contactado':'sin_contacto'});
+    status.textContent='✏️ Completá los campos y guardá';
+  }
+}
+
+async function saveVozProv(){
+  const payload={nombre:document.getElementById('vp-nombre').value.trim(),web:document.getElementById('vp-web').value.trim(),
+    tipo:document.getElementById('vp-tipo').value,categoria:document.getElementById('vp-cat').value,
+    prioridad:document.getElementById('vp-prio').value,estado:document.getElementById('vp-estado').value,
+    notas:document.getElementById('vp-notas').value.trim()};
+  if(!payload.nombre){alert('Escribí el nombre');return;}
+  setSyncState('loading');
+  const{error}=await db.from('hes_proveedores').insert(payload);
+  document.getElementById('modal-voz-prov').style.display='none';
+  if(!error){await loadProveedores();toast('Proveedor guardado ✓');}
+  else{setSyncState('error');toast('Error al guardar');}
+}
+
+function clearVozProv(){_vpText='';_vpActive=false;if(_vpRec)try{_vpRec.abort();}catch(e){}
+  const b=document.getElementById('voz-prov-btn');if(b){b.classList.remove('voz-recording');b.textContent='🎤';}
+  document.getElementById('voz-prov-status').textContent='';
+  document.getElementById('voz-prov-transcript').style.display='none';
+  document.getElementById('voz-prov-preview').style.display='none';
+  document.getElementById('voz-prov-clear').style.display='none';}
+
+// ══ VOZ CLIENTES ══
+let _vcRec=null, _vcActive=false, _vcText='';
+
+function startVozCliente(){clearVozCli();document.getElementById('modal-voz-cli').style.display='flex';}
+function toggleVozCli(){_vcActive?stopVozCli():startVozRecCli();}
+
+function startVozRecCli(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert('Usá Chrome para reconocimiento de voz');return;}
+  _vcText='';_vcActive=true;
+  const btn=document.getElementById('voz-cli-btn');
+  btn.classList.add('voz-recording');btn.textContent='⏹';
+  document.getElementById('voz-cli-status').textContent='🔴 Escuchando...';
+  document.getElementById('voz-cli-transcript').style.display='none';
+  document.getElementById('voz-cli-preview').style.display='none';
+  _vcRec=new SR();_vcRec.lang='es-AR';_vcRec.continuous=true;_vcRec.interimResults=true;
+  _vcRec.onresult=e=>{
+    let f='',i='';
+    for(let x=e.resultIndex;x<e.results.length;x++){if(e.results[x].isFinal)f+=e.results[x][0].transcript;else i+=e.results[x][0].transcript;}
+    if(f)_vcText+=f;
+    document.getElementById('voz-cli-transcript-text').textContent=_vcText+i;
+    document.getElementById('voz-cli-transcript').style.display='block';
+  };
+  _vcRec.onerror=e=>{stopVozCli();document.getElementById('voz-cli-status').textContent='⚠ Error: '+e.error;};
+  _vcRec.onend=()=>{
+    _vcActive=false;
+    const b2=document.getElementById('voz-cli-btn');
+    b2.classList.remove('voz-recording');b2.textContent='🎤';
+    const t=_vcText.trim();
+    if(t.length>2)processVozCli(t);
+    else document.getElementById('voz-cli-status').textContent='No se detectó voz. Intentá de nuevo.';
+  };
+  _vcRec.start();
+}
+
+function stopVozCli(){_vcActive=false;document.getElementById('voz-cli-status').textContent='⏳ Procesando...';if(_vcRec)try{_vcRec.stop();}catch(e){}}
+
+async function processVozCli(text){
+  const status=document.getElementById('voz-cli-status');
+  status.textContent='🤖 Interpretando...';
+  function show(v){
+    document.getElementById('vc-nombre').value=v.nombre||text;
+    document.getElementById('vc-contacto').value=v.contacto||'';
+    const ts=document.getElementById('vc-tipo');
+    if(v.tipo)[...ts.options].forEach(o=>{if(o.value.toLowerCase().includes(v.tipo.toLowerCase()))ts.value=o.value;});
+    document.getElementById('vc-estado').value=v.estado||'consulta';
+    document.getElementById('vc-notas').value=v.notas||'';
+    document.getElementById('voz-cli-preview').style.display='block';
+    document.getElementById('voz-cli-clear').style.display='inline';
+  }
+  let parsed=null;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:250,
+        messages:[{role:'user',content:`Extraé datos de este cliente dictado: "${text}"
+Respondé SOLO JSON sin markdown:
+{"nombre":"nombre o empresa","contacto":"teléfono o email o vacío","tipo":"Fotovoltaico On-Grid|Fotovoltaico Off-Grid|Solar Térmica — ACS|Solar Térmica — Pileta|Solar Térmica — Calefacción|Térmica + FV|No sé todavía","estado":"consulta|cotizando|enviado|cerrado|perdido","notas":"notas o vacío"}
+Reglas tipo: acs/agua caliente→Solar Térmica — ACS | pileta/piscina→Solar Térmica — Pileta | calefacción→Solar Térmica — Calefacción | fv/paneles/fotovoltaico→Fotovoltaico On-Grid | térmica+fv→Térmica + FV
+Reglas estado: consulta/interesado→consulta | cotizando/cotización→cotizando | presupuesto enviado→enviado | cerrado/listo→cerrado | perdido/no quiso→perdido`}]})});
+    if(!r.ok)throw new Error(r.status);
+    const d=await r.json();
+    parsed=JSON.parse((d?.content?.[0]?.text||'').replace(/```json|```/g,'').trim());
+  }catch(e){console.warn('Claude falló:',e.message);}
+  if(parsed){show(parsed);status.textContent='✅ Revisá y guardá';}
+  else{
+    const t=text.toLowerCase();
+    show({nombre:text,tipo:/acs|agua/i.test(t)?'Solar Térmica — ACS':/pileta/i.test(t)?'Solar Térmica — Pileta':/fv|panel|fotovoltaico/i.test(t)?'Fotovoltaico On-Grid':'',
+      estado:/cotiz/i.test(t)?'cotizando':/enviado|presupuesto/i.test(t)?'enviado':'consulta'});
+    status.textContent='✏️ Completá los campos y guardá';
+  }
+}
+
+async function saveVozCli(){
+  const payload={nombre:document.getElementById('vc-nombre').value.trim(),contacto:document.getElementById('vc-contacto').value.trim(),
+    tipo:document.getElementById('vc-tipo').value,estado:document.getElementById('vc-estado').value,
+    notas:document.getElementById('vc-notas').value.trim()};
+  if(!payload.nombre){alert('Escribí el nombre');return;}
+  setSyncState('loading');
+  const{error}=await db.from('hes_clientes').insert(payload);
+  document.getElementById('modal-voz-cli').style.display='none';
+  if(!error){await loadClientes();toast('Cliente guardado ✓');}
+  else{setSyncState('error');toast('Error al guardar');}
+}
+
+function clearVozCli(){_vcText='';_vcActive=false;if(_vcRec)try{_vcRec.abort();}catch(e){}
+  const b=document.getElementById('voz-cli-btn');if(b){b.classList.remove('voz-recording');b.textContent='🎤';}
+  document.getElementById('voz-cli-status').textContent='';
+  document.getElementById('voz-cli-transcript').style.display='none';
+  document.getElementById('voz-cli-preview').style.display='none';
+  document.getElementById('voz-cli-clear').style.display='none';}
+</script>
 </body>
 </html>

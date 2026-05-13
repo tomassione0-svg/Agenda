@@ -2592,12 +2592,19 @@ async function processVozText(text) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 200,
-        messages: [{ role: 'user', content: `Extraé datos de esta tarea dictada por voz: "${text}"
-Respondé SOLO JSON sin markdown:
-{"tarea":"texto corto de la tarea","detalle":"notas adicionales o vacío","estado":"pendiente|curso|hecho|urgente","prio":"alta|media|baja","seccion":"Esta semana|Semana que viene|Próximas semanas"}
-Reglas estado: urgente/urgente/ya→urgente | haciendo/en curso/hoy→curso | listo/hecho→hecho | resto→pendiente
-Reglas prioridad: importante/urgente/alta/crítico→alta | media/normal→media | baja/después→baja | si menciona "esta semana" o "hoy"→alta por defecto
-Reglas sección: hoy/esta semana/mañana→"Esta semana" | semana que viene/próxima semana→"Semana que viene" | después/próximas→"Próximas semanas" | default→"Esta semana"` }]
+        messages: [{ role: 'user', content: `Extraé los datos de esta tarea dictada por voz y completá cada campo en su lugar correspondiente.
+Texto dictado: "${text}"
+
+Respondé SOLO con JSON válido, sin markdown ni explicaciones:
+{"tarea":"SOLO el nombre de la acción a hacer, sin prioridad ni estado ni tiempo","detalle":"información adicional relevante o vacío","estado":"pendiente|curso|hecho|urgente","prio":"alta|media|baja","seccion":"Esta semana|Semana que viene|Próximas semanas"}
+
+CRÍTICO — campo "tarea": debe contener ÚNICAMENTE la acción concreta. Excluir del nombre cualquier mención de prioridad, estado, tiempo o sección; esos van en sus campos.
+Ejemplo: "llamar a Pedro mañana prioridad alta en curso" → tarea="Llamar a Pedro", prio="alta", estado="curso", seccion="Esta semana"
+Ejemplo: "cotizar paneles semana que viene prioridad baja" → tarea="Cotizar paneles", prio="baja", estado="pendiente", seccion="Semana que viene"
+
+Reglas estado: urgente/ya/inmediato→urgente | haciendo/en curso/hoy→curso | listo/hecho/terminé→hecho | resto→pendiente
+Reglas prioridad: importante/urgente/alta/crítico/ya→alta | media/normal→media | baja/después/luego→baja | sin mención→media
+Reglas sección: hoy/mañana/esta semana→"Esta semana" | semana que viene/próxima semana→"Semana que viene" | después/próximas semanas/más adelante→"Próximas semanas" | sin mención→"Esta semana"` }]
       })
     });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -2613,16 +2620,23 @@ Reglas sección: hoy/esta semana/mañana→"Esta semana" | semana que viene/pró
     showForm(parsed);
     status.textContent = '✅ Revisá y guardá';
   } else {
-    // Parser local básico
+    // Parser local — extrae campos y limpia el nombre de la tarea
     const t = text.toLowerCase();
-    const prio = /alta|urgente|importante|crítico/i.test(t) ? 'alta'
-               : /baja|después|luego/i.test(t) ? 'baja' : 'media';
-    const estado = /urgente|ya mismo/i.test(t) ? 'urgente'
-                 : /en curso|haciendo|hoy/i.test(t) ? 'curso'
-                 : /hecho|listo|terminado/i.test(t) ? 'hecho' : 'pendiente';
+    const prio = /\balta\b|urgente|importante|crítico|prioridad alta/i.test(t) ? 'alta'
+               : /\bbaja\b|después|luego|prioridad baja/i.test(t) ? 'baja' : 'media';
+    const estado = /urgente|ya mismo|inmediato/i.test(t) ? 'urgente'
+                 : /\ben curso\b|haciendo|\bhoy\b/i.test(t) ? 'curso'
+                 : /\bhecho\b|listo|terminad/i.test(t) ? 'hecho' : 'pendiente';
     const seccion = /semana que viene|próxima semana/i.test(t) ? 'Semana que viene'
-                  : /después|próximas semanas/i.test(t) ? 'Próximas semanas' : 'Esta semana';
-    showForm({ tarea: text, detalle: '', estado, prio, seccion });
+                  : /después|próximas semanas|más adelante/i.test(t) ? 'Próximas semanas' : 'Esta semana';
+    // Limpiar la tarea: eliminar palabras de prioridad/estado/tiempo
+    let tareaLimpia = text
+      .replace(/\b(prioridad\s+)?(alta|media|baja)\b/gi, '')
+      .replace(/\b(pendiente|en curso|urgente|hecho|listo|terminado)\b/gi, '')
+      .replace(/\b(esta semana|semana que viene|próxima semana|próximas semanas|mañana|hoy|después|luego|más adelante)\b/gi, '')
+      .replace(/\s{2,}/g, ' ').trim();
+    if (!tareaLimpia) tareaLimpia = text;
+    showForm({ tarea: tareaLimpia, detalle: '', estado, prio, seccion });
     status.textContent = '✏️ Revisá los campos y guardá';
   }
 }
@@ -2864,11 +2878,20 @@ async function processVozProv(text) {
     const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
       headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:250,
-        messages:[{role:'user',content:`Extraé datos de este proveedor dictado: "${text}"
-Respondé SOLO JSON sin markdown:
-{"nombre":"nombre empresa","web":"sitio o vacío","tipo":"Importador directo|Especialista térmica|FV + Térmica|Fabricante|Distribuidor|Otro","categoria":"termica|fv|ambos|accesorios","prio":"alta|media|baja","estado":"sin_contacto|contactado|esperando|en_negociacion|ppto_recibido|acuerdo|descartado","notas":"notas o vacío"}
-Reglas: térmica/solar térmica→termica | fotovoltaico/fv/paneles→fv | ambos/todo→ambos
-Estado: sin contacto→sin_contacto | contactado/llamé/hablé→contactado | esperando/espero→esperando | negociación/negociando→en_negociacion | presupuesto→ppto_recibido | acuerdo/cerrado→acuerdo | descartado→descartado`}]})});
+        messages:[{role:'user',content:`Extraé los datos de este proveedor dictado y completá cada campo en su lugar correspondiente.
+Texto dictado: "${text}"
+
+Respondé SOLO con JSON válido, sin markdown ni explicaciones:
+{"nombre":"SOLO el nombre de la empresa o persona, sin descripción ni estado ni prioridad","web":"URL o dominio si se menciona, sino vacío","tipo":"Importador directo|Especialista térmica|FV + Térmica|Fabricante|Distribuidor|Otro","categoria":"termica|fv|ambos|accesorios","prio":"alta|media|baja","estado":"sin_contacto|contactado|esperando|en_negociacion|ppto_recibido|acuerdo|descartado","notas":"descripción, observaciones, condiciones o cualquier otra info relevante"}
+
+CRÍTICO — campo "nombre": debe contener ÚNICAMENTE el nombre propio de la empresa o persona. Todo lo demás va en sus campos correspondientes.
+Ejemplo: "Solarsol importador de térmica prioridad alta en negociación" → nombre="Solarsol", tipo="Importador directo", categoria="termica", prio="alta", estado="en_negociacion"
+Ejemplo: "Enertik distribuidor fotovoltaico prioridad media ya lo contacté" → nombre="Enertik", categoria="fv", tipo="Distribuidor", prio="media", estado="contactado"
+
+Reglas categoría: térmica/solar térmica/ACS/pileta→termica | fotovoltaico/fv/paneles/solar→fv | ambos/todo/completo→ambos | accesorios/cables/montaje→accesorios
+Reglas tipo: importador→Importador directo | especialista térmica→Especialista térmica | fv+térmica/ambos→FV + Térmica | fabrica/fabricante→Fabricante | distribuidor/vende→Distribuidor
+Reglas estado: sin contacto/no contacté/nuevo→sin_contacto | llamé/hablé/contacté/contactado→contactado | espero respuesta/esperando→esperando | negociando/negociación/negociando→en_negociacion | mandó presupuesto/recibí presupuesto→ppto_recibido | acuerdo/cerrado/ok→acuerdo | no sirve/descartado/no→descartado
+Reglas prioridad: importante/urgente/alta/principal/prioritario→alta | media/normal/igual→media | baja/después/secundario→baja | sin mención→media`}]})});
     if(!r.ok)throw new Error(r.status);
     const d=await r.json();
     parsed=JSON.parse((d?.content?.[0]?.text||'').replace(/```json|```/g,'').trim());
@@ -2876,9 +2899,29 @@ Estado: sin contacto→sin_contacto | contactado/llamé/hablé→contactado | es
   if(parsed){show(parsed);status.textContent='✅ Revisá y guardá';}
   else{
     const t=text.toLowerCase();
-    show({nombre:text,categoria:/fotovoltaico|fv|panel/i.test(t)?'fv':/ambos|todo/i.test(t)?'ambos':'termica',
-      prio:/alta|importante/i.test(t)?'alta':/baja/i.test(t)?'baja':'media',
-      estado:/negociaci/i.test(t)?'en_negociacion':/contact/i.test(t)?'contactado':'sin_contacto'});
+    const categoria = /fotovoltaico|\bfv\b|panel|solar fv/i.test(t)?'fv'
+      :/termica|térmica|acs|pileta|calefac/i.test(t)?'termica'
+      :/ambos|todo|completo/i.test(t)?'ambos':'termica';
+    const prio2 = /\balta\b|importante|urgente|prioritario/i.test(t)?'alta'
+      :/\bbaja\b|secundario|después/i.test(t)?'baja':'media';
+    const est2 = /negociaci/i.test(t)?'en_negociacion'
+      :/llamé|hablé|contacté|contactado/i.test(t)?'contactado'
+      :/espero|esperando/i.test(t)?'esperando'
+      :/presupuesto/i.test(t)?'ppto_recibido'
+      :/acuerdo|cerrado/i.test(t)?'acuerdo'
+      :/descartado|no sirve/i.test(t)?'descartado':'sin_contacto';
+    // Limpiar nombre: quedarse solo con la primera parte antes de palabras clave
+    let nombreLimpio = text
+      .replace(/\b(importador|distribuidor|fabricante|especialista|proveedor)\b.*/gi, m => m.split(' ')[0] !== text.split(' ')[0] ? '' : m)
+      .replace(/\b(prioridad\s+)?(alta|media|baja)\b/gi, '')
+      .replace(/\b(sin contacto|contactado|en negociación|negociación|negociando|presupuesto|acuerdo|descartado)\b/gi, '')
+      .replace(/\b(fotovoltaico|\bfv\b|térmica|termica|acs|solar|paneles|importador directo|distribuidor|fabricante)\b/gi, '')
+      .replace(/\s{2,}/g, ' ').trim();
+    // Si queda muy corto o vacío, usar la primera palabra/s como nombre
+    if (!nombreLimpio || nombreLimpio.length < 2) {
+      nombreLimpio = text.split(/\s+/).slice(0, 2).join(' ');
+    }
+    show({nombre:nombreLimpio,categoria,prio:prio2,estado:est2});
     status.textContent='✏️ Completá los campos y guardá';
   }
 }
@@ -2958,11 +3001,18 @@ async function processVozCli(text){
     const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
       headers:{'Content-Type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:250,
-        messages:[{role:'user',content:`Extraé datos de este cliente dictado: "${text}"
-Respondé SOLO JSON sin markdown:
-{"nombre":"nombre o empresa","contacto":"teléfono o email o vacío","tipo":"Fotovoltaico On-Grid|Fotovoltaico Off-Grid|Solar Térmica — ACS|Solar Térmica — Pileta|Solar Térmica — Calefacción|Térmica + FV|No sé todavía","estado":"consulta|cotizando|enviado|cerrado|perdido","notas":"notas o vacío"}
-Reglas tipo: acs/agua caliente→Solar Térmica — ACS | pileta/piscina→Solar Térmica — Pileta | calefacción→Solar Térmica — Calefacción | fv/paneles/fotovoltaico→Fotovoltaico On-Grid | térmica+fv→Térmica + FV
-Reglas estado: consulta/interesado→consulta | cotizando/cotización→cotizando | presupuesto enviado→enviado | cerrado/listo→cerrado | perdido/no quiso→perdido`}]})});
+        messages:[{role:'user',content:`Extraé los datos de este cliente dictado y completá cada campo en su lugar correspondiente.
+Texto dictado: "${text}"
+
+Respondé SOLO con JSON válido, sin markdown ni explicaciones:
+{"nombre":"SOLO el nombre de la persona o empresa, sin tipo de sistema ni estado ni extra","contacto":"teléfono, email o dirección si se menciona, sino vacío","tipo":"Fotovoltaico On-Grid|Fotovoltaico Off-Grid|Solar Térmica — ACS|Solar Térmica — Pileta|Solar Térmica — Calefacción|Térmica + FV|No sé todavía","estado":"consulta|cotizando|enviado|cerrado|perdido","notas":"cualquier detalle extra: tamaño del sistema, consumo, ubicación, condiciones, observaciones"}
+
+CRÍTICO — campo "nombre": debe contener ÚNICAMENTE el nombre propio de la persona o empresa. El tipo de sistema, el estado y todo lo demás van en sus campos.
+Ejemplo: "Juan García quiere solar térmica ACS está cotizando" → nombre="Juan García", tipo="Solar Térmica — ACS", estado="cotizando"
+Ejemplo: "Empresa XYZ fotovoltaico off grid me mandaron el presupuesto consumen 800 kWh por mes" → nombre="Empresa XYZ", tipo="Fotovoltaico Off-Grid", estado="enviado", notas="Consumen 800 kWh/mes"
+
+Reglas tipo: acs/agua caliente sanitaria/agua caliente→Solar Térmica — ACS | pileta/piscina/natación→Solar Térmica — Pileta | calefacción/calefaccionar/calor→Solar Térmica — Calefacción | on-grid/ongrid/conectado a red/red→Fotovoltaico On-Grid | off-grid/offgrid/aislado/sin red/campo→Fotovoltaico Off-Grid | térmica y fv/paneles y térmica→Térmica + FV | no sabe/no definió/sin definir→No sé todavía
+Reglas estado: consulta/interesado/quiere saber/me preguntó→consulta | cotizando/en cotización/calculando→cotizando | presupuesto enviado/mandé/le mandé→enviado | cerrado/listo/vendido/compró→cerrado | perdido/no quiso/no le interesó/desistió→perdido`}]})});
     if(!r.ok)throw new Error(r.status);
     const d=await r.json();
     parsed=JSON.parse((d?.content?.[0]?.text||'').replace(/```json|```/g,'').trim());
@@ -2970,8 +3020,24 @@ Reglas estado: consulta/interesado→consulta | cotizando/cotización→cotizand
   if(parsed){show(parsed);status.textContent='✅ Revisá y guardá';}
   else{
     const t=text.toLowerCase();
-    show({nombre:text,tipo:/acs|agua/i.test(t)?'Solar Térmica — ACS':/pileta/i.test(t)?'Solar Térmica — Pileta':/fv|panel|fotovoltaico/i.test(t)?'Fotovoltaico On-Grid':'',
-      estado:/cotiz/i.test(t)?'cotizando':/enviado|presupuesto/i.test(t)?'enviado':'consulta'});
+    const tipoSys = /\bacs\b|agua caliente/i.test(t)?'Solar Térmica — ACS'
+      :/pileta|piscina/i.test(t)?'Solar Térmica — Pileta'
+      :/calefacc/i.test(t)?'Solar Térmica — Calefacción'
+      :/off.?grid|aislado|sin red|campo/i.test(t)?'Fotovoltaico Off-Grid'
+      :/on.?grid|conectado|red/i.test(t)?'Fotovoltaico On-Grid'
+      :/fv|panel|fotovoltaico|solar/i.test(t)?'Fotovoltaico On-Grid':'';
+    const estCli = /cotiz/i.test(t)?'cotizando'
+      :/presupuesto enviado|mandé|le mandé/i.test(t)?'enviado'
+      :/cerrado|compró|vendido/i.test(t)?'cerrado'
+      :/perdido|no quiso|desistió/i.test(t)?'perdido':'consulta';
+    // Limpiar nombre del cliente
+    let nombreCli = text
+      .replace(/\b(quiere|necesita|busca|pide|interesado en|me llamó|me contactó)\b.*/gi,'')
+      .replace(/\b(solar térmica|fotovoltaico|\bfv\b|on.?grid|off.?grid|paneles|acs|pileta|calefacción|térmica)\b/gi,'')
+      .replace(/\b(consulta|cotizando|cotización|presupuesto enviado|cerrado|perdido|está en)\b/gi,'')
+      .replace(/\s{2,}/g,' ').trim();
+    if (!nombreCli || nombreCli.length < 2) nombreCli = text.split(/\s+/).slice(0,3).join(' ');
+    show({nombre:nombreCli,tipo:tipoSys,estado:estCli});
     status.textContent='✏️ Completá los campos y guardá';
   }
 }

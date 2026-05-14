@@ -773,6 +773,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   <div class="modal">
     <h2 id="precio-title">Precios</h2>
     <input type="hidden" id="precio-prov-id">
+    <input type="hidden" id="precio-edit-id">
     <div style="background:var(--gris);border-radius:8px;padding:12px;margin-bottom:12px">
       <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--muted)">AGREGAR PRECIO</div>
       <label>Producto</label><input type="text" id="precio-producto" placeholder="Ej: Colector tubular 20T" style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:14px;margin-bottom:8px">
@@ -785,7 +786,10 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
       </div>
       <label>Unidad</label><input type="text" id="precio-unidad" placeholder="Ej: por unidad, por m², por kit" style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:14px;margin-bottom:8px">
       <label>Notas</label><input type="text" id="precio-notas" placeholder="Condiciones, validez, descuentos..." style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:14px;margin-bottom:8px">
-      <button class="btn btn-primary" style="width:100%" onclick="savePrecio()">＋ Agregar precio</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1" id="precio-btn-save" onclick="savePrecio()">＋ Agregar precio</button>
+        <button class="btn btn-secondary" id="precio-btn-cancel" style="display:none" onclick="cancelEditPrecio()">Cancelar</button>
+      </div>
     </div>
     <div id="precio-lista"></div>
     <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('modal-precios')">Cerrar</button></div>
@@ -1305,7 +1309,7 @@ function renderProveedores() {
             </a>`).join('')}</div>`:''}
           ${provPre.length?`<div style="margin-top:8px"><div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;text-transform:uppercase">PRECIOS (${provPre.length})</div>
             <table class="price-table"><thead><tr><th>Producto</th><th>Precio</th><th>Unidad</th></tr></thead><tbody>
-            ${provPre.map(r=>`<tr><td>${r.producto}</td><td>${r.precio} ${r.moneda}</td><td>${r.unidad||'—'}</td></tr>`).join('')}
+            ${provPre.map(r=>`<tr><td>${r.producto}</td><td>${fmtPrecio(r.precio, r.moneda)}</td><td>${r.unidad||'—'}</td></tr>`).join('')}
             </tbody></table></div>`:''}
           <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
             <button onclick="openProvModal('${p.id}')" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--gris-borde);background:#fff;cursor:pointer">✏ Editar</button>
@@ -1518,27 +1522,79 @@ function renderPrecioLista(provId) {
   const pp=precios.filter(r=>r.proveedor_id==provId);
   if(!pp.length){lista.innerHTML='<div style="text-align:center;color:var(--muted);font-size:13px;padding:12px">Sin precios cargados</div>';return;}
   lista.innerHTML=`<table class="price-table"><thead><tr><th>Producto</th><th>Precio</th><th>Unidad</th><th></th></tr></thead><tbody>
-    ${pp.map(r=>`<tr><td><strong>${r.producto}</strong>${r.notas?`<br><small style="color:var(--muted)">${r.notas}</small>`:''}</td><td>${r.precio} ${r.moneda}</td><td>${r.unidad||'—'}</td>
-    <td><button onclick="deletePrecio(${r.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px">✕</button></td></tr>`).join('')}
+    ${pp.map(r=>`<tr>
+      <td><strong>${r.producto}</strong>${r.notas?`<br><small style="color:var(--muted)">${r.notas}</small>`:''}</td>
+      <td>${fmtPrecio(r.precio, r.moneda)}</td>
+      <td>${r.unidad||'—'}</td>
+      <td style="white-space:nowrap;text-align:right;vertical-align:middle">
+        <button onclick="editPrecio(${r.id})" title="Editar"
+          style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:15px;padding:2px 5px">✎</button>
+        <button onclick="deletePrecio(${r.id})"
+          style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 5px">✕</button>
+      </td>
+    </tr>`).join('')}
     </tbody></table>`;
 }
 
 async function savePrecio() {
-  const provId=document.getElementById('precio-prov-id').value;
-  const payload={
-    proveedor_id:parseInt(provId),
-    producto:document.getElementById('precio-producto').value.trim(),
-    precio:parseFloat(document.getElementById('precio-valor').value)||0,
-    moneda:document.getElementById('precio-moneda').value,
-    unidad:document.getElementById('precio-unidad').value.trim(),
-    notas:document.getElementById('precio-notas').value.trim(),
+  const provId  = document.getElementById('precio-prov-id').value;
+  const editId  = document.getElementById('precio-edit-id').value;
+  const payload = {
+    proveedor_id: parseInt(provId),
+    producto: document.getElementById('precio-producto').value.trim(),
+    precio:   parseFloat(document.getElementById('precio-valor').value) || 0,
+    moneda:   document.getElementById('precio-moneda').value,
+    unidad:   document.getElementById('precio-unidad').value.trim(),
+    notas:    document.getElementById('precio-notas').value.trim(),
   };
-  if(!payload.producto){toast('Ingresá el producto');return;}
-  const {error}=await db.from('hes_precios').insert(payload);
-  if(!error){
-    ['precio-producto','precio-valor','precio-unidad','precio-notas'].forEach(id=>document.getElementById(id).value='');
-    await loadPrecios(); renderPrecioLista(provId); renderProveedores(); toast('Precio guardado ✓');
-  } else toast('Error al guardar');
+  if (!payload.producto) { toast('Ingresá el producto'); return; }
+
+  let error;
+  if (editId) {
+    // UPDATE
+    ({ error } = await db.from('hes_precios').update(payload).eq('id', parseInt(editId)));
+    if (!error) toast('Precio actualizado ✓');
+  } else {
+    // INSERT
+    ({ error } = await db.from('hes_precios').insert(payload));
+    if (!error) toast('Precio guardado ✓');
+  }
+
+  if (!error) {
+    cancelEditPrecio(); // limpia formulario y botón
+    await loadPrecios(); renderPrecioLista(provId); renderProveedores();
+  } else {
+    toast('Error al guardar');
+  }
+}
+
+function editPrecio(id) {
+  const r = precios.find(p => p.id === id);
+  if (!r) return;
+  // Pre-llenar el formulario con los datos del precio
+  document.getElementById('precio-edit-id').value = id;
+  document.getElementById('precio-producto').value = r.producto || '';
+  document.getElementById('precio-valor').value    = r.precio   || '';
+  document.getElementById('precio-moneda').value   = r.moneda   || 'ARS';
+  document.getElementById('precio-unidad').value   = r.unidad   || '';
+  document.getElementById('precio-notas').value    = r.notas    || '';
+  // Cambiar el botón a "Guardar cambios"
+  const btn = document.getElementById('precio-btn-save');
+  if (btn) btn.textContent = '✓ Guardar cambios';
+  const cancelBtn = document.getElementById('precio-btn-cancel');
+  if (cancelBtn) cancelBtn.style.display = 'block';
+  // Scroll al formulario
+  document.getElementById('precio-producto').focus();
+  document.getElementById('precio-producto').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function cancelEditPrecio() {
+  document.getElementById('precio-edit-id').value = '';
+  ['precio-producto','precio-valor','precio-unidad','precio-notas'].forEach(id => document.getElementById(id).value = '');
+  const btn = document.getElementById('precio-btn-save');
+  if (btn) btn.textContent = '＋ Agregar precio';
+  const cancelBtn = document.getElementById('precio-btn-cancel');
+  if (cancelBtn) cancelBtn.style.display = 'none';
 }
 
 async function deletePrecio(id) {
@@ -1565,7 +1621,7 @@ function filtrarComparacion() {
     ${matches.map(r=>{
       const prov=proveedores.find(p=>p.id==r.proveedor_id);
       const isBest=r.precio===minPrecio;
-      return `<tr class="${isBest?'price-best':''}"><td>${prov?prov.nombre:'—'}${isBest?' ⭐':''}</td><td>${r.producto}</td><td>${r.precio} ${r.moneda}</td><td>${r.unidad||'—'}</td><td>${r.notas||'—'}</td></tr>`;
+      return `<tr class="${isBest?'price-best':''}"><td>${prov?prov.nombre:'—'}${isBest?' ⭐':''}</td><td>${r.producto}</td><td>${fmtPrecio(r.precio, r.moneda)}</td><td>${r.unidad||'—'}</td><td>${r.notas||'—'}</td></tr>`;
     }).join('')}</tbody></table>
     <div style="font-size:11px;color:var(--muted);margin-top:8px">⭐ = precio más bajo encontrado</div>`;
 }

@@ -887,6 +887,11 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 
 <script>
 // ── SUPABASE CLIENT ────────────────────────────────────────────────────────
+function fmtPrecio(precio, moneda) {
+  const num = Number(precio).toLocaleString('es-AR');
+  return moneda === 'USD' ? `U$D ${num}` : `$${num} <span style="font-size:10px;color:#999">ARS</span>`;
+}
+
 const { createClient } = supabase;
 const db = createClient(SUPA_URL, SUPA_KEY, {
   auth: {

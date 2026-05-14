@@ -1263,7 +1263,7 @@ async function loadAdjuntos() {
 }
 
 async function loadPrecios() {
-  const {data} = await db.from('hes_precios').select('*').order('created_at');
+  const {data} = await db.from('hes_precios').select('*').order('orden', {nullsFirst:true}).order('created_at');
   precios = data||[];
 }
 
@@ -1526,8 +1526,17 @@ function renderPrecioLista(provId) {
   const lista=document.getElementById('precio-lista');
   const pp=precios.filter(r=>r.proveedor_id==provId);
   if(!pp.length){lista.innerHTML='<div style="text-align:center;color:var(--muted);font-size:13px;padding:12px">Sin precios cargados</div>';return;}
-  lista.innerHTML=`<table class="price-table"><thead><tr><th>Producto</th><th>Precio</th><th>Unidad</th><th></th></tr></thead><tbody>
-    ${pp.map(r=>`<tr>
+  lista.innerHTML=`<table class="price-table"><thead><tr>
+      <th style="width:20px;color:#aaa">⠿</th>
+      <th>Producto</th><th>Precio</th><th>Unidad</th><th></th>
+    </tr></thead><tbody>
+    ${pp.map((r,i)=>`<tr draggable="true" data-pid="${r.id}" data-pidx="${i}"
+      ondragstart="precioDragStart(event,${i})"
+      ondragover="event.preventDefault();event.currentTarget.classList.add('drag-over')"
+      ondragleave="event.currentTarget.classList.remove('drag-over')"
+      ondragend="event.currentTarget.classList.remove('dragging','drag-over');document.querySelectorAll('#precio-lista tr').forEach(t=>t.classList.remove('drag-over'))"
+      ondrop="precioDragDrop(event,${i})">
+      <td style="cursor:grab;color:#ccc;text-align:center;font-size:16px;user-select:none">⠿</td>
       <td><strong>${r.producto}</strong>${r.notas?`<br><small style="color:var(--muted)">${r.notas}</small>`:''}</td>
       <td>${fmtPrecio(r.precio, r.moneda)}</td>
       <td>${r.unidad||'—'}</td>
@@ -1600,6 +1609,37 @@ function cancelEditPrecio() {
   if (btn) btn.textContent = '＋ Agregar precio';
   const cancelBtn = document.getElementById('precio-btn-cancel');
   if (cancelBtn) cancelBtn.style.display = 'none';
+}
+
+let precioDragIdx = null;
+let precioDragProvId = null;
+
+function precioDragStart(e, idx) {
+  precioDragIdx = idx;
+  precioDragProvId = document.getElementById('precio-prov-id').value;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+async function precioDragDrop(e, targetIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (precioDragIdx === null || precioDragIdx === targetIdx) { precioDragIdx = null; return; }
+  const provId = precioDragProvId;
+  const pp = precios.filter(r => r.proveedor_id == provId);
+  const moved = pp.splice(precioDragIdx, 1)[0];
+  pp.splice(targetIdx, 0, moved);
+  // Update orden in local array
+  const otherPrecios = precios.filter(r => r.proveedor_id != provId);
+  precios = [...otherPrecios, ...pp];
+  precioDragIdx = null;
+  renderPrecioLista(provId);
+  // Save new orden to Supabase
+  setSyncState('loading');
+  const updates = pp.map((r, i) => db.from('hes_precios').update({ orden: i }).eq('id', r.id));
+  await Promise.all(updates);
+  setSyncState('ok');
+  toast('Orden guardado ✓');
 }
 
 async function deletePrecio(id) {

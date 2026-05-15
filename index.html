@@ -377,8 +377,6 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 #page-dimension{
   max-width:700px !important;
   margin:0 auto !important;
-  padding:0 12px !important;
-  box-sizing:border-box !important;
 }
 .cliente-card,
 .prov-card,
@@ -650,6 +648,36 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 </div>
 
 </div><!-- /main -->
+
+<!-- ══ MODAL TASK LINKS ══ -->
+<div class="modal-overlay" id="modal-task-links" style="display:none">
+  <div class="modal" style="max-width:480px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="margin:0" id="task-links-title">🔗 Links</h2>
+      <button onclick="document.getElementById('modal-task-links').style.display='none'"
+        style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;padding:0">×</button>
+    </div>
+    <input type="hidden" id="task-link-id">
+    <div style="background:var(--gris,#f5f5f5);border-radius:8px;padding:12px;margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:8px">AGREGAR LINK</div>
+      <label style="font-size:12px;display:block;margin-bottom:3px">Título</label>
+      <input type="text" id="tl-titulo" placeholder="Ej: Planilla precios Abril"
+        style="width:100%;border:1px solid var(--gris-borde,#ddd);border-radius:7px;padding:8px;font-size:13px;margin-bottom:8px;box-sizing:border-box">
+      <label style="font-size:12px;display:block;margin-bottom:3px">URL</label>
+      <input type="url" id="tl-url" placeholder="https://docs.google.com/..."
+        style="width:100%;border:1px solid var(--gris-borde,#ddd);border-radius:7px;padding:8px;font-size:13px;margin-bottom:10px;box-sizing:border-box">
+      <input type="hidden" id="tl-edit-id">
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" style="flex:1" id="tl-btn-save" onclick="saveTaskLink()">＋ Agregar link</button>
+        <button class="btn btn-secondary" id="tl-btn-cancel" style="display:none" onclick="cancelEditTaskLink()">Cancelar</button>
+      </div>
+    </div>
+    <div id="task-links-lista"></div>
+    <div style="text-align:right;margin-top:12px">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-task-links').style.display='none'">Cerrar</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ MODAL TAREA ══ -->
 <div class="modal-overlay" id="modal-task">
@@ -982,6 +1010,7 @@ async function confirmarLogout() {
 }
 
 let tasks = [], proveedores = [], clientes = [], presupuestos = [], adjuntos = [], precios = [];
+let taskLinkCount = {};
 let dragSrcIdx = null, dragSrcCol = null;
 
 // ── UI Helpers ─────────────────────────────────────────────────────────────
@@ -1019,6 +1048,9 @@ async function loadTasks() {
   const { data, error } = await db.from('hes_tareas').select('*').order('orden').order('created_at');
   if(error){setSyncState('error');return;}
   tasks = data||[];
+  // Asegurarse que adjuntos esté cargado antes de renderizar
+  // (para mostrar chips de links en las cards)
+  if (!adjuntos.length) await loadAdjuntos();
   renderTasks();
   setSyncState('ok');
 }
@@ -1102,8 +1134,22 @@ function renderTaskCard(t, col) {
       <div class="task-badges">
         <span class="badge ${bCls}">${bTxt}</span>
         <span class="badge ${pCls}">${pTxt}</span>
+        ${(adjuntos.filter(a=>String(a.tarea_id)===String(t.id))).map(a=>`
+          <a href="${a.url}" target="_blank" rel="noopener"
+            onclick="event.stopPropagation()"
+            style="display:inline-flex;align-items:center;gap:3px;font-size:11px;
+                   color:var(--verde,#16a34a);text-decoration:none;
+                   background:#f0fdf4;border:1px solid #bbf7d0;
+                   border-radius:20px;padding:2px 8px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis">
+            🔗 <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.titulo||'Link'}</span>
+          </a>`).join('')}
       </div>
-    </div>`;
+    </div>
+    <button onclick="event.stopPropagation();openTaskLinks('${t.id}')" title="Agregar/editar links"
+      style="background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--muted);
+             font-size:14px;flex-shrink:0;align-self:flex-start;margin-top:2px;opacity:.5">
+      🔗
+    </button>`;
 
   // Touch drag via handle only
   const handle = card.querySelector('.drag-handle');
@@ -1262,6 +1308,8 @@ async function loadProveedores() {
 async function loadAdjuntos() {
   const {data} = await db.from('hes_adjuntos').select('*').order('created_at');
   adjuntos = data||[];
+  taskLinkCount = {};
+  adjuntos.filter(a=>a.tarea_id).forEach(a=>{taskLinkCount[a.tarea_id]=(taskLinkCount[a.tarea_id]||0)+1;});
 }
 
 async function loadPrecios() {
@@ -1354,6 +1402,91 @@ proveedores.splice(targetIdx,0,moved);
   await Promise.all(updates);
   setSyncState('ok');
   toast('Orden guardado ✓');
+}
+
+function openTaskLinks(tareaId) {
+  document.getElementById('task-link-id').value = tareaId;
+  const tarea = tasks.find(t=>String(t.id)===String(tareaId));
+  document.getElementById('task-links-title').textContent = '🔗 ' + (tarea?.tarea||'Links');
+  cancelEditTaskLink();
+  renderTaskLinks(tareaId);
+  document.getElementById('modal-task-links').style.display = 'flex';
+}
+
+function renderTaskLinks(tareaId) {
+  const lista = document.getElementById('task-links-lista');
+  const links = adjuntos.filter(a => String(a.tarea_id) === String(tareaId));
+  if (!links.length) {
+    lista.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:12px">Sin links todavía</div>';
+    return;
+  }
+  lista.innerHTML = links.map(a => `
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--gris-borde,#eee)">
+      <a href="${a.url}" target="_blank" rel="noopener"
+        style="flex:1;display:flex;align-items:center;gap:6px;font-size:13px;color:var(--verde,#16a34a);
+               text-decoration:none;overflow:hidden;min-width:0">
+        <span style="flex-shrink:0">🔗</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.titulo||a.url}</span>
+      </a>
+      <button onclick="editTaskLink(${a.id},'${tareaId}')" title="Editar"
+        style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:15px;padding:2px 4px;flex-shrink:0">✎</button>
+      <button onclick="deleteTaskLink(${a.id},'${tareaId}')"
+        style="background:none;border:none;color:#ccc;cursor:pointer;font-size:16px;padding:2px 4px;flex-shrink:0">✕</button>
+    </div>`).join('');
+}
+
+function editTaskLink(id, tareaId) {
+  const a = adjuntos.find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('tl-titulo').value = a.titulo || '';
+  document.getElementById('tl-url').value = a.url || '';
+  document.getElementById('tl-edit-id').value = id;
+  document.getElementById('tl-btn-save').textContent = '✓ Guardar cambios';
+  document.getElementById('tl-btn-cancel').style.display = 'inline-block';
+  document.getElementById('tl-titulo').focus();
+}
+
+function cancelEditTaskLink() {
+  document.getElementById('tl-titulo').value = '';
+  document.getElementById('tl-url').value = '';
+  if(document.getElementById('tl-edit-id')) document.getElementById('tl-edit-id').value = '';
+  const btn = document.getElementById('tl-btn-save');
+  if(btn) btn.textContent = '＋ Agregar link';
+  const cancel = document.getElementById('tl-btn-cancel');
+  if(cancel) cancel.style.display = 'none';
+}
+
+async function saveTaskLink() {
+  const tareaId = document.getElementById('task-link-id').value;
+  const editId  = document.getElementById('tl-edit-id')?.value;
+  const titulo  = document.getElementById('tl-titulo').value.trim();
+  const url     = document.getElementById('tl-url').value.trim();
+  if (!url) { toast('Ingresá la URL'); return; }
+  setSyncState('loading');
+  let error;
+  if (editId) {
+    ({error} = await db.from('hes_adjuntos').update({titulo:titulo||url, url}).eq('id', parseInt(editId)));
+    if(!error) toast('Link actualizado ✓');
+  } else {
+    ({error} = await db.from('hes_adjuntos').insert({tarea_id:parseInt(tareaId), proveedor_id:null, tipo:'link', titulo:titulo||url, url}));
+    if(!error) toast('Link guardado ✓');
+  }
+  if (!error) {
+    cancelEditTaskLink();
+    await loadAdjuntos();
+    renderTaskLinks(tareaId);
+    renderTasks(); // actualizar chips en las cards
+    renderProveedores();
+  } else { setSyncState('error'); toast('Error al guardar'); }
+}
+
+async function deleteTaskLink(id, tareaId) {
+  await db.from('hes_adjuntos').delete().eq('id', id);
+  await loadAdjuntos();
+  renderTaskLinks(tareaId);
+  renderTasks(); // actualizar chips en las cards
+  renderProveedores();
+  toast('Link eliminado');
 }
 
 function openProvModal(id=null) {

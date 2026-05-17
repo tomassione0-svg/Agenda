@@ -162,7 +162,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .tab.active{color:var(--verde);border-bottom-color:var(--verde);}
 
 /* Main */
-.main{max-width:700px;margin:0 auto;padding:16px 12px;}
+.main{max-width:700px;margin:0 auto;padding:16px 16px;}
 .page{display:none;}
 .page.active{display:block;}
 
@@ -304,6 +304,8 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 
 /* Clientes */
 .cliente-card{background:var(--card-bg);border:1px solid var(--gris-borde);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;}
+#cliente-list, #doc-grid { padding: 0 2px; }
+#page-clientes, #page-documentos { padding-left: 2px; padding-right: 2px; box-sizing: border-box; }
 .cliente-name{font-size:14px;font-weight:600;}
 .cliente-meta{font-size:12px;color:var(--muted);margin-top:2px;}
 .cliente-status-pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:10px;white-space:nowrap;flex-shrink:0;}
@@ -365,7 +367,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .main{
   max-width:700px !important;
   margin:0 auto !important;
-  padding:16px 12px !important;
+  padding:16px 16px !important;
   width:100% !important;
   box-sizing:border-box !important;
 }
@@ -378,6 +380,11 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .calc-card,
 .progress-card{
   max-width:100% !important;
+}
+@media(max-width:480px){
+  .main{
+    padding:16px 14px !important;
+  }
 }
 
 </style>

@@ -367,17 +367,11 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   margin:0 auto !important;
   padding:16px 12px !important;
   width:100% !important;
+  box-sizing:border-box !important;
 }
 .page{
   width:100% !important;
-}
-#page-clientes,
-#page-agenda,
-#page-proveedores,
-#page-dimension,
-#page-documentos{
-  max-width:700px !important;
-  margin:0 auto !important;
+  box-sizing:border-box !important;
 }
 .cliente-card,
 .prov-card,
@@ -2767,9 +2761,9 @@ function renderDocs() {
     const docs = documentos.filter(d=>(d.categoria||'otro')===cat);
     const label = DOC_CAT[cat] || DOC_CAT.otro;
     return `
-    <div class="prov-card" style="margin-bottom:10px">
-      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px">${label}</div>
-      <div class="attach-list" style="margin-top:0">
+    <div style="margin-bottom:20px">
+      <div class="section-label">${label}</div>
+      <div class="attach-list" style="margin-top:6px">
         ${docs.map(d=>`
         <div style="display:flex;align-items:center;gap:4px">
           <a class="attach-item" href="${d.url||'#'}" target="_blank" rel="noopener" style="flex:1">

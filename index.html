@@ -206,7 +206,6 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .badge-alta{background:var(--rojo-light);color:var(--rojo);}
 .badge-media{background:var(--amber-light);color:var(--amber);}
 .badge-baja{background:var(--verde-badge);color:var(--verde);}
-.badge-azul{background:var(--azul-light);color:var(--azul);}
 .drag-handle{cursor:grab;color:var(--muted);font-size:15px;flex-shrink:0;padding:0 4px 0 0;user-select:none;line-height:1.4;touch-action:none;}
 .drag-handle:active{cursor:grabbing;}
 
@@ -236,6 +235,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .attach-item:hover{background:var(--verde-light);}
 .attach-icon{font-size:16px;flex-shrink:0;}
 .attach-label{font-size:12px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.attach-label.multiline{white-space:normal;}
 .attach-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0 2px;flex-shrink:0;}
 
 /* Price comparison */
@@ -1633,30 +1633,14 @@ function renderAdjLista(provId) {
   lista.innerHTML=(fotos.length?`<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">FOTOS / IMÁGENES</div>
     <div class="photo-grid">${fotos.map(f=>`<div style="position:relative"><img class="photo-thumb" src="${f.url}" alt="${f.titulo||''}" onclick="verFoto('${f.url}')">
       <button onclick="deleteAdj(${f.id})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;padding:1px 5px">✕</button></div>`).join('')}</div></div>`:'') +
-  (otros.length?`<div class="attach-list" id="adj-drag-list">${otros.map((a,i)=>`
-    <div draggable="true" data-adj-idx="${i}" data-adj-id="${a.id}"
-      ondragstart="adjDragStart(event,${i})"
-      ondragover="event.preventDefault();this.style.background='var(--verde-light)'"
-      ondragleave="this.style.background=''"
-      ondragend="document.querySelectorAll('#adj-drag-list>div').forEach(el=>{el.style.background='';el.style.opacity='1';})"
-      ondrop="adjDragDrop(event,${i})"
-      style="display:flex;align-items:center;gap:4px;padding:2px 0">
-      <span style="cursor:grab;color:#ccc;font-size:15px;flex-shrink:0;user-select:none;padding:0 2px">⠿</span>
-      <a class="attach-item" href="${a.url}" target="_blank" rel="noopener" style="flex:1">
-        <span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span>
-        <span class="attach-label">${a.titulo||a.url}</span>
-      </a>
-      <button onclick="editAdj(${a.id})" title="Editar" style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:15px;padding:2px 4px;flex-shrink:0">✎</button>
-      <button onclick="deleteAdj(${a.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;flex-shrink:0;padding:2px 2px">✕</button>
-    </div>`).join('')}</div>`:'');
+  (otros.length?`<div class="attach-list">${otros.map(a=>`<div style="display:flex;align-items:center;gap:6px"><a class="attach-item" href="${a.url}" target="_blank" rel="noopener" style="flex:1"><span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span><span class="attach-label">${a.titulo||a.url}</span></a>
+    <button onclick="deleteAdj(${a.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">✕</button></div>`).join('')}</div>`:'');
 }
 
 async function saveAdjunto() {
   const provId = document.getElementById('adj-prov-id').value;
   const tipo   = document.getElementById('adj-tipo').value;
   const titulo = document.getElementById('adj-titulo').value.trim();
-  const editField = document.getElementById('adj-edit-id');
-  const editId = editField ? editField.value : '';
   let url = '';
 
   if (tipo === 'foto') {
@@ -1681,25 +1665,18 @@ async function saveAdjunto() {
   }
 
   const tipoGuardado = tipo === 'foto_url' ? 'foto' : tipo;
-  let error;
-  if (editId) {
-    ({error} = await db.from('hes_adjuntos').update({titulo:titulo||url, url, tipo:tipoGuardado}).eq('id', parseInt(editId)));
-    if(!error) toast('Archivo actualizado ✓');
-  } else {
-    ({error} = await db.from('hes_adjuntos').insert({ proveedor_id: parseInt(provId), tipo: tipoGuardado, titulo, url }));
-    if(!error) toast('Guardado ✓');
-  }
+  const payload = { proveedor_id: parseInt(provId), tipo: tipoGuardado, titulo, url };
+  const { error } = await db.from('hes_adjuntos').insert(payload);
 
   if (!error) {
     document.getElementById('adj-titulo').value = '';
     document.getElementById('adj-url').value    = '';
     document.getElementById('adj-file').value   = '';
     document.getElementById('adj-upload-preview').style.display = 'none';
-    document.getElementById('adj-btn-agregar').textContent = '＋ Agregar';
-    if(editField) editField.value = '';
     await loadAdjuntos();
     renderAdjLista(provId);
     renderProveedores();
+    toast('Guardado ✓');
   } else toast('Error al guardar');
 }
 
@@ -1709,42 +1686,7 @@ async function deleteAdj(id) {
   await loadAdjuntos(); renderAdjLista(provId); renderProveedores(); toast('Eliminado');
 }
 
-function editAdj(id) {
-  const a = adjuntos.find(x=>x.id===id);
-  if(!a) return;
-  document.getElementById('adj-titulo').value = a.titulo||'';
-  document.getElementById('adj-url').value = a.url||'';
-  document.getElementById('adj-tipo').value = a.tipo==='doc'?'doc':'link';
-  toggleAdjTipo();
-  let ef = document.getElementById('adj-edit-id');
-  if(!ef){ef=document.createElement('input');ef.type='hidden';ef.id='adj-edit-id';document.getElementById('adj-lista').before(ef);}
-  ef.value = id;
-  document.getElementById('adj-btn-agregar').textContent = '✓ Guardar cambios';
-  document.getElementById('adj-titulo').focus();
-  document.getElementById('adj-titulo').scrollIntoView({behavior:'smooth',block:'center'});
-}
-
-let adjDragIdx=null, adjDragProvId=null;
-function adjDragStart(e,idx){
-  adjDragIdx=idx; adjDragProvId=document.getElementById('adj-prov-id').value;
-  e.currentTarget.style.opacity='0.4'; e.dataTransfer.effectAllowed='move';
-}
-async function adjDragDrop(e,targetIdx){
-  e.preventDefault(); e.currentTarget.style.background='';
-  if(adjDragIdx===null||adjDragIdx===targetIdx){adjDragIdx=null;return;}
-  const provId=adjDragProvId;
-  const list=adjuntos.filter(a=>a.proveedor_id==provId&&a.tipo!=='foto');
-  const moved=list.splice(adjDragIdx,1)[0]; list.splice(targetIdx,0,moved);
-  const fotos=adjuntos.filter(a=>a.proveedor_id==provId&&a.tipo==='foto');
-  const rest=adjuntos.filter(a=>a.proveedor_id!=provId);
-  adjuntos=[...rest,...fotos,...list]; adjDragIdx=null;
-  renderAdjLista(provId);
-  setSyncState('loading');
-  await Promise.all(list.map((a,i)=>db.from('hes_adjuntos').update({orden:i}).eq('id',a.id)));
-  setSyncState('ok'); toast('Orden guardado ✓');
-}
-
-
+function verFoto(url) {
   document.getElementById('foto-img').src=url;
   openOverlay('modal-foto');
 }
@@ -2741,7 +2683,6 @@ async function init() {
 
 // ── DOCUMENTOS ─────────────────────────────────────────────────────────────
 let documentos = [];
-
 const DOC_CAT = {
   manual:      '📖 Manual técnico',
   datasheet:   '📊 Datasheet / Ficha técnica',
@@ -2774,15 +2715,12 @@ function renderDocs() {
       <div class="attach-list" style="margin-top:6px">
         ${docs.map(d=>`
         <div style="display:flex;align-items:center;gap:4px">
-          <a class="attach-item" href="${d.url||'#'}" target="_blank" rel="noopener" style="flex:1;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px">
-            <div style="display:flex;align-items:center;gap:6px;width:100%">
-              <span class="attach-icon">📄</span>
-              <span class="attach-label" style="font-size:13px;font-weight:600;white-space:normal">${d.titulo||'Sin título'}</span>
-            </div>
-            ${d.descripcion?`<div style="font-size:11px;color:var(--muted);margin-top:2px;padding-left:22px">${d.descripcion}</div>`:''}
+          <a class="attach-item" href="${d.url||'#'}" target="_blank" rel="noopener" style="flex:1">
+            <span class="attach-icon">📄</span>
+            <span class="attach-label">${d.titulo||'Sin título'}${d.descripcion?`<span style="display:block;font-size:10px;color:var(--muted);font-weight:400;margin-top:1px">${d.descripcion}</span>`:''}</span>
           </a>
-          <button onclick="openDocModal('${d.id}')" title="Editar"
-            style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:17px;padding:4px 6px;flex-shrink:0">✎</button>
+          <button onclick="event.stopPropagation();openDocModal('${d.id}')" title="Editar"
+            style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:17px;padding:4px 8px;flex-shrink:0">✎</button>
         </div>`).join('')}
       </div>
     </div>`;

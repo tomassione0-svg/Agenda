@@ -230,7 +230,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 
 /* Attachments */
 .attach-list{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
-.attach-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--card-bg);border:1px solid var(--gris-borde);border-radius:7px;text-decoration:none;color:var(--texto);box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.attach-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--gris);border-radius:7px;text-decoration:none;color:var(--texto);}
 .attach-item:hover{background:var(--verde-light);}
 .attach-icon{font-size:16px;flex-shrink:0;}
 .attach-label{font-size:12px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -362,15 +362,21 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 
 /* FIX LAYOUT: mantener el CRM centrado como antes */
 .main{
-  max-width:600px !important;
+  max-width:700px !important;
   margin:0 auto !important;
-  padding:16px 20px !important;
+  padding:16px 12px !important;
   width:100% !important;
-  box-sizing:border-box !important;
 }
 .page{
   width:100% !important;
-  box-sizing:border-box !important;
+}
+#page-clientes,
+#page-documentos,
+#page-agenda,
+#page-proveedores,
+#page-dimension{
+  max-width:700px !important;
+  margin:0 auto !important;
 }
 .cliente-card,
 .prov-card,

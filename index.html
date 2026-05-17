@@ -452,8 +452,8 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   <div class="tab active" onclick="showTab('agenda')">Checkpoints</div>
   <div class="tab" onclick="showTab('proveedores')">Proveedores</div>
   <div class="tab" onclick="showTab('dimension')">Dimensionamiento</div>
-  <div class="tab" onclick="showTab('clientes')">Clientes</div>
   <div class="tab" onclick="showTab('documentos')">Documentos</div>
+  <div class="tab" onclick="showTab('clientes')">Clientes</div>
 </div>
 
 <div class="main">
@@ -649,10 +649,9 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   <div id="cliente-list"></div>
 </div>
 
-
 <!-- ══ DOCUMENTOS ══ -->
 <div class="page" id="page-documentos">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Base de documentos</div>
     <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="openDocModal()">＋ Nuevo</button>
   </div>
@@ -670,13 +669,13 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
     </div>
     <input type="hidden" id="doc-id">
     <label>Título</label>
-    <input type="text" id="doc-titulo" placeholder="Ej: Manual de instalación termosolar" style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:9px 11px;font-size:14px;margin-bottom:10px">
+    <input type="text" id="doc-titulo" placeholder="Ej: Manual de instalación termosolar">
     <label>Descripción / Notas</label>
-    <textarea id="doc-desc" placeholder="Info adicional, versión, fecha..." style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:9px 11px;font-size:14px;margin-bottom:10px;height:64px;resize:vertical;font-family:inherit"></textarea>
+    <textarea id="doc-desc" placeholder="Info adicional, versión, fecha..."></textarea>
     <label>URL del documento</label>
-    <input type="url" id="doc-url" placeholder="https://drive.google.com/..." style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:9px 11px;font-size:14px;margin-bottom:10px">
+    <input type="url" id="doc-url" placeholder="https://drive.google.com/...">
     <label>Categoría</label>
-    <select id="doc-categoria" style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:9px 11px;font-size:14px;margin-bottom:10px">
+    <select id="doc-categoria">
       <option value="manual">📖 Manual técnico</option>
       <option value="datasheet">📊 Datasheet / Ficha técnica</option>
       <option value="normativa">⚖ Normativa / Reglamento</option>
@@ -1059,7 +1058,7 @@ let dragSrcIdx = null, dragSrcCol = null;
 // ── UI Helpers ─────────────────────────────────────────────────────────────
 function showTab(name) {
   document.querySelectorAll('.tab').forEach((t,i) => {
-    t.classList.toggle('active', ['agenda','proveedores','dimension','clientes','documentos'][i] === name);
+    t.classList.toggle('active', ['agenda','proveedores','dimension','documentos','clientes'][i] === name);
   });
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
@@ -1634,18 +1633,22 @@ function renderAdjLista(provId) {
   lista.innerHTML=(fotos.length?`<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">FOTOS / IMÁGENES</div>
     <div class="photo-grid">${fotos.map(f=>`<div style="position:relative"><img class="photo-thumb" src="${f.url}" alt="${f.titulo||''}" onclick="verFoto('${f.url}')">
       <button onclick="deleteAdj(${f.id})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;padding:1px 5px">✕</button></div>`).join('')}</div></div>`:'') +
-  (otros.length?`<div class="attach-list" id="adj-drag-list">${otros.map((a,i)=>`<div draggable="true" data-adj-idx="${i}" data-adj-id="${a.id}"
-    ondragstart="adjDragStart(event,${i})"
-    ondragover="event.preventDefault();event.currentTarget.style.borderColor='var(--verde)'"
-    ondragleave="event.currentTarget.style.borderColor=''"
-    ondragend="document.querySelectorAll('#adj-drag-list [data-adj-idx]').forEach(el=>{el.style.borderColor='';el.style.opacity='1';})"
-    ondrop="adjDragDrop(event,${i})"
-    style="display:flex;align-items:center;gap:6px;border:1px solid transparent;border-radius:7px;transition:border-color .15s">
-    <span style="cursor:grab;color:#ccc;font-size:15px;flex-shrink:0;user-select:none;padding:0 4px">⠿</span>
-    <a class="attach-item" href="${a.url}" target="_blank" rel="noopener" style="flex:1"><span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span><span class="attach-label">${a.titulo||a.url}</span></a>
-    <button onclick="editAdj(${a.id})" title="Editar" style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:15px;padding:2px 4px;flex-shrink:0">✎</button>
-    <button onclick="deleteAdj(${a.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;flex-shrink:0">✕</button>
-  </div>`).join('')}</div>`:'');
+  (otros.length?`<div class="attach-list" id="adj-drag-list">${otros.map((a,i)=>`
+    <div draggable="true" data-adj-idx="${i}" data-adj-id="${a.id}"
+      ondragstart="adjDragStart(event,${i})"
+      ondragover="event.preventDefault();this.style.background='var(--verde-light)'"
+      ondragleave="this.style.background=''"
+      ondragend="document.querySelectorAll('#adj-drag-list>div').forEach(el=>{el.style.background='';el.style.opacity='1';})"
+      ondrop="adjDragDrop(event,${i})"
+      style="display:flex;align-items:center;gap:4px;padding:2px 0">
+      <span style="cursor:grab;color:#ccc;font-size:15px;flex-shrink:0;user-select:none;padding:0 2px">⠿</span>
+      <a class="attach-item" href="${a.url}" target="_blank" rel="noopener" style="flex:1">
+        <span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span>
+        <span class="attach-label">${a.titulo||a.url}</span>
+      </a>
+      <button onclick="editAdj(${a.id})" title="Editar" style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:15px;padding:2px 4px;flex-shrink:0">✎</button>
+      <button onclick="deleteAdj(${a.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;flex-shrink:0;padding:2px 2px">✕</button>
+    </div>`).join('')}</div>`:'');
 }
 
 async function saveAdjunto() {
@@ -1683,8 +1686,7 @@ async function saveAdjunto() {
     ({error} = await db.from('hes_adjuntos').update({titulo:titulo||url, url, tipo:tipoGuardado}).eq('id', parseInt(editId)));
     if(!error) toast('Archivo actualizado ✓');
   } else {
-    const payload = { proveedor_id: parseInt(provId), tipo: tipoGuardado, titulo, url };
-    ({error} = await db.from('hes_adjuntos').insert(payload));
+    ({error} = await db.from('hes_adjuntos').insert({ proveedor_id: parseInt(provId), tipo: tipoGuardado, titulo, url }));
     if(!error) toast('Guardado ✓');
   }
 
@@ -1714,47 +1716,35 @@ function editAdj(id) {
   document.getElementById('adj-url').value = a.url||'';
   document.getElementById('adj-tipo').value = a.tipo==='doc'?'doc':'link';
   toggleAdjTipo();
-  // Store edit ID in a hidden field
-  let editField = document.getElementById('adj-edit-id');
-  if(!editField){editField=document.createElement('input');editField.type='hidden';editField.id='adj-edit-id';document.getElementById('adj-prov-id').parentNode.appendChild(editField);}
-  editField.value = id;
+  let ef = document.getElementById('adj-edit-id');
+  if(!ef){ef=document.createElement('input');ef.type='hidden';ef.id='adj-edit-id';document.getElementById('adj-lista').before(ef);}
+  ef.value = id;
   document.getElementById('adj-btn-agregar').textContent = '✓ Guardar cambios';
   document.getElementById('adj-titulo').focus();
   document.getElementById('adj-titulo').scrollIntoView({behavior:'smooth',block:'center'});
 }
 
-let adjDragIdx = null;
-let adjDragProvId = null;
-
-function adjDragStart(e, idx) {
-  adjDragIdx = idx;
-  adjDragProvId = document.getElementById('adj-prov-id').value;
-  e.currentTarget.style.opacity = '0.4';
-  e.dataTransfer.effectAllowed = 'move';
+let adjDragIdx=null, adjDragProvId=null;
+function adjDragStart(e,idx){
+  adjDragIdx=idx; adjDragProvId=document.getElementById('adj-prov-id').value;
+  e.currentTarget.style.opacity='0.4'; e.dataTransfer.effectAllowed='move';
 }
-
-async function adjDragDrop(e, targetIdx) {
-  e.preventDefault();
-  e.currentTarget.style.borderColor = '';
-  if (adjDragIdx === null || adjDragIdx === targetIdx) { adjDragIdx = null; return; }
-  const provId = adjDragProvId;
-  const provAdj = adjuntos.filter(a => a.proveedor_id == provId && a.tipo !== 'foto');
-  const moved = provAdj.splice(adjDragIdx, 1)[0];
-  provAdj.splice(targetIdx, 0, moved);
-  // rebuild adjuntos array preserving fotos order
-  const fotos = adjuntos.filter(a => a.proveedor_id == provId && a.tipo === 'foto');
-  const otros = adjuntos.filter(a => a.proveedor_id != provId);
-  adjuntos = [...otros, ...fotos, ...provAdj];
-  adjDragIdx = null;
+async function adjDragDrop(e,targetIdx){
+  e.preventDefault(); e.currentTarget.style.background='';
+  if(adjDragIdx===null||adjDragIdx===targetIdx){adjDragIdx=null;return;}
+  const provId=adjDragProvId;
+  const list=adjuntos.filter(a=>a.proveedor_id==provId&&a.tipo!=='foto');
+  const moved=list.splice(adjDragIdx,1)[0]; list.splice(targetIdx,0,moved);
+  const fotos=adjuntos.filter(a=>a.proveedor_id==provId&&a.tipo==='foto');
+  const rest=adjuntos.filter(a=>a.proveedor_id!=provId);
+  adjuntos=[...rest,...fotos,...list]; adjDragIdx=null;
   renderAdjLista(provId);
   setSyncState('loading');
-  const updates = provAdj.map((a, i) => db.from('hes_adjuntos').update({ orden: i }).eq('id', a.id));
-  await Promise.all(updates);
-  setSyncState('ok');
-  toast('Orden guardado ✓');
+  await Promise.all(list.map((a,i)=>db.from('hes_adjuntos').update({orden:i}).eq('id',a.id)));
+  setSyncState('ok'); toast('Orden guardado ✓');
 }
 
-function verFoto(url) {
+
   document.getElementById('foto-img').src=url;
   openOverlay('modal-foto');
 }
@@ -2744,7 +2734,6 @@ async function init() {
   calcular(); calcularFV();
   try {
     await seedIfEmpty();
-    // loadProveedores ya carga adjuntos y precios internamente
     await Promise.all([loadTasks(), loadProveedores(), loadPresupuestos(), loadClientes(), loadDocs()]);
     setSyncState('ok');
   } catch(e){ setSyncState('error'); }
@@ -2754,16 +2743,16 @@ async function init() {
 let documentos = [];
 
 const DOC_CAT = {
-  manual:      {label:'📖 Manual técnico',     cls:'badge-curso'},
-  datasheet:   {label:'📊 Datasheet',          cls:'badge-pend'},
-  normativa:   {label:'⚖ Normativa',           cls:'badge-urgente'},
-  comercial:   {label:'💼 Comercial',           cls:'badge-hecho'},
-  instalacion: {label:'🔧 Instalación',         cls:'badge-azul'},
-  otro:        {label:'📎 Otro',               cls:'badge-pend'},
+  manual:      '📖 Manual técnico',
+  datasheet:   '📊 Datasheet / Ficha técnica',
+  normativa:   '⚖ Normativa / Reglamento',
+  comercial:   '💼 Comercial / Presupuesto',
+  instalacion: '🔧 Instalación / Guía',
+  otro:        '📎 Otro',
 };
 
 async function loadDocs() {
-  const { data, error } = await db.from('hes_documentos').select('*').order('orden', {nullsFirst:true}).order('created_at');
+  const { data, error } = await db.from('hes_documentos').select('*').order('orden',{nullsFirst:true}).order('created_at');
   if (error) { console.warn('hes_documentos no existe aún'); documentos = []; return; }
   documentos = data || [];
 }
@@ -2775,27 +2764,25 @@ function renderDocs() {
     grid.innerHTML = '<div class="empty">Sin documentos — agregá el primero</div>';
     return;
   }
-
-  // Group by category
   const cats = [...new Set(documentos.map(d=>d.categoria||'otro'))];
   grid.innerHTML = cats.map(cat => {
     const docs = documentos.filter(d=>(d.categoria||'otro')===cat);
-    const catInfo = DOC_CAT[cat] || DOC_CAT.otro;
+    const label = DOC_CAT[cat] || DOC_CAT.otro;
     return `
     <div style="margin-bottom:20px">
-      <div class="section-label" style="border-bottom:1px solid var(--gris-borde);margin-bottom:8px">${catInfo.label}</div>
-      <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="section-label">${label}</div>
+      <div class="attach-list" style="margin-top:6px">
         ${docs.map(d=>`
-        <div class="prov-card" style="padding:12px 14px;cursor:default" onclick="window.open('${d.url||'#'}','_blank')">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-            <div style="flex:1;min-width:0">
-              <div style="font-size:14px;font-weight:600;color:var(--verde);margin-bottom:3px">${d.titulo||'Sin título'}</div>
-              ${d.descripcion?`<div style="font-size:12px;color:var(--muted);line-height:1.4">${d.descripcion}</div>`:''}
-              ${d.url?`<div style="font-size:11px;color:var(--teal);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.url}</div>`:''}
+        <div style="display:flex;align-items:center;gap:4px">
+          <a class="attach-item" href="${d.url||'#'}" target="_blank" rel="noopener" style="flex:1;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px">
+            <div style="display:flex;align-items:center;gap:6px;width:100%">
+              <span class="attach-icon">📄</span>
+              <span class="attach-label" style="font-size:13px;font-weight:600;white-space:normal">${d.titulo||'Sin título'}</span>
             </div>
-            <button onclick="event.stopPropagation();openDocModal('${d.id}')" title="Editar"
-              style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:17px;padding:2px 4px;flex-shrink:0">✎</button>
-          </div>
+            ${d.descripcion?`<div style="font-size:11px;color:var(--muted);margin-top:2px;padding-left:22px">${d.descripcion}</div>`:''}
+          </a>
+          <button onclick="openDocModal('${d.id}')" title="Editar"
+            style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:17px;padding:4px 6px;flex-shrink:0">✎</button>
         </div>`).join('')}
       </div>
     </div>`;
@@ -2839,14 +2826,9 @@ async function saveDoc() {
   }
   closeModal('modal-doc');
   if (!error) {
-    await loadDocs();
-    renderDocs();
-    setSyncState('ok');
+    await loadDocs(); renderDocs(); setSyncState('ok');
     toast(id ? 'Documento actualizado ✓' : 'Documento guardado ✓');
-  } else {
-    setSyncState('error');
-    toast('Error al guardar. ¿Existe la tabla hes_documentos?');
-  }
+  } else { setSyncState('error'); toast('Error al guardar'); }
 }
 
 async function deleteDoc() {
@@ -2854,9 +2836,7 @@ async function deleteDoc() {
   if (!id || !confirm('¿Eliminar este documento?')) return;
   await db.from('hes_documentos').delete().eq('id', id);
   closeModal('modal-doc');
-  await loadDocs();
-  renderDocs();
-  toast('Eliminado');
+  await loadDocs(); renderDocs(); toast('Eliminado');
 }
 </script>
 <!-- FIX presupuestos sin columna tipo_dim FINAL -->

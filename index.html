@@ -206,6 +206,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .badge-alta{background:var(--rojo-light);color:var(--rojo);}
 .badge-media{background:var(--amber-light);color:var(--amber);}
 .badge-baja{background:var(--verde-badge);color:var(--verde);}
+.badge-azul{background:var(--azul-light);color:var(--azul);}
 .drag-handle{cursor:grab;color:var(--muted);font-size:15px;flex-shrink:0;padding:0 4px 0 0;user-select:none;line-height:1.4;touch-action:none;}
 .drag-handle:active{cursor:grabbing;}
 
@@ -452,6 +453,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   <div class="tab" onclick="showTab('proveedores')">Proveedores</div>
   <div class="tab" onclick="showTab('dimension')">Dimensionamiento</div>
   <div class="tab" onclick="showTab('clientes')">Clientes</div>
+  <div class="tab" onclick="showTab('documentos')">Documentos</div>
 </div>
 
 <div class="main">
@@ -647,7 +649,48 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   <div id="cliente-list"></div>
 </div>
 
+
+<!-- ══ DOCUMENTOS ══ -->
+<div class="page" id="page-documentos">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Base de documentos</div>
+    <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="openDocModal()">＋ Nuevo</button>
+  </div>
+  <div id="doc-grid"></div>
+</div>
+
 </div><!-- /main -->
+
+<!-- ══ MODAL DOCUMENTO ══ -->
+<div class="modal-overlay" id="modal-doc">
+  <div class="modal" style="max-width:480px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h2 style="margin:0" id="doc-modal-title">📄 Nuevo documento</h2>
+      <button onclick="closeModal('modal-doc')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;padding:0">×</button>
+    </div>
+    <input type="hidden" id="doc-id">
+    <label>Título</label>
+    <input type="text" id="doc-titulo" placeholder="Ej: Manual de instalación termosolar" style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:9px 11px;font-size:14px;margin-bottom:10px">
+    <label>Descripción / Notas</label>
+    <textarea id="doc-desc" placeholder="Info adicional, versión, fecha..." style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:9px 11px;font-size:14px;margin-bottom:10px;height:64px;resize:vertical;font-family:inherit"></textarea>
+    <label>URL del documento</label>
+    <input type="url" id="doc-url" placeholder="https://drive.google.com/..." style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:9px 11px;font-size:14px;margin-bottom:10px">
+    <label>Categoría</label>
+    <select id="doc-categoria" style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:9px 11px;font-size:14px;margin-bottom:10px">
+      <option value="manual">📖 Manual técnico</option>
+      <option value="datasheet">📊 Datasheet / Ficha técnica</option>
+      <option value="normativa">⚖ Normativa / Reglamento</option>
+      <option value="comercial">💼 Comercial / Presupuesto</option>
+      <option value="instalacion">🔧 Instalación / Guía</option>
+      <option value="otro">📎 Otro</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn btn-delete" id="doc-btn-delete" style="display:none;margin-right:auto" onclick="deleteDoc()">Eliminar</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-doc')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveDoc()">Guardar</button>
+    </div>
+  </div>
+</div>
 
 <!-- ══ MODAL TASK LINKS ══ -->
 <div class="modal-overlay" id="modal-task-links" style="display:none">
@@ -1016,10 +1059,11 @@ let dragSrcIdx = null, dragSrcCol = null;
 // ── UI Helpers ─────────────────────────────────────────────────────────────
 function showTab(name) {
   document.querySelectorAll('.tab').forEach((t,i) => {
-    t.classList.toggle('active', ['agenda','proveedores','dimension','clientes'][i] === name);
+    t.classList.toggle('active', ['agenda','proveedores','dimension','clientes','documentos'][i] === name);
   });
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
+  if(name==='documentos') renderDocs();
 }
 function toast(msg, ms=2200) {
   const t = document.getElementById('toast');
@@ -1590,14 +1634,26 @@ function renderAdjLista(provId) {
   lista.innerHTML=(fotos.length?`<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px">FOTOS / IMÁGENES</div>
     <div class="photo-grid">${fotos.map(f=>`<div style="position:relative"><img class="photo-thumb" src="${f.url}" alt="${f.titulo||''}" onclick="verFoto('${f.url}')">
       <button onclick="deleteAdj(${f.id})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;padding:1px 5px">✕</button></div>`).join('')}</div></div>`:'') +
-  (otros.length?`<div class="attach-list">${otros.map(a=>`<div style="display:flex;align-items:center;gap:6px"><a class="attach-item" href="${a.url}" target="_blank" rel="noopener" style="flex:1"><span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span><span class="attach-label">${a.titulo||a.url}</span></a>
-    <button onclick="deleteAdj(${a.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">✕</button></div>`).join('')}</div>`:'');
+  (otros.length?`<div class="attach-list" id="adj-drag-list">${otros.map((a,i)=>`<div draggable="true" data-adj-idx="${i}" data-adj-id="${a.id}"
+    ondragstart="adjDragStart(event,${i})"
+    ondragover="event.preventDefault();event.currentTarget.style.borderColor='var(--verde)'"
+    ondragleave="event.currentTarget.style.borderColor=''"
+    ondragend="document.querySelectorAll('#adj-drag-list [data-adj-idx]').forEach(el=>{el.style.borderColor='';el.style.opacity='1';})"
+    ondrop="adjDragDrop(event,${i})"
+    style="display:flex;align-items:center;gap:6px;border:1px solid transparent;border-radius:7px;transition:border-color .15s">
+    <span style="cursor:grab;color:#ccc;font-size:15px;flex-shrink:0;user-select:none;padding:0 4px">⠿</span>
+    <a class="attach-item" href="${a.url}" target="_blank" rel="noopener" style="flex:1"><span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span><span class="attach-label">${a.titulo||a.url}</span></a>
+    <button onclick="editAdj(${a.id})" title="Editar" style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:15px;padding:2px 4px;flex-shrink:0">✎</button>
+    <button onclick="deleteAdj(${a.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;flex-shrink:0">✕</button>
+  </div>`).join('')}</div>`:'');
 }
 
 async function saveAdjunto() {
   const provId = document.getElementById('adj-prov-id').value;
   const tipo   = document.getElementById('adj-tipo').value;
   const titulo = document.getElementById('adj-titulo').value.trim();
+  const editField = document.getElementById('adj-edit-id');
+  const editId = editField ? editField.value : '';
   let url = '';
 
   if (tipo === 'foto') {
@@ -1622,18 +1678,26 @@ async function saveAdjunto() {
   }
 
   const tipoGuardado = tipo === 'foto_url' ? 'foto' : tipo;
-  const payload = { proveedor_id: parseInt(provId), tipo: tipoGuardado, titulo, url };
-  const { error } = await db.from('hes_adjuntos').insert(payload);
+  let error;
+  if (editId) {
+    ({error} = await db.from('hes_adjuntos').update({titulo:titulo||url, url, tipo:tipoGuardado}).eq('id', parseInt(editId)));
+    if(!error) toast('Archivo actualizado ✓');
+  } else {
+    const payload = { proveedor_id: parseInt(provId), tipo: tipoGuardado, titulo, url };
+    ({error} = await db.from('hes_adjuntos').insert(payload));
+    if(!error) toast('Guardado ✓');
+  }
 
   if (!error) {
     document.getElementById('adj-titulo').value = '';
     document.getElementById('adj-url').value    = '';
     document.getElementById('adj-file').value   = '';
     document.getElementById('adj-upload-preview').style.display = 'none';
+    document.getElementById('adj-btn-agregar').textContent = '＋ Agregar';
+    if(editField) editField.value = '';
     await loadAdjuntos();
     renderAdjLista(provId);
     renderProveedores();
-    toast('Guardado ✓');
   } else toast('Error al guardar');
 }
 
@@ -1641,6 +1705,53 @@ async function deleteAdj(id) {
   const provId=document.getElementById('adj-prov-id').value;
   await db.from('hes_adjuntos').delete().eq('id',id);
   await loadAdjuntos(); renderAdjLista(provId); renderProveedores(); toast('Eliminado');
+}
+
+function editAdj(id) {
+  const a = adjuntos.find(x=>x.id===id);
+  if(!a) return;
+  document.getElementById('adj-titulo').value = a.titulo||'';
+  document.getElementById('adj-url').value = a.url||'';
+  document.getElementById('adj-tipo').value = a.tipo==='doc'?'doc':'link';
+  toggleAdjTipo();
+  // Store edit ID in a hidden field
+  let editField = document.getElementById('adj-edit-id');
+  if(!editField){editField=document.createElement('input');editField.type='hidden';editField.id='adj-edit-id';document.getElementById('adj-prov-id').parentNode.appendChild(editField);}
+  editField.value = id;
+  document.getElementById('adj-btn-agregar').textContent = '✓ Guardar cambios';
+  document.getElementById('adj-titulo').focus();
+  document.getElementById('adj-titulo').scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+let adjDragIdx = null;
+let adjDragProvId = null;
+
+function adjDragStart(e, idx) {
+  adjDragIdx = idx;
+  adjDragProvId = document.getElementById('adj-prov-id').value;
+  e.currentTarget.style.opacity = '0.4';
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+async function adjDragDrop(e, targetIdx) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = '';
+  if (adjDragIdx === null || adjDragIdx === targetIdx) { adjDragIdx = null; return; }
+  const provId = adjDragProvId;
+  const provAdj = adjuntos.filter(a => a.proveedor_id == provId && a.tipo !== 'foto');
+  const moved = provAdj.splice(adjDragIdx, 1)[0];
+  provAdj.splice(targetIdx, 0, moved);
+  // rebuild adjuntos array preserving fotos order
+  const fotos = adjuntos.filter(a => a.proveedor_id == provId && a.tipo === 'foto');
+  const otros = adjuntos.filter(a => a.proveedor_id != provId);
+  adjuntos = [...otros, ...fotos, ...provAdj];
+  adjDragIdx = null;
+  renderAdjLista(provId);
+  setSyncState('loading');
+  const updates = provAdj.map((a, i) => db.from('hes_adjuntos').update({ orden: i }).eq('id', a.id));
+  await Promise.all(updates);
+  setSyncState('ok');
+  toast('Orden guardado ✓');
 }
 
 function verFoto(url) {
@@ -2634,9 +2745,118 @@ async function init() {
   try {
     await seedIfEmpty();
     // loadProveedores ya carga adjuntos y precios internamente
-    await Promise.all([loadTasks(), loadProveedores(), loadPresupuestos(), loadClientes()]);
+    await Promise.all([loadTasks(), loadProveedores(), loadPresupuestos(), loadClientes(), loadDocs()]);
     setSyncState('ok');
   } catch(e){ setSyncState('error'); }
+}
+
+// ── DOCUMENTOS ─────────────────────────────────────────────────────────────
+let documentos = [];
+
+const DOC_CAT = {
+  manual:      {label:'📖 Manual técnico',     cls:'badge-curso'},
+  datasheet:   {label:'📊 Datasheet',          cls:'badge-pend'},
+  normativa:   {label:'⚖ Normativa',           cls:'badge-urgente'},
+  comercial:   {label:'💼 Comercial',           cls:'badge-hecho'},
+  instalacion: {label:'🔧 Instalación',         cls:'badge-azul'},
+  otro:        {label:'📎 Otro',               cls:'badge-pend'},
+};
+
+async function loadDocs() {
+  const { data, error } = await db.from('hes_documentos').select('*').order('orden', {nullsFirst:true}).order('created_at');
+  if (error) { console.warn('hes_documentos no existe aún'); documentos = []; return; }
+  documentos = data || [];
+}
+
+function renderDocs() {
+  const grid = document.getElementById('doc-grid');
+  if (!grid) return;
+  if (!documentos.length) {
+    grid.innerHTML = '<div class="empty">Sin documentos — agregá el primero</div>';
+    return;
+  }
+
+  // Group by category
+  const cats = [...new Set(documentos.map(d=>d.categoria||'otro'))];
+  grid.innerHTML = cats.map(cat => {
+    const docs = documentos.filter(d=>(d.categoria||'otro')===cat);
+    const catInfo = DOC_CAT[cat] || DOC_CAT.otro;
+    return `
+    <div style="margin-bottom:20px">
+      <div class="section-label" style="border-bottom:1px solid var(--gris-borde);margin-bottom:8px">${catInfo.label}</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${docs.map(d=>`
+        <div class="prov-card" style="padding:12px 14px;cursor:default" onclick="window.open('${d.url||'#'}','_blank')">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:14px;font-weight:600;color:var(--verde);margin-bottom:3px">${d.titulo||'Sin título'}</div>
+              ${d.descripcion?`<div style="font-size:12px;color:var(--muted);line-height:1.4">${d.descripcion}</div>`:''}
+              ${d.url?`<div style="font-size:11px;color:var(--teal);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.url}</div>`:''}
+            </div>
+            <button onclick="event.stopPropagation();openDocModal('${d.id}')" title="Editar"
+              style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:17px;padding:2px 4px;flex-shrink:0">✎</button>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openDocModal(id=null) {
+  document.getElementById('doc-id').value = id||'';
+  document.getElementById('doc-modal-title').textContent = id ? '📄 Editar documento' : '📄 Nuevo documento';
+  document.getElementById('doc-btn-delete').style.display = id ? 'block' : 'none';
+  if (id) {
+    const d = documentos.find(x=>String(x.id)===String(id));
+    if (!d) return;
+    document.getElementById('doc-titulo').value = d.titulo||'';
+    document.getElementById('doc-desc').value = d.descripcion||'';
+    document.getElementById('doc-url').value = d.url||'';
+    document.getElementById('doc-categoria').value = d.categoria||'otro';
+  } else {
+    ['doc-titulo','doc-desc','doc-url'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('doc-categoria').value = 'manual';
+  }
+  openOverlay('modal-doc');
+  setTimeout(()=>document.getElementById('doc-titulo').focus(),80);
+}
+
+async function saveDoc() {
+  const id = document.getElementById('doc-id').value;
+  const payload = {
+    titulo:      document.getElementById('doc-titulo').value.trim(),
+    descripcion: document.getElementById('doc-desc').value.trim(),
+    url:         document.getElementById('doc-url').value.trim(),
+    categoria:   document.getElementById('doc-categoria').value,
+  };
+  if (!payload.titulo) { toast('Ingresá un título'); return; }
+  setSyncState('loading');
+  let error;
+  if (id) {
+    ({error} = await db.from('hes_documentos').update(payload).eq('id', id));
+  } else {
+    ({error} = await db.from('hes_documentos').insert({...payload, orden: documentos.length}));
+  }
+  closeModal('modal-doc');
+  if (!error) {
+    await loadDocs();
+    renderDocs();
+    setSyncState('ok');
+    toast(id ? 'Documento actualizado ✓' : 'Documento guardado ✓');
+  } else {
+    setSyncState('error');
+    toast('Error al guardar. ¿Existe la tabla hes_documentos?');
+  }
+}
+
+async function deleteDoc() {
+  const id = document.getElementById('doc-id').value;
+  if (!id || !confirm('¿Eliminar este documento?')) return;
+  await db.from('hes_documentos').delete().eq('id', id);
+  closeModal('modal-doc');
+  await loadDocs();
+  renderDocs();
+  toast('Eliminado');
 }
 </script>
 <!-- FIX presupuestos sin columna tipo_dim FINAL -->

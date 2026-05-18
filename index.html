@@ -2562,11 +2562,43 @@ function tipoClienteDisplay(c) {
 
 // ── CLIENTES ───────────────────────────────────────────────────────────────
 async function loadClientes() {
-  const {data}=await db.from('hes_clientes').select('*').order('created_at',{ascending:false});
+  const {data}=await db.from('hes_clientes').select('*').order('orden',{nullsFirst:true}).order('created_at',{ascending:false});
   clientes=data||[];
+  renderClientes();
+}
+
+function renderClientes() {
   const list=document.getElementById('cliente-list');
+  if(!list)return;
   const statusMap={consulta:['status-consulta','Consulta'],cotizando:['status-cotizando','En cotización'],enviado:['status-enviado','Ppto. enviado'],cerrado:['status-cerrado','Cerrado ✅'],perdido:['status-perdido','Perdido ❌']};
-  list.innerHTML=!clientes.length?'<div class="empty">Sin clientes todavía</div>':clientes.map(c=>{const[cls,lbl]=statusMap[c.estado]||['status-consulta','Consulta'];return`<div class="cliente-card"><div><div class="cliente-name">${c.nombre}</div><div class="cliente-meta">${tipoClienteDisplay(c)} · ${c.contacto||'—'}</div>${c.notas?`<div class="cliente-meta">${c.notas}</div>`:''}</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><span class="cliente-status-pill ${cls}">${lbl}</span><button class="edit-btn" onclick="openClienteModal('${c.id}')">✎</button></div></div>`;}).join('');
+  if(!clientes.length){list.innerHTML='<div class="empty">Sin clientes todavía</div>';return;}
+  list.innerHTML=clientes.map((c,idx)=>{
+    const[cls,lbl]=statusMap[c.estado]||['status-consulta','Consulta'];
+    return`<div class="cliente-card" draggable="true" data-idx="${idx}" data-id="${c.id}"
+      style="display:flex;align-items:flex-start;gap:0"
+      ondragstart="cliDragStart(event,${idx})"
+      ondragover="event.preventDefault();event.currentTarget.style.borderColor='var(--verde)';event.currentTarget.style.background='var(--verde-light)'"
+      ondragleave="event.currentTarget.style.borderColor='';event.currentTarget.style.background=''"
+      ondragend="event.currentTarget.style.borderColor='';event.currentTarget.style.background='';document.querySelectorAll('.cliente-card').forEach(x=>{x.style.borderColor='';x.style.background='';})"
+      ondrop="cliDragDrop(event,${idx})">
+      <span class="drag-handle" style="font-size:18px;padding:0 8px 0 4px;margin-top:2px;color:var(--muted);user-select:none;touch-action:none;cursor:grab;flex-shrink:0">⠃</span>
+      <div style="flex:1;min-width:0">
+        <div class="cliente-name">${c.nombre}</div>
+        <div class="cliente-meta">${tipoClienteDisplay(c)} · ${c.contacto||'—'}</div>
+        ${c.notas?`<div class="cliente-meta">${c.notas}</div>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        <span class="cliente-status-pill ${cls}">${lbl}</span>
+        <button class="edit-btn" onclick="openClienteModal('${c.id}')">✎</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Touch drag
+  document.querySelectorAll('.cliente-card').forEach(card => {
+    const handle = card.querySelector('.drag-handle');
+    if (handle) addTouchDrag(handle, card, 'cli', parseInt(card.dataset.id), null);
+  });
 }
 
 function openClienteModal(id=null) {
@@ -2595,6 +2627,31 @@ async function deleteCliente() {
   if(!id||!confirm('¿Eliminar?'))return;
   await db.from('hes_clientes').delete().eq('id',id);
   closeModal('modal-cliente'); await loadClientes(); toast('Eliminado');
+}
+
+let cliDragIdx = null;
+function cliDragStart(e, idx) {
+  cliDragIdx = idx;
+  e.currentTarget.style.opacity = '0.35';
+  e.dataTransfer.effectAllowed = 'move';
+}
+async function cliDragDrop(e, targetIdx) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = '';
+  e.currentTarget.style.background = '';
+  document.querySelectorAll('.cliente-card').forEach(c => { c.style.opacity = ''; });
+  if (cliDragIdx === null || cliDragIdx === targetIdx) { cliDragIdx = null; return; }
+  await doCliReorder(cliDragIdx, targetIdx);
+  cliDragIdx = null;
+}
+async function doCliReorder(srcIdx, tgtIdx) {
+  const moved = clientes.splice(srcIdx, 1)[0];
+  clientes.splice(tgtIdx, 0, moved);
+  renderClientes();
+  setSyncState('loading');
+  await Promise.all(clientes.map((c, i) => db.from('hes_clientes').update({ orden: i }).eq('id', c.id)));
+  setSyncState('ok');
+  toast('Orden guardado ✓');
 }
 
 // ── SEED ───────────────────────────────────────────────────────────────────
@@ -2671,9 +2728,15 @@ function addTouchDrag(handle, card, type, id, col) {
 
     // Highlight target
     document.querySelectorAll('.task-card,.prov-card').forEach(c => c.classList.remove('drag-over'));
-    const targetCard = elUnder ? elUnder.closest('.task-card, .prov-card') : null;
+    document.querySelectorAll('.doc-card,.cliente-card').forEach(c => { c.style.borderColor=''; c.style.background=''; });
+    const targetCard = elUnder ? elUnder.closest('.task-card, .prov-card, .doc-card, .cliente-card') : null;
     if (targetCard && targetCard !== touchDragState.card) {
-      targetCard.classList.add('drag-over');
+      if (targetCard.classList.contains('doc-card') || targetCard.classList.contains('cliente-card')) {
+        targetCard.style.borderColor = 'var(--verde)';
+        targetCard.style.background = 'var(--verde-light)';
+      } else {
+        targetCard.classList.add('drag-over');
+      }
     }
   }, { passive: false });
 
@@ -2685,11 +2748,12 @@ function addTouchDrag(handle, card, type, id, col) {
     if (touchClone) { touchClone.remove(); touchClone = null; }
     touchDragState.card.classList.remove('dragging');
     document.querySelectorAll('.task-card,.prov-card').forEach(c => c.classList.remove('drag-over'));
+    document.querySelectorAll('.doc-card,.cliente-card').forEach(c => { c.style.borderColor=''; c.style.background=''; });
 
     // Find drop target
     if (touchClone) touchClone.style.display = 'none';
     const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
-    const targetCard = elUnder ? elUnder.closest('.task-card, .prov-card') : null;
+    const targetCard = elUnder ? elUnder.closest('.task-card, .prov-card, .doc-card, .cliente-card') : null;
 
     if (targetCard && targetCard !== touchDragState.card) {
       if (touchDragState.type === 'task') {
@@ -2703,6 +2767,18 @@ function addTouchDrag(handle, card, type, id, col) {
         const srcIdx = parseInt(touchDragState.card.dataset.idx);
         if (!isNaN(targetIdx) && targetIdx !== srcIdx) {
           await doProvReorder(srcIdx, targetIdx);
+        }
+      } else if (touchDragState.type === 'doc') {
+        const srcIdx = parseInt(touchDragState.card.dataset.idx);
+        const tgtIdx = parseInt(targetCard.dataset.idx);
+        if (!isNaN(tgtIdx) && tgtIdx !== srcIdx) {
+          await doDocReorder(srcIdx, tgtIdx);
+        }
+      } else if (touchDragState.type === 'cli') {
+        const srcIdx = parseInt(touchDragState.card.dataset.idx);
+        const tgtIdx = parseInt(targetCard.dataset.idx);
+        if (!isNaN(tgtIdx) && tgtIdx !== srcIdx) {
+          await doCliReorder(srcIdx, tgtIdx);
         }
       }
     }
@@ -2775,19 +2851,36 @@ function renderDocs() {
     return `
     <div style="margin-bottom:20px">
       <div class="section-label">${label}</div>
-      <div class="attach-list" style="margin-top:6px">
-        ${docs.map(d=>`
-        <div style="display:flex;align-items:center;gap:4px">
-          <a class="attach-item" href="${d.url||'#'}" target="_blank" rel="noopener" style="flex:1">
+      <div class="attach-list" id="doc-cat-${cat}" style="margin-top:6px">
+        ${docs.map((d,idx)=>{
+          const globalIdx = documentos.findIndex(x=>x.id===d.id);
+          return `
+        <div class="doc-card" draggable="true" data-idx="${globalIdx}" data-id="${d.id}"
+          style="display:flex;align-items:center;gap:4px;background:var(--gris);border:none;border-radius:7px;padding:2px 4px 2px 0;transition:background .15s;"
+          ondragstart="docDragStart(event,${globalIdx})"
+          ondragover="event.preventDefault();event.currentTarget.style.background='var(--verde-light)'"
+          ondragleave="event.currentTarget.style.background='var(--gris)'"
+          ondragend="event.currentTarget.style.background='var(--gris)';document.querySelectorAll('.doc-card').forEach(c=>{c.style.background='var(--gris)';})"
+          ondrop="docDragDrop(event,${globalIdx})">
+          <span class="drag-handle" style="font-size:15px;padding:0 4px;color:var(--muted);user-select:none;touch-action:none;cursor:grab">⠿</span>
+          <a class="attach-item" href="${d.url||'#'}" target="_blank" rel="noopener"
+            style="flex:1;background:transparent;border:none;padding:7px 4px 7px 0">
             <span class="attach-icon">${d.url?'🔗':'📄'}</span>
             <span class="attach-label">${d.titulo||'Sin título'}${d.descripcion?`<span style="display:block;font-size:10px;color:var(--muted);font-weight:400;white-space:normal;margin-top:1px">${d.descripcion}</span>`:''}</span>
           </a>
           <button onclick="event.stopPropagation();openDocModal('${d.id}')" title="Editar"
             style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:17px;padding:4px 8px;flex-shrink:0">✎</button>
-        </div>`).join('')}
+        </div>`;
+        }).join('')}
       </div>
     </div>`;
   }).join('');
+
+  // Attach touch drag to each doc handle
+  document.querySelectorAll('.doc-card').forEach(card => {
+    const handle = card.querySelector('.drag-handle');
+    if (handle) addTouchDrag(handle, card, 'doc', parseInt(card.dataset.id), null);
+  });
 }
 
 function openDocModal(id=null) {
@@ -2838,6 +2931,31 @@ async function deleteDoc() {
   await db.from('hes_documentos').delete().eq('id', id);
   closeModal('modal-doc');
   await loadDocs(); renderDocs(); toast('Eliminado');
+}
+
+let docDragIdx = null;
+function docDragStart(e, idx) {
+  docDragIdx = idx;
+  e.currentTarget.style.opacity = '0.35';
+  e.dataTransfer.effectAllowed = 'move';
+}
+async function docDragDrop(e, targetIdx) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = '';
+  e.currentTarget.style.background = '';
+  document.querySelectorAll('.doc-card').forEach(c => { c.style.opacity = ''; });
+  if (docDragIdx === null || docDragIdx === targetIdx) { docDragIdx = null; return; }
+  await doDocReorder(docDragIdx, targetIdx);
+  docDragIdx = null;
+}
+async function doDocReorder(srcIdx, tgtIdx) {
+  const moved = documentos.splice(srcIdx, 1)[0];
+  documentos.splice(tgtIdx, 0, moved);
+  renderDocs();
+  setSyncState('loading');
+  await Promise.all(documentos.map((d, i) => db.from('hes_documentos').update({ orden: i }).eq('id', d.id)));
+  setSyncState('ok');
+  toast('Orden guardado ✓');
 }
 </script>
 <!-- FIX presupuestos sin columna tipo_dim FINAL -->

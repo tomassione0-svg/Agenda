@@ -840,7 +840,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
     </div>
     <div id="adj-lista"></div>
     <div class="modal-actions" style="margin-top:8px">
-      <button class="btn btn-secondary" onclick="closeProvModal('modal-adjuntos')">Cerrar</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-adjuntos')">Cerrar</button>
     </div>
   </div>
 </div>
@@ -869,7 +869,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
       </div>
     </div>
     <div id="precio-lista"></div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeProvModal('modal-precios')">Cerrar</button></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('modal-precios')">Cerrar</button></div>
   </div>
 </div>
 
@@ -1083,22 +1083,12 @@ function closeModal(id) {
   const o = document.getElementById(id);
   o.classList.remove('open'); o.style.display='none';
 }
-async function closeProvModal(id) {
-  closeModal(id);
-  await Promise.all([loadAdjuntos(), loadPrecios()]);
-  renderProveedores();
-}
 function openOverlay(id) {
   const o = document.getElementById(id);
   o.style.display='flex'; o.classList.add('open');
 }
 document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => {
-    if(e.target===o) {
-      if(o.id==='modal-adjuntos'||o.id==='modal-precios') closeProvModal(o.id);
-      else closeModal(o.id);
-    }
-  });
+  o.addEventListener('click', e => { if(e.target===o) closeModal(o.id); });
 });
 
 // ── TASKS ──────────────────────────────────────────────────────────────────
@@ -1364,7 +1354,7 @@ async function loadProveedores() {
 }
 
 async function loadAdjuntos() {
-  const {data} = await db.from('hes_adjuntos').select('*').order('orden',{nullsFirst:true}).order('created_at');
+  const {data} = await db.from('hes_adjuntos').select('*').order('orden', {nullsFirst:true}).order('created_at');
   adjuntos = data||[];
   taskLinkCount = {};
   adjuntos.filter(a=>a.tarea_id).forEach(a=>{taskLinkCount[a.tarea_id]=(taskLinkCount[a.tarea_id]||0)+1;});
@@ -1386,7 +1376,7 @@ function renderProveedores() {
     const provAdj = adjuntos.filter(a=>a.proveedor_id==p.id);
     const provPre = precios.filter(r=>r.proveedor_id==p.id);
     const fotos = provAdj.filter(a=>a.tipo==='foto');
-    const links = provAdj.filter(a=>a.tipo!=='foto');
+    const links = provAdj.filter(a=>a.tipo!=='foto').sort((a,b)=>(a.orden??9999)-(b.orden??9999));
     return `
     <div class="prov-card" draggable="true" data-idx="${idx}" data-id="${p.id}"
       ondragstart="provDragStart(event,${idx})"
@@ -1745,16 +1735,13 @@ function adjDragStart(e,idx){
 }
 async function adjDragDrop(e,targetIdx){
   e.preventDefault(); e.currentTarget.style.background='';
-  const srcIdx=adjDragIdx; const provId=adjDragProvId;
-  adjDragIdx=null;
-  if(srcIdx===null||srcIdx===targetIdx) return;
+  if(adjDragIdx===null||adjDragIdx===targetIdx){adjDragIdx=null;return;}
+  const provId=adjDragProvId;
   const list=adjuntos.filter(a=>a.proveedor_id==provId&&a.tipo!=='foto');
-  const moved=list.splice(srcIdx,1)[0]; list.splice(targetIdx,0,moved);
-  // Mutar orden en los objetos del array global
-  list.forEach((a,i)=>{ a.orden=i; });
+  const moved=list.splice(adjDragIdx,1)[0]; list.splice(targetIdx,0,moved);
   const fotos=adjuntos.filter(a=>a.proveedor_id==provId&&a.tipo==='foto');
   const rest=adjuntos.filter(a=>a.proveedor_id!=provId);
-  adjuntos=[...rest,...fotos,...list];
+  adjuntos=[...rest,...fotos,...list]; adjDragIdx=null;
   renderAdjLista(provId);
   setSyncState('loading');
   await Promise.all(list.map((a,i)=>db.from('hes_adjuntos').update({orden:i}).eq('id',a.id)));
@@ -1877,19 +1864,20 @@ function precioDragStart(e, idx) {
 async function precioDragDrop(e, targetIdx) {
   e.preventDefault();
   e.currentTarget.classList.remove('drag-over');
-  const srcIdx = precioDragIdx;
+  if (precioDragIdx === null || precioDragIdx === targetIdx) { precioDragIdx = null; return; }
   const provId = precioDragProvId;
-  precioDragIdx = null;
-  if (srcIdx === null || srcIdx === targetIdx) return;
   const pp = precios.filter(r => r.proveedor_id == provId);
-  const moved = pp.splice(srcIdx, 1)[0];
+  const moved = pp.splice(precioDragIdx, 1)[0];
   pp.splice(targetIdx, 0, moved);
-  // Mutar orden en los objetos del array global
-  pp.forEach((r, i) => { r.orden = i; });
-  precios = [...precios.filter(r => r.proveedor_id != provId), ...pp];
+  // Update orden in local array
+  const otherPrecios = precios.filter(r => r.proveedor_id != provId);
+  precios = [...otherPrecios, ...pp];
+  precioDragIdx = null;
   renderPrecioLista(provId);
+  // Save new orden to Supabase
   setSyncState('loading');
-  await Promise.all(pp.map((r, i) => db.from('hes_precios').update({ orden: i }).eq('id', r.id)));
+  const updates = pp.map((r, i) => db.from('hes_precios').update({ orden: i }).eq('id', r.id));
+  await Promise.all(updates);
   setSyncState('ok');
   toast('Orden guardado ✓');
 }

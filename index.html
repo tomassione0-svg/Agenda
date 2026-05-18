@@ -869,7 +869,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
       </div>
     </div>
     <div id="precio-lista"></div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closePreciosModal()">Cerrar</button></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('modal-precios')">Cerrar</button></div>
   </div>
 </div>
 
@@ -1083,22 +1083,12 @@ function closeModal(id) {
   const o = document.getElementById(id);
   o.classList.remove('open'); o.style.display='none';
 }
-async function closePreciosModal() {
-  closeModal('modal-precios');
-  await loadPrecios();
-  renderProveedores();
-}
 function openOverlay(id) {
   const o = document.getElementById(id);
   o.style.display='flex'; o.classList.add('open');
 }
 document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => {
-    if(e.target===o) {
-      if(o.id==='modal-precios') closePreciosModal();
-      else closeModal(o.id);
-    }
-  });
+  o.addEventListener('click', e => { if(e.target===o) closeModal(o.id); });
 });
 
 // ── TASKS ──────────────────────────────────────────────────────────────────
@@ -1863,6 +1853,7 @@ function cancelEditPrecio() {
 
 let precioDragIdx = null;
 let precioDragProvId = null;
+let _precioDragBusy = false;
 
 function precioDragStart(e, idx) {
   precioDragIdx = idx;
@@ -1874,22 +1865,25 @@ function precioDragStart(e, idx) {
 async function precioDragDrop(e, targetIdx) {
   e.preventDefault();
   e.currentTarget.classList.remove('drag-over');
-  if (precioDragIdx === null || precioDragIdx === targetIdx) { precioDragIdx = null; return; }
+  const srcIdx = precioDragIdx;
   const provId = precioDragProvId;
+  precioDragIdx = null; // reset inmediato para no bloquear proximo drag
+  if (srcIdx === null || srcIdx === targetIdx || _precioDragBusy) return;
+  _precioDragBusy = true;
+  // Trabajar siempre sobre el subarray fresco del proveedor
   const pp = precios.filter(r => r.proveedor_id == provId);
-  const moved = pp.splice(precioDragIdx, 1)[0];
+  const moved = pp.splice(srcIdx, 1)[0];
   pp.splice(targetIdx, 0, moved);
-  // Update orden in local array
-  const otherPrecios = precios.filter(r => r.proveedor_id != provId);
-  precios = [...otherPrecios, ...pp];
-  precioDragIdx = null;
+  // Reasignar orden en objetos del array global
+  pp.forEach((r, i) => { r.orden = i; });
+  precios = [...precios.filter(r => r.proveedor_id != provId), ...pp];
   renderPrecioLista(provId);
-  // Save new orden to Supabase
+  // Persistir en Supabase
   setSyncState('loading');
-  const updates = pp.map((r, i) => db.from('hes_precios').update({ orden: i }).eq('id', r.id));
-  await Promise.all(updates);
+  await Promise.all(pp.map((r, i) => db.from('hes_precios').update({ orden: i }).eq('id', r.id)));
   setSyncState('ok');
-  toast('Orden guardado ✓');
+  toast('Orden guardado');
+  _precioDragBusy = false;
 }
 
 async function deletePrecio(id) {

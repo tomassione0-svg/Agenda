@@ -1745,7 +1745,7 @@ async function adjDragDrop(e,targetIdx){
   renderAdjLista(provId);
   setSyncState('loading');
   await Promise.all(list.map((a,i)=>db.from('hes_adjuntos').update({orden:i}).eq('id',a.id)));
-  setSyncState('ok'); toast('Orden guardado ✓');
+  setSyncState('ok'); renderProveedores(); toast('Orden guardado ✓');
 }
 
 function verFoto(url) {
@@ -1879,6 +1879,7 @@ async function precioDragDrop(e, targetIdx) {
   const updates = pp.map((r, i) => db.from('hes_precios').update({ orden: i }).eq('id', r.id));
   await Promise.all(updates);
   setSyncState('ok');
+  renderProveedores();
   toast('Orden guardado ✓');
 }
 

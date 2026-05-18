@@ -869,7 +869,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
       </div>
     </div>
     <div id="precio-lista"></div>
-    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('modal-precios')">Cerrar</button></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closePreciosModal()">Cerrar</button></div>
   </div>
 </div>
 
@@ -1083,12 +1083,22 @@ function closeModal(id) {
   const o = document.getElementById(id);
   o.classList.remove('open'); o.style.display='none';
 }
+async function closePreciosModal() {
+  closeModal('modal-precios');
+  await loadPrecios();
+  renderProveedores();
+}
 function openOverlay(id) {
   const o = document.getElementById(id);
   o.style.display='flex'; o.classList.add('open');
 }
 document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => { if(e.target===o) closeModal(o.id); });
+  o.addEventListener('click', e => {
+    if(e.target===o) {
+      if(o.id==='modal-precios') closePreciosModal();
+      else closeModal(o.id);
+    }
+  });
 });
 
 // ── TASKS ──────────────────────────────────────────────────────────────────

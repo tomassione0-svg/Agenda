@@ -1744,9 +1744,10 @@ async function adjDragDrop(e,targetIdx){
   const rest=adjuntos.filter(a=>a.proveedor_id!=provId);
   adjuntos=[...rest,...fotos,...list]; adjDragIdx=null;
   renderAdjLista(provId);
+  renderProveedores();
   setSyncState('loading');
   await Promise.all(list.map((a,i)=>db.from('hes_adjuntos').update({orden:i}).eq('id',a.id)));
-  setSyncState('ok'); toast('Orden guardado ✓');
+  setSyncState('ok');
 }
 
 function verFoto(url) {
@@ -1875,12 +1876,11 @@ async function precioDragDrop(e, targetIdx) {
   precios = [...otherPrecios, ...pp];
   precioDragIdx = null;
   renderPrecioLista(provId);
-  // Save new orden to Supabase
+  renderProveedores();
   setSyncState('loading');
   const updates = pp.map((r, i) => db.from('hes_precios').update({ orden: i }).eq('id', r.id));
   await Promise.all(updates);
   setSyncState('ok');
-  toast('Orden guardado ✓');
 }
 
 async function deletePrecio(id) {

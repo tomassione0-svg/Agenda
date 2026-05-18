@@ -206,7 +206,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .badge-media{background:var(--amber-light);color:var(--amber);}
 .badge-baja{background:var(--verde-badge);color:var(--verde);}
 .drag-handle{cursor:grab;color:var(--muted);font-size:15px;flex-shrink:0;padding:0 4px 0 0;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;line-height:1.4;touch-action:none;}
-.doc-card,.doc-card a{-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;}
+.doc-card,.doc-card a,.cliente-card .drag-handle{-webkit-touch-callout:none;}
 .drag-handle:active{cursor:grabbing;}
 
 /* Add btn */
@@ -2578,9 +2578,9 @@ function renderClientes() {
     return`<div class="cliente-card" draggable="true" data-idx="${idx}" data-id="${c.id}"
       style="display:flex;align-items:flex-start;gap:0"
       ondragstart="cliDragStart(event,${idx})"
-      ondragover="event.preventDefault();event.currentTarget.style.borderColor='var(--verde)';event.currentTarget.style.background='var(--verde-light)'"
-      ondragleave="event.currentTarget.style.borderColor='';event.currentTarget.style.background=''"
-      ondragend="event.currentTarget.style.borderColor='';event.currentTarget.style.background='';document.querySelectorAll('.cliente-card').forEach(x=>{x.style.borderColor='';x.style.background='';})"
+      ondragover="event.preventDefault();event.currentTarget.style.background='var(--verde-light)'"
+      ondragleave="event.currentTarget.style.background=''"
+      ondragend="event.currentTarget.style.background='';document.querySelectorAll('.cliente-card').forEach(x=>{x.style.background='';})"
       ondrop="cliDragDrop(event,${idx})">
       <span class="drag-handle" style="font-size:18px;padding:0 8px 0 4px;margin-top:2px;color:var(--muted);user-select:none;touch-action:none;cursor:grab;flex-shrink:0">⠃</span>
       <div style="flex:1;min-width:0">
@@ -2682,7 +2682,6 @@ let touchScrollInterval = null;
 function addTouchDrag(handle, card, type, id, col) {
   handle.addEventListener('touchstart', e => {
     e.stopPropagation();
-    e.preventDefault();
     const touch = e.touches[0];
     touchDragState = { type, id, col, card, startX: touch.clientX, startY: touch.clientY, moved: false };
 
@@ -2692,22 +2691,21 @@ function addTouchDrag(handle, card, type, id, col) {
       touchDragState.active = true;
       card.classList.add('dragging');
 
-      // Create floating clone con offset correcto
+      // Create floating clone con offset correcto al dedo
       const rect = card.getBoundingClientRect();
       touchClone = card.cloneNode(true);
       touchClone.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;opacity:.85;pointer-events:none;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);border-radius:8px;transform:scale(1.02);transition:none;`;
       touchDragState.offsetX = touch.clientX - rect.left;
       touchDragState.offsetY = touch.clientY - rect.top;
       document.body.appendChild(touchClone);
-    }, 180);
-  }, { passive: false });
+    }, 200);
+  }, { passive: true });
 
   handle.addEventListener('touchmove', e => {
     if (!touchDragState || !touchDragState.active) return;
     e.preventDefault();
     const touch = e.touches[0];
-
-    // Move clone siguiendo el dedo con offset
+    // Mover clone siguiendo el dedo con offset guardado
     if (touchClone) {
       touchClone.style.left = (touch.clientX - (touchDragState.offsetX || 20)) + 'px';
       touchClone.style.top  = (touch.clientY - (touchDragState.offsetY || 20)) + 'px';
@@ -2856,11 +2854,11 @@ function renderDocs() {
           const globalIdx = documentos.findIndex(x=>x.id===d.id);
           return `
         <div class="doc-card" draggable="true" data-idx="${globalIdx}" data-id="${d.id}"
-          style="display:flex;align-items:center;gap:4px;background:var(--card-bg);border:1px solid var(--gris-borde);border-radius:7px;padding:2px 4px 2px 0;transition:border-color .15s,background .15s;"
+          style="display:flex;align-items:center;gap:4px;background:var(--gris);border:none;border-radius:7px;padding:2px 4px 2px 0;transition:background .15s;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;"
           ondragstart="docDragStart(event,${globalIdx})"
-          ondragover="event.preventDefault();event.currentTarget.style.borderColor='var(--verde)';event.currentTarget.style.background='var(--verde-light)'"
-          ondragleave="event.currentTarget.style.borderColor='';event.currentTarget.style.background=''"
-          ondragend="event.currentTarget.style.borderColor='';event.currentTarget.style.background='';document.querySelectorAll('.doc-card').forEach(c=>{c.style.borderColor='';c.style.background='';})"
+          ondragover="event.preventDefault();event.currentTarget.style.background='var(--verde-light)'"
+          ondragleave="event.currentTarget.style.background='var(--gris)'"
+          ondragend="event.currentTarget.style.background='var(--gris)';document.querySelectorAll('.doc-card').forEach(c=>{c.style.background='var(--gris)';})"
           ondrop="docDragDrop(event,${globalIdx})">
           <span class="drag-handle" style="font-size:15px;padding:0 4px;color:var(--muted);user-select:none;touch-action:none;cursor:grab">⠿</span>
           <a class="attach-item" href="${d.url||'#'}" target="_blank" rel="noopener"

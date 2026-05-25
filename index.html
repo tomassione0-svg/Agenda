@@ -381,7 +381,8 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 #page-documentos,
 #page-agenda,
 #page-proveedores,
-#page-dimension{
+#page-dimension,
+#page-presupuesto{
   max-width:700px !important;
   margin:0 auto !important;
 }
@@ -391,6 +392,69 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .progress-card{
   max-width:100% !important;
 }
+
+
+/* ── PRESUPUESTO ──────────────────────────────────────────────────────────── */
+#page-presupuesto { padding: 0 4px; }
+.pq-card { background: var(--card-bg); border: 1px solid var(--gris-borde); border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+.pq-card-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--verde); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+.pq-field { margin-bottom: 10px; }
+.pq-field label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.pq-field input, .pq-field select, .pq-field textarea {
+  width: 100%; padding: 9px 12px; border: 1.5px solid var(--gris-borde);
+  border-radius: 8px; font-size: 14px; font-family: inherit;
+  color: var(--texto); background: #fff; outline: none;
+}
+.pq-field input:focus, .pq-field textarea:focus { border-color: var(--verde); }
+.pq-field textarea { resize: vertical; min-height: 60px; }
+.pq-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pq-lineas { border: 1px solid var(--gris-borde); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
+.pq-linea { display: grid; grid-template-columns: 1fr 70px 90px 28px; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--gris-borde); align-items: center; background: #fff; }
+.pq-linea:last-child { border-bottom: none; }
+.pq-linea-head { background: transparent; padding: 7px 10px; display: grid; grid-template-columns: 1fr 70px 90px 28px; gap: 6px; border-bottom: 2px solid var(--verde); }
+.pq-linea-head span { font-size: 10px; font-weight: 700; color: var(--verde); text-transform: uppercase; letter-spacing: .04em; }
+.pq-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #fff; background: var(--verde-mid); padding: 5px 10px; }
+.pq-inp { width: 100%; border: 1px solid var(--gris-borde); border-radius: 6px; padding: 7px 8px; font-size: 12px; font-family: inherit; transition: border-color .15s, box-shadow .15s; }
+.pq-inp:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px rgba(27,107,47,.15); }
+.pq-del { background: none; border: none; color: #bbb; cursor: pointer; font-size: 18px; line-height: 1; padding: 0; }
+.pq-del:hover { color: var(--rojo); }
+.pq-add { width: 100%; background: none; border: 1.5px dashed var(--gris-borde); border-radius: 8px; padding: 8px; color: var(--muted); font-size: 12px; cursor: pointer; font-family: inherit; }
+.pq-add:hover { border-color: var(--verde); color: var(--verde); }
+.pq-totales { background: #f8f9fa; border: 1px solid var(--gris-borde); border-radius: 8px; padding: 12px 14px; }
+.pq-tot-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 13px; border-bottom: 1px solid var(--gris-borde); }
+.pq-tot-row:last-child { border-bottom: none; font-weight: 700; color: var(--verde); font-size: 15px; padding-top: 8px; }
+.pq-tot-row span:last-child { font-weight: 600; }
+
+/* Autocomplete dropdown */
+#pq-ac-dropdown { position: fixed; background: #fff; border: 1.5px solid #2d9448; border-top: none; border-radius: 0 0 8px 8px; z-index: 99999; box-shadow: 0 6px 20px rgba(0,0,0,.18); max-height: 220px; overflow-y: auto; display: none; }
+.pq-ac-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+.pq-ac-item:hover { background: var(--verde-light); }
+.pq-ac-model { font-size: 13px; font-weight: 600; color: var(--texto); }
+.pq-ac-desc { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px; }
+.pq-ac-price { font-size: 12px; color: var(--verde); font-weight: 600; float: right; margin-left: 8px; }
+
+/* Modal presupuesto PDF */
+.pq-modal-ovl { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 200; display: none; overflow-y: auto; padding: 16px; align-items: flex-start; justify-content: center; }
+.pq-modal-ovl.open { display: flex; }
+.pq-modal-box { background: #fff; width: 100%; max-width: 860px; border-radius: 10px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.pq-modal-head { background: var(--verde); padding: 14px 20px; display: flex; align-items: center; }
+.pq-modal-head h3 { font-size: 15px; font-weight: 700; color: #fff; flex: 1; margin: 0; }
+.pq-modal-head .xbtn { background: none; border: none; color: rgba(255,255,255,.7); font-size: 24px; cursor: pointer; }
+.pq-modal-foot { background: #fff; padding: 12px 20px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #eee; }
+#pq-pdf-canvas { padding: 40px 48px; background: #fff; }
+
+/* Historial presupuestos */
+.pq-hist-row { background: #fff; border: 1px solid var(--gris-borde); border-radius: 8px; padding: 11px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; }
+.pq-hist-nro { font-size: 13px; font-weight: 700; color: var(--verde); min-width: 80px; }
+.pq-hist-body { flex: 1; min-width: 0; }
+.pq-hist-title { font-size: 13px; font-weight: 500; }
+.pq-hist-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.pq-hist-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.pq-btn-sm { padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 500; border: 1px solid var(--gris-borde); background: #fff; color: var(--texto); }
+.pq-btn-sm:hover { border-color: var(--verde); color: var(--verde); }
+.pq-btn-sm.del { border-color: #f0c0c0; color: var(--rojo); }
+.pq-btn-sm.del:hover { background: var(--rojo-light); }
+.pq-btn-sm.view { background: var(--verde-light); border-color: var(--verde-badge); color: var(--verde); }
 
 </style>
 </head>
@@ -457,12 +521,121 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 <div class="tabs">
   <div class="tab active" onclick="showTab('agenda')">Checkpoints</div>
   <div class="tab" onclick="showTab('proveedores')">Proveedores</div>
-  <div class="tab" onclick="showTab('dimension')">Dimensionamiento</div>
+  <div class="tab" onclick="showTab('dimension')">Dimensionamientos</div>
   <div class="tab" onclick="showTab('documentos')">Documentos</div>
+  <div class="tab" onclick="showTab('presupuesto')">Presupuestos</div>
   <div class="tab" onclick="showTab('clientes')">Clientes</div>
 </div>
 
 <div class="main">
+
+
+<!-- ══ PRESUPUESTO ══ -->
+<div class="page" id="page-presupuesto">
+
+  <!-- Datos del presupuesto -->
+  <div class="pq-card">
+    <div class="pq-card-head">
+      <span>📋 Datos del presupuesto</span>
+      <span id="pq-nro-badge" style="font-size:12px;font-weight:600;color:var(--verde);background:var(--verde-light);padding:3px 10px;border-radius:20px"></span>
+    </div>
+    <div class="pq-grid2">
+      <div class="pq-field">
+        <label>Número</label>
+        <input type="text" id="pq-nro" placeholder="2026-001" style="color:var(--verde);font-weight:700">
+      </div>
+      <div class="pq-field">
+        <label>Fecha</label>
+        <input type="date" id="pq-fecha">
+      </div>
+    </div>
+    <div class="pq-field">
+        <label>Validez</label>
+        <input type="text" id="pq-validez" placeholder="15 días hábiles">
+      </div>
+    <div class="pq-field">
+      <label style="display:flex;justify-content:space-between;align-items:center">
+        <span>Razón Social</span>
+        <span id="pq-clientes-count" style="font-size:11px;color:var(--muted)"></span>
+        <button id="pq-btn-gestionar" style="display:none;background:var(--verde-light);border:1px solid var(--verde-badge);color:var(--verde);font-size:11px;padding:2px 8px;border-radius:6px;cursor:pointer;font-family:inherit;font-weight:600" onclick="pqOpenManageClientes()">✏ Gestionar</button>
+      </label>
+      <input type="text" id="pq-cliente" placeholder="Nombre o empresa del cliente" autocomplete="off">
+    </div>
+    <div class="pq-grid2">
+      <div class="pq-field">
+        <label>CUIT</label>
+        <input type="text" id="pq-cuit" placeholder="20-12345678-9">
+      </div>
+      <div class="pq-field">
+        <label>Contacto</label>
+        <input type="text" id="pq-contacto" placeholder="Nombre, teléfono o email">
+      </div>
+    </div>
+    <div class="pq-field">
+      <label>Dirección / Localidad</label>
+      <input type="text" id="pq-dir" placeholder="Ciudad, Provincia">
+    </div>
+    <div class="pq-field">
+      <label>Observaciones</label>
+      <textarea id="pq-obs" placeholder="Condiciones de pago, notas adicionales..."></textarea>
+    </div>
+  </div>
+
+  <!-- Líneas del presupuesto: Paneles / Electrónica -->
+  <div class="pq-card">
+    <div class="pq-card-head">☀ Equipos / Materiales</div>
+    <div class="pq-lineas" id="pq-lineas-solar">
+      <div class="pq-linea-head">
+        <span>Descripción</span>
+        <span style="text-align:right">Cant.</span>
+        <span style="text-align:right">P. Unit ($)</span>
+        <span></span>
+      </div>
+    </div>
+    <div style="position:relative">
+      <input type="text" id="pq-ac-input" autocomplete="off" placeholder="🔍 Buscar producto (ej: heat pipe, MultiPlus, panel solar, termotanque...)" style="width:100%;padding:9px 12px;border:1.5px solid var(--gris-borde);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;outline:none;box-sizing:border-box;">
+    </div>
+  </div>
+
+  <!-- Líneas manuales: Instalación / Sanitarios / MO -->
+  <div class="pq-card">
+    <div class="pq-card-head">🔧 Instalación y otros (manual)</div>
+    <div class="pq-lineas" id="pq-lineas-manual">
+      <div class="pq-linea-head">
+        <span>Descripción</span>
+        <span style="text-align:right">Cant.</span>
+        <span style="text-align:right">Precio</span>
+        <span></span>
+      </div>
+    </div>
+    <button class="pq-add" onclick="pqAddManual()">＋ Agregar ítem manual</button>
+  </div>
+
+  <!-- Totales -->
+  <div class="pq-card">
+    <div class="pq-card-head">💰 Resumen</div>
+    <div class="pq-totales">
+      <div class="pq-tot-row"><span>Subtotal equipos solar</span><span id="pq-sub-solar">—</span></div>
+      <div class="pq-tot-row"><span>Subtotal instalación / otros</span><span id="pq-sub-manual">—</span></div>
+      <div class="pq-tot-row"><span>TOTAL</span><span id="pq-total">—</span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-bottom:24px;padding:0 2px">
+    <button class="btn btn-secondary" style="flex:1" onclick="pqReset()">🗑 Limpiar</button>
+    <button class="btn btn-primary" style="flex:2" onclick="pqPreview()">Ver presupuesto</button>
+  </div>
+
+  <!-- Historial -->
+  <div class="pq-card">
+    <div class="pq-card-head">
+      <span>📁 Historial</span>
+      <button class="pq-btn-sm" onclick="pqLoadHistorial()">↺ Actualizar</button>
+    </div>
+    <div id="pq-historial"><div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">Cargando...</div></div>
+  </div>
+
+</div>
 
 <!-- ══ CHECKPOINTS ══ -->
 <div class="page active" id="page-agenda">
@@ -562,7 +735,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
       </div>
     </div>
     <div class="section-sep"></div>
-    <div class="section-label">Presupuestos guardados — Térmica</div>
+    <div class="section-label">Dimensionamientos guardados — Térmica</div>
     <div id="dim-lista"></div>
   </div>
   <div id="dim-fv" style="display:none">
@@ -638,7 +811,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
       </div>
     </div>
     <div class="section-sep"></div>
-    <div class="section-label">Presupuestos guardados — Fotovoltaico</div>
+    <div class="section-label">Dimensionamientos guardados — Fotovoltaico</div>
     <div id="fv-dim-lista"></div>
   </div></div>
 </div>
@@ -1064,12 +1237,49 @@ let dragSrcIdx = null, dragSrcCol = null;
 // ── UI Helpers ─────────────────────────────────────────────────────────────
 function showTab(name) {
   document.querySelectorAll('.tab').forEach((t,i) => {
-    t.classList.toggle('active', ['agenda','proveedores','dimension','documentos','clientes'][i] === name);
+    t.classList.toggle('active', ['agenda','proveedores','dimension','documentos','presupuesto','clientes'][i] === name);
   });
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
-  if(name==='documentos') renderDocs();
+  if (name === 'documentos') renderDocs();
+  if (name === 'presupuesto') {
+    // Defaults (solo si están vacíos)
+    var hoy = new Date().toISOString().split('T')[0];
+    var fe = document.getElementById('pq-fecha');
+    var va = document.getElementById('pq-validez');
+    var nr = document.getElementById('pq-nro');
+    if (fe && !fe.value) fe.value = hoy;
+    if (va && !va.value) va.value = '15 días hábiles';
+    if (nr && !nr.value) {
+      pqGetNextNro().then(function(n) {
+        nr.value = n;
+        var b = document.getElementById('pq-nro-badge');
+        if (b) b.textContent = '#' + n;
+      });
+    }
+    // Wire buscador (solo la primera vez)
+    var ac = document.getElementById('pq-ac-input');
+    if (ac && !ac._w) {
+      ac._w = true;
+      ac.addEventListener('input', function() { pqAcSearch(this.value, this); });
+      ac.addEventListener('focus', function() { var s=this; setTimeout(function(){ pqAcSearch(s.value,s); },50); });
+      ac.addEventListener('blur',  function() { _pqAcBlurTimer = setTimeout(function(){ var d=document.getElementById('pq-ac-dropdown'); if(d) d.style.display='none'; },350); });
+      document.addEventListener('mousedown', function(e) {
+        if (!e.target.closest('#pq-ac-dropdown') && e.target.id!=='pq-ac-input') {
+          var d=document.getElementById('pq-ac-dropdown'); if(d) d.style.display='none';
+        }
+      });
+      var dlBtn = document.getElementById('pq-btn-dl');
+      if (dlBtn && !dlBtn._w) { dlBtn._w=true; dlBtn.addEventListener('click', pqDownloadPDF); }
+      var ovl = document.getElementById('pq-modal-ovl');
+      if (ovl && !ovl._w) { ovl._w=true; ovl.addEventListener('click', function(e){ if(e.target===this) pqCloseModal(); }); }
+    }
+    pqLoadHistorial();
+    pqUpdateClientesCount();
+  }
 }
+
+// pqWireAcInput removed
 function toast(msg, ms=2200) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -2466,7 +2676,7 @@ async function loadPresupuestos() {
   const listaT = document.getElementById('dim-lista');
   const listaF = document.getElementById('fv-dim-lista');
 
-  listaT.innerHTML = !t.length ? '<div class="empty">Sin presupuestos térmicos</div>' : t.map(p => `
+  listaT.innerHTML = !t.length ? '<div class="empty">Sin dimensionamientos térmicos</div>' : t.map(p => `
     <div class="prov-card" style="margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <div>
@@ -2487,7 +2697,7 @@ async function loadPresupuestos() {
       </div>
     </div>`).join('');
 
-  listaF.innerHTML = !f.length ? '<div class="empty">Sin presupuestos FV</div>' : f.map(p => {
+  listaF.innerHTML = !f.length ? '<div class="empty">Sin dimensionamientos FV</div>' : f.map(p => {
     const fv = parsePresupuestoFV(p);
     return `
     <div class="prov-card" style="margin-bottom:8px">
@@ -3613,6 +3823,1104 @@ function clearVozCli(){_vcText='';_vcActive=false;if(_vcRec)try{_vcRec.abort();}
   document.getElementById('voz-cli-transcript').style.display='none';
   document.getElementById('voz-cli-preview').style.display='none';
   document.getElementById('voz-cli-clear').style.display='none';}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PRESUPUESTO ENERTIK — JS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ─── SUPABASE helpers (reuse SUPA_URL/SUPA_KEY from above) ────────────────────
+const PQ_SB_URL = 'https://venvzyzbuduzbyqlrtcm.supabase.co';
+const PQ_SB_KEY = 'sb_publishable_j-I3Ckl63BOTjUP9JmYyNA_-VYscbRU';
+
+function pqFetch(path, opts) {
+  const h = {
+    'apikey': PQ_SB_KEY,
+    'Authorization': 'Bearer ' + PQ_SB_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  };
+  return fetch(PQ_SB_URL + '/rest/v1/' + path, Object.assign({}, opts, {
+    headers: Object.assign({}, h, (opts && opts.headers) || {})
+  }));
+}
+
+function pqSbStorage(path, opts) {
+  const h = {
+    'apikey': PQ_SB_KEY,
+    'Authorization': 'Bearer ' + PQ_SB_KEY
+  };
+  return fetch(PQ_SB_URL + '/storage/v1/' + path, Object.assign({}, opts, {
+    headers: Object.assign({}, h, (opts && opts.headers) || {})
+  }));
+}
+
+// ─── CATÁLOGO ENERTIK (Mayo 2026) ─────────────────────────────────────────────
+// Formato: [modelo, descripción, precio_usd, categoria]
+const ENERTIK_CATALOG = [
+  // INVERSORES ONDA MODIFICADA
+  ['IE-350-12','Inversor Onda Modif. 12Vcc a 220Vca 50Hz – 350W',57,'Inv. Onda Modificada'],
+  ['IE-350-24','Inversor Onda Modif. 24Vcc a 220Vca 50Hz – 350W',57,'Inv. Onda Modificada'],
+  ['IE-600-12','Inversor Onda Modif. 12Vcc a 220Vca 50Hz – 600W',96,'Inv. Onda Modificada'],
+  ['IE-600-24','Inversor Onda Modif. 24Vcc a 220Vca 50Hz – 600W',99,'Inv. Onda Modificada'],
+  ['IE-1000-12','Inversor Onda Modif. 12Vcc a 220Vca 50Hz – 1000W',149,'Inv. Onda Modificada'],
+  ['IE-1000-24','Inversor Onda Modif. 24Vcc a 220Vca 50Hz – 1000W',157,'Inv. Onda Modificada'],
+  ['IE-1500-12','Inversor Onda Modif. 12Vcc a 220Vca 50Hz – 1500W',263,'Inv. Onda Modificada'],
+  ['IE-1500-24','Inversor Onda Modif. 24Vcc a 220Vca 50Hz – 1500W',271,'Inv. Onda Modificada'],
+  ['IE-2000-12','Inversor Onda Modif. 12Vcc a 220Vca 50Hz – 2000W',314,'Inv. Onda Modificada'],
+  ['IE-2000-24','Inversor Onda Modif. 24Vcc a 220Vca 50Hz – 2000W',322,'Inv. Onda Modificada'],
+  ['IE-2500-12','Inversor Onda Modif. 12Vcc a 220Vca 50Hz – 2500W',432,'Inv. Onda Modificada'],
+  ['IE-2500-24','Inversor Onda Modif. 24Vcc a 220Vca 50Hz – 2500W',440,'Inv. Onda Modificada'],
+  ['IE-3000-12','Inversor Onda Modif. 12Vcc a 220Vca 50Hz – 3000W',476,'Inv. Onda Modificada'],
+  ['IE-3000-24','Inversor Onda Modif. 24Vcc a 220Vca 50Hz – 3000W',484,'Inv. Onda Modificada'],
+  // INVERSORES SENOIDAL PURA
+  ['IS-300-12','Inversor Senoidal 12Vcc a 220Vca 50Hz – 300W',153,'Inv. Senoidal Pura'],
+  ['IS-300-24','Inversor Senoidal 24Vcc a 220Vca 50Hz – 300W',161,'Inv. Senoidal Pura'],
+  ['IS-600-12','Inversor Senoidal 12Vcc a 220Vca 50Hz – 600W',159,'Inv. Senoidal Pura'],
+  ['IS-600-24','Inversor Senoidal 24Vcc a 220Vca 50Hz – 600W',168,'Inv. Senoidal Pura'],
+  ['IS-600-48','Inversor Senoidal 48Vcc a 220Vca 50Hz – 600W',181,'Inv. Senoidal Pura'],
+  ['IS-1200-12','Inversor Senoidal 12Vcc a 220Vca 50Hz – 1200W',312,'Inv. Senoidal Pura'],
+  ['IS-1200-24','Inversor Senoidal 24Vcc a 220Vca 50Hz – 1200W',321,'Inv. Senoidal Pura'],
+  ['IS-1200-48','Inversor Senoidal 48Vcc a 220Vca 50Hz – 1200W',324,'Inv. Senoidal Pura'],
+  ['IS-1800-12','Inversor Senoidal 12Vcc a 220Vca 50Hz – 1800W (c/panel remoto)',407,'Inv. Senoidal Pura'],
+  ['IS-1800-24','Inversor Senoidal 24Vcc a 220Vca 50Hz – 1800W (c/panel remoto)',390,'Inv. Senoidal Pura'],
+  ['IS-1800-48','Inversor Senoidal 48Vcc a 220Vca 50Hz – 1800W (c/panel remoto)',439,'Inv. Senoidal Pura'],
+  ['IS-3000-12','Inversor Senoidal 12Vcc a 220Vca 50Hz – 3000W (c/panel remoto)',558,'Inv. Senoidal Pura'],
+  ['IS-3000-24','Inversor Senoidal 24Vcc a 220Vca 50Hz – 3000W (c/panel remoto)',567,'Inv. Senoidal Pura'],
+  ['IS-3000-48','Inversor Senoidal 48Vcc a 220Vca 50Hz – 3000W (c/panel remoto)',602,'Inv. Senoidal Pura'],
+  // INVERSORES/CARGADORES con MPPT
+  ['IVP-1K-12','Inv/Carg Senoidal Pura 12Vcc – 1000W / PWM 50A',197,'Inv/Carg MPPT'],
+  ['IVP-2K-24','Inv/Carg Senoidal Pura 24Vcc – 2000W / PWM 50A',231,'Inv/Carg MPPT'],
+  ['IVP-3K-24','Inv/Carg Senoidal Pura 24Vcc – 3000W / PWM 50A',290,'Inv/Carg MPPT'],
+  ['IVP-5K-48','Inv/Carg Senoidal Pura 48Vcc – 5000W / PWM 50A',378,'Inv/Carg MPPT'],
+  ['IVM-1K-12','Inv/Carg Senoidal Pura 12Vcc – 1000W / MPPT 500W',250,'Inv/Carg MPPT'],
+  ['IVM-2K-24','Inv/Carg Senoidal Pura 24Vcc – 2000W / MPPT 1000W',235,'Inv/Carg MPPT'],
+  ['IVM-3K-24','Inv/Carg Senoidal Pura 24Vcc – 3000W / MPPT 1000W',334,'Inv/Carg MPPT'],
+  ['IVM-3K-24S','Inv/Carg Senoidal Pura 24Vcc – 3000W / MPPT 1500W',374,'Inv/Carg MPPT'],
+  ['IVM-5K-48','Inv/Carg Senoidal Pura 48Vcc – 5000W / MPPT 3000W',438,'Inv/Carg MPPT'],
+  ['IVMDP-1.2K-12','Inv/Carg 12Vcc – 1200W / MPPT 2000W (wifi, datalog)',291,'Inv/Carg MPPT'],
+  ['IVMDP-2.5K-24','Inv/Carg 24Vcc – 2500W / MPPT 3000W (wifi, datalog)',305,'Inv/Carg MPPT'],
+  ['IVMDP-3K-24','Inv/Carg 24Vcc – 3000W / MPPT 3000W (wifi, datalog)',362,'Inv/Carg MPPT'],
+  ['IVMDP-5K-48','Inv/Carg 48Vcc – 5000W / MPPT 5000W (wifi, datalog)',425,'Inv/Carg MPPT'],
+  ['IVMT-3K-24','Inv/Carg Senoidal Pura 24Vcc – 3000W / MPPT 4000W',434,'Inv/Carg MPPT'],
+  ['IVMT-5K-48','Inv/Carg Senoidal Pura 48Vcc – 5000W / MPPT 5000W',475,'Inv/Carg MPPT'],
+  ['IVK-3K-24P','UPS Online / S. Pura 24Vcc – 3000W / MPPT 1500W',482,'Inv/Carg MPPT'],
+  ['IVK-5K-48P','UPS Online / S. Pura 48Vcc – 5000W / MPPT 4000W',578,'Inv/Carg MPPT'],
+  ['IMX-7.2K-48P','Senoidal Pura 48Vcc – 7200W / MPPT 8000W',749,'Inv/Carg MPPT'],
+  ['IMX-8K-48P','Senoidal Pura 48Vcc – 8000W / MPPT 8000W',801,'Inv/Carg MPPT'],
+  ['IWP-8K-48P','Senoidal Pura 48Vcc – 8000W / MPPT 8000W / IP65',1578,'Inv/Carg MPPT'],
+  ['IMXE-11K-48P','Senoidal Pura 48Vcc – 11000W / MPPT 11000W',1397,'Inv/Carg MPPT'],
+  ['IMXD-8K-48P','Senoidal Pura 48Vcc – 8000W / MPPT 8000W',1098,'Inv/Carg MPPT'],
+  ['IMXD-10K-48P','Senoidal Pura 48Vcc – 10000W / MPPT 10000W',1315,'Inv/Carg MPPT'],
+  // VICTRON MultiPlus
+  ['PMP121500000','MultiPlus 12/500/20-16 230V VE.Bus',340,'Victron MultiPlus'],
+  ['PMP121800000','MultiPlus 12/800/35-16 230V VE.Bus',439,'Victron MultiPlus'],
+  ['PMP122120000','MultiPlus 12/1200/50-16 230V VE.Bus',488,'Victron MultiPlus'],
+  ['PMP122160000','MultiPlus 12/1600/70-16 230V VE.Bus',564,'Victron MultiPlus'],
+  ['PMP122200000','MultiPlus 12/2000/80-32 230V VE.Bus',878,'Victron MultiPlus'],
+  ['PMP122300001','MultiPlus 12/3000/120-16 230V VE.Bus',938,'Victron MultiPlus'],
+  ['PMP241500000','MultiPlus 24/500/10-16 230V VE.Bus',340,'Victron MultiPlus'],
+  ['PMP241800000','MultiPlus 24/800/16-16 230V VE.Bus',439,'Victron MultiPlus'],
+  ['PMP242160000','MultiPlus 24/1600/40-16 230V VE.Bus',689,'Victron MultiPlus'],
+  ['PMP242200000','MultiPlus 24/2000/50-32 230V VE.Bus',903,'Victron MultiPlus'],
+  ['PMP122305010','MultiPlus-II 12/3000/120-32 230V',1154,'Victron MultiPlus II'],
+  ['PMP122505012','MultiPlus-II 12/5000/220-50 230V',1933,'Victron MultiPlus II'],
+  ['PMP242305010','MultiPlus-II 24/3000/70-32 230V',795,'Victron MultiPlus II'],
+  ['PMP242306000','MultiPlus-II 24/3000/70-32 230V GX',952,'Victron MultiPlus II'],
+  ['PMP482405012','MultiPlus-II 48/4k5/55-32 230V',755,'Victron MultiPlus II'],
+  ['PMP482406000','MultiPlus-II 48/4k5/55-32 230V GX',888,'Victron MultiPlus II'],
+  ['PMP482305010','MultiPlus-II 48/3000/35-32 230V',525,'Victron MultiPlus II'],
+  ['PMP482306000','MultiPlus-II 48/3000/35-32 230V GX',597,'Victron MultiPlus II'],
+  ['PMP482505010','MultiPlus-II 48/5000/70-50 230V',834,'Victron MultiPlus II'],
+  ['PMP482506000','MultiPlus-II 48/5000/70-50 230V GX',925,'Victron MultiPlus II'],
+  ['PMP482605012','MultiPlus-II 48/6k5/100-50 230V',959,'Victron MultiPlus II'],
+  ['PMP482606000','MultiPlus-II 48/6k5/100-50 230V GX',1140,'Victron MultiPlus II'],
+  ['PMP482805000','MultiPlus-II 48/8000/110-100 230V',1522,'Victron MultiPlus II'],
+  ['PMP483105000','MultiPlus-II 48/10000/140-100 230V',1817,'Victron MultiPlus II'],
+  ['PMP483150000','MultiPlus-II 48/15000/200-100 230V',2536,'Victron MultiPlus II'],
+  // VICTRON Phoenix
+  ['PIN121251100','Phoenix Inverter 12/250 230V VE.Direct IEC',95,'Victron Phoenix'],
+  ['PIN121501100','Phoenix Inverter 12/500 230V VE.Direct IEC',153,'Victron Phoenix'],
+  ['PIN121801100','Phoenix Inverter 12/800 230V VE.Direct IEC',248,'Victron Phoenix'],
+  ['PIN122121100','Phoenix Inverter 12/1200 230V VE.Direct IEC',292,'Victron Phoenix'],
+  ['PIN122161100','Phoenix Inverter 12/1600 230V VE.Direct IEC',344,'Victron Phoenix'],
+  ['PIN241501100','Phoenix Inverter 24/500 230V VE.Direct IEC',170,'Victron Phoenix'],
+  ['PIN241801100','Phoenix Inverter 24/800 230V VE.Direct IEC',276,'Victron Phoenix'],
+  ['PIN242121100','Phoenix Inverter 24/1200 230V VE.Direct IEC',347,'Victron Phoenix'],
+  ['PIN481501100','Phoenix Inverter 48/500 230V VE.Direct IEC',170,'Victron Phoenix'],
+  ['PIN481801100','Phoenix Inverter 48/800 230V VE.Direct IEC',276,'Victron Phoenix'],
+  ['PIN482121100','Phoenix Inverter 48/1200 230V VE.Direct IEC',365,'Victron Phoenix'],
+  ['PIN122201000','Phoenix Inverter 12/2000 230V Smart',638,'Victron Phoenix'],
+  ['PIN122300000','Phoenix Inverter 12/3000 230V Smart',859,'Victron Phoenix'],
+  ['PIN242201000','Phoenix Inverter 24/2000 230V Smart',672,'Victron Phoenix'],
+  ['PIN242300000','Phoenix Inverter 24/3000 230V Smart',903,'Victron Phoenix'],
+  ['PIN482201000','Phoenix Inverter 48/2000 230V Smart',490,'Victron Phoenix'],
+  ['PIN482300000','Phoenix Inverter 48/3000 230V Smart',626,'Victron Phoenix'],
+  // VICTRON Quattro/EasySolar
+  ['QUA242505010','Quattro-II 24/5000/120-50/50 230V',1786,'Victron Quattro'],
+  ['QUA482504010','Quattro-II 48/5000/70-50/50 230V',1168,'Victron Quattro'],
+  ['PMP242307010','EasySolar-II 24/3000/70-32 MPPT 250/70 GX',1199,'Victron EasySolar'],
+  ['PMP482307010','EasySolar-II 48/3000/35-32 MPPT 250/70 GX',1199,'Victron EasySolar'],
+  ['PMP482507010','EasySolar-II 48/5000/70-50 MPPT 250/100 GX',1769,'Victron EasySolar'],
+  // VICTRON SmartSolar MPPT
+  ['SCC075010060R','SmartSolar MPPT 75/10',62,'Victron SmartSolar MPPT'],
+  ['SCC075015060R','SmartSolar MPPT 75/15',66,'Victron SmartSolar MPPT'],
+  ['SCC110020160R','SmartSolar MPPT 100/20',93,'Victron SmartSolar MPPT'],
+  ['SCC110030210','SmartSolar MPPT 100/30',135,'Victron SmartSolar MPPT'],
+  ['SCC110050210','SmartSolar MPPT 100/50',193,'Victron SmartSolar MPPT'],
+  ['SCC115035210','SmartSolar MPPT 150/35',183,'Victron SmartSolar MPPT'],
+  ['SCC115045211','SmartSolar MPPT 150/45-Tr',229,'Victron SmartSolar MPPT'],
+  ['SCC115045212','SmartSolar MPPT 150/45',229,'Victron SmartSolar MPPT'],
+  ['SCC115060211','SmartSolar MPPT 150/60-Tr',388,'Victron SmartSolar MPPT'],
+  ['SCC115070411','SmartSolar MPPT 150/70-Tr VE.Can',435,'Victron SmartSolar MPPT'],
+  ['SCC115085411','SmartSolar MPPT 150/85-Tr VE.Can',475,'Victron SmartSolar MPPT'],
+  ['SCC115110411','SmartSolar MPPT 150/100-Tr VE.Can',541,'Victron SmartSolar MPPT'],
+  ['SCC125070421','SmartSolar MPPT 250/70-Tr VE.Can',535,'Victron SmartSolar MPPT'],
+  ['SCC125110412','SmartSolar MPPT 250/100-Tr VE.Can',641,'Victron SmartSolar MPPT'],
+  // BATERÍAS PYLONTECH
+  ['RT12100G31','Batería Pylontech Litio 12V 1.28kWh',454,'Batería Litio'],
+  ['US3000C','Batería Pylontech Litio 48V 3.55kWh',1200,'Batería Litio'],
+  ['US5000','Batería Pylontech Litio 48V 4.80kWh',1782,'Batería Litio'],
+  ['UP2500','Batería Pylontech Litio 24V 2.84kWh',1158,'Batería Litio'],
+  ['UP5000','Batería Pylontech Litio 48V 4.80kWh',1363,'Batería Litio'],
+  ['UF5000','Batería Pylontech Litio 51.2V 5.12kWh',1286,'Batería Litio'],
+  ['FL4874M','Batería Pylontech Force L2 48V 3.55kWh',1985,'Batería Litio'],
+  // BATERÍAS DYNESS
+  ['AR1.2','Batería Litio Dyness 12.8V 1.28kWh',302,'Batería Litio'],
+  ['B3','Batería Litio Dyness 48V 3.6kWh',744,'Batería Litio'],
+  ['BX51100','Batería Litio Dyness 51.2V 5.12kWh',1115,'Batería Litio'],
+  ['Powerbox G2','Batería Litio Dyness 51.2V 10.24kWh',2793,'Batería Litio'],
+  // BATERÍAS RITAR AGM
+  ['DC12-26','Batería Ritar AGM 12V 26Ah',58,'Batería AGM'],
+  ['DC12-65','Batería Ritar AGM 12V 65Ah',133,'Batería AGM'],
+  ['DC12-100','Batería Ritar AGM 12V 100Ah',168,'Batería AGM'],
+  ['DC12-150','Batería Ritar AGM 12V 150Ah',265,'Batería AGM'],
+  ['DC12-225','Batería Ritar AGM 12V 225Ah',355,'Batería AGM'],
+  // BATERÍAS ENERTIK AGM
+  ['EBD12-26','Batería Enertik AGM 12V 26Ah',49,'Batería AGM'],
+  ['EBD12-65','Batería Enertik AGM 12V 65Ah',109,'Batería AGM'],
+  ['EBD12-100','Batería Enertik AGM 12V 100Ah',170,'Batería AGM'],
+  ['EBD12-150','Batería Enertik AGM 12V 150Ah',233,'Batería AGM'],
+  ['EBD12-200','Batería Enertik AGM 12V 200Ah',319,'Batería AGM'],
+  ['EBD12-250','Batería Enertik AGM 12V 250Ah',374,'Batería AGM'],
+  // BATERÍAS VICTRON LiFePO4
+  ['BAT512120620','Batería Victron LiFePO4 12.8V/200Ah NG',1242,'Batería Litio'],
+  // PANELES SOLARES
+  ['PS-30','Panel Solar Policristalino 30W – 18V',21.60,'Panel Solar'],
+  ['PS-50','Panel Solar Policristalino 50W – 18V',27,'Panel Solar'],
+  ['PS-90','Panel Solar Policristalino 90W – 18V',43,'Panel Solar'],
+  ['PS-120','Panel Solar Policristalino 120W – 18V',51,'Panel Solar'],
+  ['PS-30M','Panel Solar Monocristalino 30W',27.02,'Panel Solar'],
+  ['PS-50M','Panel Solar Monocristalino 50W',35,'Panel Solar'],
+  ['PS-100M','Panel Solar Monocristalino 100W',52,'Panel Solar'],
+  ['PS-170M','Panel Solar Monocristalino 170W',79,'Panel Solar'],
+  ['PS-210M','Panel Solar Monocristalino 210W',70,'Panel Solar'],
+  ['PS-370M','Panel Solar Monocristalino 370W / 120 celdas',112,'Panel Solar'],
+  ['JKM475N-60HL4-V','Panel Solar N-TOPCon Jinko 475W (unidad)',100,'Panel Solar'],
+  ['JKM635N-78HL4-BDV','Panel Solar N-TOPCon Bifacial Doble Vidrio Jinko 635W',123,'Panel Solar'],
+  ['HN21RN-54HT500W','Panel Solar Hanersun N-TOPCON Bifacial Negro 500W',88,'Panel Solar'],
+  ['HN21RN-66HT610W','Panel Solar Hanersun N-Topcon Bifacial 610W',108,'Panel Solar'],
+  ['HN21N-66HT700W','Panel Solar Hanersun N-Topcon Bifacial 700W',123,'Panel Solar'],
+  ['HN21N-66HT720W','Panel Solar Hanersun N-Topcon Bifacial 720W',134,'Panel Solar'],
+  ['TSM-445NEG9R.28','Panel Solar Trina N-Topcon Vertex+ 445W',84,'Panel Solar'],
+  ['TSM-450NEG9R.28','Panel Solar Trina N-Topcon Vertex+ 450W',89,'Panel Solar'],
+  ['TSM-550DE19','Panel Solar Trina Monocristalino Vertex 550W',107,'Panel Solar'],
+  ['TSM-610NEG19RC.20','Panel Solar Trina N-Topcon/Bifacial Vertex N 610W',116,'Panel Solar'],
+  ['TSM-710NEG21C.20','Panel Solar Trina N-Topcon/Bifacial Vertex N 710W',132,'Panel Solar'],
+  ['TSM-725NEG21C.20','Panel Solar Trina N-Topcon Bifacial Doble Vidrio 725W',137,'Panel Solar'],
+  ['AS-7M132-HC-500W','Panel Solar Monocristalino Amerisolar 500W',87,'Panel Solar'],
+  ['AS-7M144-BHC-585W','Panel Solar N-TOPCon Amerisolar 585W',102,'Panel Solar'],
+  // INVERSORES ON-GRID GOODWE
+  ['GW1500-XS-30','Inversor Goodwe On-Grid Monofásico 1MPPT XS G3 1.5kW',279,'Inv. On-Grid'],
+  ['GW2000-XS-30','Inversor Goodwe On-Grid Monofásico 1MPPT XS G3 2.0kW',273,'Inv. On-Grid'],
+  ['GW2500-XS-30','Inversor Goodwe On-Grid Monofásico 1MPPT XS G3 2.5kW',276,'Inv. On-Grid'],
+  ['GW3000-XS-30','Inversor Goodwe On-Grid Monofásico 1MPPT XS G3 3.0kW',317,'Inv. On-Grid'],
+  ['GW3600-DNS-30','Inversor Goodwe On-Grid Monofásico 2MPPTs DNS G3 3.6kW',343,'Inv. On-Grid'],
+  ['GW5000-DNS-30','Inversor Goodwe On-Grid Monofásico 2MPPTs DNS G3 5.0kW',381,'Inv. On-Grid'],
+  ['GW6000-DNS-30','Inversor Goodwe On-Grid Monofásico 2MPPTs DNS G3 6.0kW',416,'Inv. On-Grid'],
+  ['GW5000-MS-30','Inversor Goodwe On-Grid Monofásico 3MPPTs MS G3 5.0kW',608,'Inv. On-Grid'],
+  ['GW6000-MS-30','Inversor Goodwe On-Grid Monofásico 3MPPTs MS G3 6.0kW',646,'Inv. On-Grid'],
+  ['GW10K-MS-30','Inversor Goodwe On-Grid Monofásico 3MPPTs MS G3 10kW',786,'Inv. On-Grid'],
+  ['GW6000-SDT-30','Inversor Goodwe On-Grid Trifásico SDT G3 6.0kW',974,'Inv. On-Grid'],
+  ['GW10K-SDT-30','Inversor Goodwe On-Grid Trifásico SDT G3 10kW',1287,'Inv. On-Grid'],
+  ['GW15K-SDT-30','Inversor Goodwe On-Grid Trifásico SDT G3 15kW',1375,'Inv. On-Grid'],
+  ['GW20K-SDT-30','Inversor Goodwe On-Grid Trifásico SDT G3 20kW',1590,'Inv. On-Grid'],
+  // INVERSORES OFF-GRID GROWATT
+  ['SPF 3000TL HVM-24','Inversor Off-Grid Growatt Senoidal 24Vcc 3000W / MPPT 1500W',397,'Inv. Off-Grid'],
+  ['SPF 5000TL HVM-P','Inversor Off-Grid Growatt Senoidal 48Vcc 5000W / MPPT 4500W',592,'Inv. Off-Grid'],
+  ['SPF 3500 ES','Inversor Off-Grid Growatt Senoidal 48Vcc 3500W / MPPT 4500W',527,'Inv. Off-Grid'],
+  ['SPF 5000 ES','Inversor Off-Grid Growatt Senoidal 48Vcc 5000W / MPPT 6000W',631,'Inv. Off-Grid'],
+  // INVERSORES HÍBRIDOS ON/OFF-GRID
+  ['HGV-1K-12','Híbrido On/Off-Grid backup 12V 1MPPT 1000W',406,'Inv. Híbrido'],
+  ['HGV-2K-24','Híbrido On/Off-Grid backup 24V 1MPPT 2000W',447,'Inv. Híbrido'],
+  ['HGV-3K-48','Híbrido On/Off-Grid backup 48V 1MPPT 3000W',578,'Inv. Híbrido'],
+  ['HGV-4K-48','Híbrido On/Off-Grid backup 48V 1MPPT 4000W',609,'Inv. Híbrido'],
+  ['HGE-5.5K-48','Híbrido On/Off-Grid backup 48V 2MPPT 5.5kW',1355,'Inv. Híbrido'],
+  ['HGP-10K-48P','Híbrido On/Off-Grid Trifásico backup 48V 2MPPT 10kW',2493,'Inv. Híbrido'],
+  // REGULADORES SOLARES EPEVER
+  ['XTRA2210N-XDS2','Regulador Solar MPPT 20A 12V/24V con Display',89,'Regulador Solar'],
+  ['XTRA4210N-XDS2','Regulador Solar MPPT 40A 12V/24V con Display',130,'Regulador Solar'],
+  ['XTRA4415N-XDS2','Regulador Solar MPPT 40A 12/24/36/48V con Display',178,'Regulador Solar'],
+  ['XTRA2210N G3','Regulador Solar MPPT 20A 12V/24V sin batería',81,'Regulador Solar'],
+  ['XTRA4210N G3','Regulador Solar MPPT 40A 12V/24V sin batería',119,'Regulador Solar'],
+  ['VS2024AU','Regulador Solar PWM 20A 12V/24V con Display y USB',33,'Regulador Solar'],
+  ['VS3024AU','Regulador Solar PWM 30A 12V/24V con Display y USB',40,'Regulador Solar'],
+  ['VS4524AU','Regulador Solar PWM 45A 12V/24V con Display y USB',45,'Regulador Solar'],
+  ['VS6024AU','Regulador Solar PWM 60A 12V/24V con Display y USB',79,'Regulador Solar'],
+  // CERBO GX
+  ['BPP900450100','Cerbo GX',233,'Monitoreo Victron'],
+  ['BPP900450110','Cerbo GX MK2',278,'Monitoreo Victron'],
+  ['BPP900480100','Ekrano GX',609,'Monitoreo Victron'],
+  ['BAM030712000R','Battery Monitor BMV-712 Smart',174,'Monitoreo Victron'],
+  // ESTABILIZADORES
+  ['EVS-5.5KVA','Estabilizador Servomotor 5.5KVA 130-250Vca',271,'Estabilizador'],
+  ['EVS-7.5KVA','Estabilizador Servomotor 7.5KVA 130-250Vca',417,'Estabilizador'],
+  ['EVS-10KVA','Estabilizador Servomotor 10KVA 130-250Vca',429,'Estabilizador'],
+  ['EVS-15KVA','Estabilizador Servomotor 15KVA 130-250Vca',782,'Estabilizador'],
+  // BOMBAS SOLARES
+  ['BSS3-55-120-24V','Bomba Solar Sumergible Helicoidal 3" 24V 120W',295,'Bomba Solar'],
+  ['BSS3-100-500-48V','Bomba Solar Sumergible Helicoidal 3" 48V 500W',441,'Bomba Solar'],
+  ['BSC4-40-500-48V','Bomba Solar Sumergible Centrífuga 4" 48V 500W',499,'Bomba Solar'],
+  // TERMOTANQUES SOLARES
+  ['SW-100','Termotanque Solar Atmosférico 100L (Ind. Argentina)',216,'Termotanque Solar'],
+  ['SW-150','Termotanque Solar Atmosférico 150L (Ind. Argentina)',279,'Termotanque Solar'],
+  ['SW-200','Termotanque Solar Atmosférico 200L (Ind. Argentina)',341,'Termotanque Solar'],
+  ['SW-250','Termotanque Solar Atmosférico 250L (Ind. Argentina)',417,'Termotanque Solar'],
+  ['SW-300','Termotanque Solar Atmosférico 300L (Ind. Argentina)',479,'Termotanque Solar'],
+  ['SWP-100s','Termotanque Solar de Serpentín 100L (Ind. Argentina)',378,'Termotanque Solar'],
+  ['SWP-150s','Termotanque Solar de Serpentín 150L (Ind. Argentina)',487,'Termotanque Solar'],
+  ['SWP-200s','Termotanque Solar de Serpentín 200L (Ind. Argentina)',597,'Termotanque Solar'],
+  ['SWP-250s','Termotanque Solar de Serpentín 250L (Ind. Argentina)',729,'Termotanque Solar'],
+  ['SWP-300s','Termotanque Solar de Serpentín 300L (Ind. Argentina)',839,'Termotanque Solar'],
+  ['SWP-100','Termotanque Solar Presurizado Heat Pipe 100L',561,'Termotanque Solar'],
+  ['SWP-150','Termotanque Solar Presurizado Heat Pipe 150L',693,'Termotanque Solar'],
+  ['SWP-200','Termotanque Solar Presurizado Heat Pipe 200L',857,'Termotanque Solar'],
+  ['SWP-250','Termotanque Solar Presurizado Heat Pipe 250L',1024,'Termotanque Solar'],
+  ['SWP-300','Termotanque Solar Presurizado Heat Pipe 300L',1184,'Termotanque Solar'],
+];
+
+// ─── STATE ─────────────────────────────────────────────────────────────────────
+let pqLineasSolar = [];  // [{id, modelo, desc, precio, qty}]
+let pqLineasManual = []; // [{id, desc, precio, qty}]
+let pqNextId = 1;
+let pqAcActiveRow = null; // which solar row is being edited
+let _pqAcBlurTimer = null;
+
+// ─── INIT ──────────────────────────────────────────────────────────────────────
+
+// pqInitDefaults removed — inline in showTab
+
+// pqInitListeners removed — logic in pqWireAcInput
+
+// init runs on tab switch — see showTab override
+
+// ─── NÚMERO CORRELATIVO ───────────────────────────────────────────────────────
+async function pqGetNextNro() {
+  try {
+    const res = await pqFetch('hes_pq_contador?id=eq.1&select=year,seq');
+    const data = await res.json();
+    const yr = new Date().getFullYear();
+    if (!data || !data.length) {
+      await pqFetch('hes_pq_contador', { method: 'POST', body: JSON.stringify({id:1, year:yr, seq:0}) });
+      return yr + '-001';
+    }
+    const row = data[0];
+    const seq = (row.year !== yr) ? 1 : row.seq + 1;
+    return yr + '-' + String(seq).padStart(3, '0');
+  } catch(e) {
+    return new Date().getFullYear() + '-' + String(Math.floor(Math.random()*900)+100);
+  }
+}
+
+async function pqCommitNro(nro) {
+  try {
+    const yr = new Date().getFullYear();
+    const parts = (nro || '').trim().split('-');
+    const seq = parseInt(parts[parts.length - 1], 10) || 1;
+    await pqFetch('hes_pq_contador?id=eq.1', {
+      method: 'PATCH',
+      body: JSON.stringify({ year: yr, seq: seq })
+    });
+  } catch(e) {}
+}
+
+// ─── AUTOCOMPLETE ─────────────────────────────────────────────────────────────
+function pqAcSearch(query, anchorEl) {
+  var dd = document.getElementById('pq-ac-dropdown');
+  if (!dd) return;
+  var q = (query||'').toLowerCase().trim();
+  if (q.length < 2) { dd.style.display='none'; return; }
+  var matches = ENERTIK_CATALOG.filter(function(x){
+    return x[0].toLowerCase().indexOf(q)>=0 || x[1].toLowerCase().indexOf(q)>=0 || x[3].toLowerCase().indexOf(q)>=0;
+  }).slice(0,12);
+  if (!matches.length) { dd.style.display='none'; return; }
+  dd.innerHTML = '';
+  matches.forEach(function(item) {
+    var div = document.createElement('div');
+    div.style.padding = '10px 14px';
+    div.style.cursor = 'pointer';
+    div.style.borderBottom = '1px solid #f0f0f0';
+    div.style.fontSize = '13px';
+    div.style.fontWeight = '600';
+    div.style.color = '#1e2118';
+    div.textContent = item[1];
+    div.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      if (_pqAcBlurTimer) { clearTimeout(_pqAcBlurTimer); _pqAcBlurTimer=null; }
+      dd.style.display = 'none';
+      var inp = document.getElementById('pq-ac-input');
+      if (pqAcActiveRow) {
+        var row = pqLineasSolar.find(function(r){ return r.id==pqAcActiveRow; });
+        if (row) { row.modelo=item[0]; row.desc=item[1]; row.precio=0; }
+        pqRenderSolar(); pqAcActiveRow=null;
+      } else {
+        pqLineasSolar.push({id:pqNextId++, modelo:item[0], desc:item[1], precio:0, qty:1});
+        pqRenderSolar();
+        if (inp) inp.value='';
+      }
+      pqRecalc();
+    });
+    div.addEventListener('mouseover', function(){ this.style.background='#eaf3ee'; });
+    div.addEventListener('mouseout',  function(){ this.style.background=''; });
+    dd.appendChild(div);
+  });
+  var anchor = anchorEl || document.getElementById('pq-ac-input');
+  if (anchor) {
+    var r = anchor.getBoundingClientRect();
+    dd.style.left  = r.left + 'px';
+    dd.style.top   = r.bottom + 'px';
+    dd.style.width = Math.max(r.width, 300) + 'px';
+  }
+  dd.style.display = 'block';
+}
+
+
+function pqAddManual(desc, precio, qty) {
+  pqLineasManual.push({ id: pqNextId++, desc: desc||'', precio: precio||0, qty: qty||1 });
+  pqRenderManual();
+  pqRecalc();
+}
+
+function pqRenderManual() {
+  var container = document.getElementById('pq-lineas-manual');
+  if (!container) return;
+  Array.from(container.children).forEach(function(ch) {
+    if (!ch.classList.contains('pq-linea-head')) ch.remove();
+  });
+  pqLineasManual.forEach(function(row) {
+    var div = document.createElement('div');
+    div.className = 'pq-linea';
+    var iDesc = document.createElement('input');
+    iDesc.className = 'pq-inp'; iDesc.value = row.desc||''; iDesc.placeholder = 'Descripción del ítem';
+    iDesc.addEventListener('input', function(){ row.desc = this.value; });
+    var iQty = document.createElement('input');
+    iQty.className = 'pq-inp'; iQty.type = 'number'; iQty.min='0.5'; iQty.step='0.5'; iQty.value = row.qty; iQty.style.textAlign='right';
+    iQty.addEventListener('change', function(){ row.qty=parseFloat(this.value)||1; pqRecalc(); });
+    var iPrecio = document.createElement('input');
+    iPrecio.className='pq-inp'; iPrecio.type='text'; iPrecio.inputMode='numeric'; iPrecio.value=row.precio||''; iPrecio.placeholder='0'; iPrecio.style.textAlign='right';
+    iPrecio.addEventListener('focus', function(){ if(this.value==='0') this.value=''; });
+    iPrecio.addEventListener('input', function(){ row.precio=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; pqRecalc(); });
+    iPrecio.addEventListener('blur',  function(){ var v=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; row.precio=v; this.value=v||''; pqRecalc(); });
+    var btn = document.createElement('button');
+    btn.className='pq-del'; btn.textContent='×';
+    btn.addEventListener('click', function(){ pqLineasManual=pqLineasManual.filter(function(r){return r.id!==row.id;}); pqRenderManual(); pqRecalc(); });
+    div.appendChild(iDesc); div.appendChild(iQty); div.appendChild(iPrecio); div.appendChild(btn);
+    container.appendChild(div);
+  });
+}
+
+function pqRenderSolar() {
+  var container = document.getElementById('pq-lineas-solar');
+  if (!container) return;
+  Array.from(container.children).forEach(function(ch){
+    if (!ch.classList.contains('pq-linea-head')) ch.remove();
+  });
+  pqLineasSolar.forEach(function(row) {
+    var div = document.createElement('div');
+    div.className = 'pq-linea';
+
+    var iDesc = document.createElement('input');
+    iDesc.className='pq-inp'; iDesc.value=row.desc||row.modelo||''; iDesc.placeholder='Descripción';
+    iDesc.addEventListener('input', function(){ row.desc=this.value; pqAcActiveRow=row.id; pqAcSearch(this.value,this); });
+    iDesc.addEventListener('focus', function(){ pqAcActiveRow=row.id; pqAcSearch(this.value,this); });
+    iDesc.addEventListener('blur',  function(){ _pqAcBlurTimer=setTimeout(function(){ var d=document.getElementById('pq-ac-dropdown'); if(d) d.style.display='none'; },350); });
+
+    var wDesc = document.createElement('div');
+    wDesc.appendChild(iDesc);
+
+    var iQty = document.createElement('input');
+    iQty.className='pq-inp'; iQty.type='number'; iQty.min='0.5'; iQty.step='0.5'; iQty.value=row.qty; iQty.style.textAlign='right';
+    iQty.addEventListener('change', function(){ row.qty=parseFloat(this.value)||1; pqRecalc(); });
+
+    var iPrecio = document.createElement('input');
+    iPrecio.className='pq-inp'; iPrecio.type='text'; iPrecio.inputMode='numeric'; iPrecio.value=row.precio||''; iPrecio.placeholder='0'; iPrecio.style.textAlign='right';
+    iPrecio.addEventListener('focus', function(){ if(this.value==='0') this.value=''; });
+    iPrecio.addEventListener('input', function(){ row.precio=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; pqRecalc(); });
+    iPrecio.addEventListener('blur',  function(){ var v=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; row.precio=v; this.value=v||''; pqRecalc(); });
+
+    var btn = document.createElement('button');
+    btn.className='pq-del'; btn.textContent='×';
+    btn.addEventListener('click', function(){ pqLineasSolar=pqLineasSolar.filter(function(r){return r.id!==row.id;}); pqRenderSolar(); pqRecalc(); });
+
+    div.appendChild(wDesc); div.appendChild(iQty); div.appendChild(iPrecio); div.appendChild(btn);
+    container.appendChild(div);
+  });
+}
+
+// ─── RECALC ───────────────────────────────────────────────────────────────────
+function pqRecalc() {
+  const sym = '$ ';
+  let subSolar = 0;
+  pqLineasSolar.forEach(r => subSolar += (r.precio || 0) * (r.qty || 1));
+  let subManual = 0;
+  pqLineasManual.forEach(r => subManual += (r.precio || 0) * (r.qty || 1));
+  const total = subSolar + subManual;
+  document.getElementById('pq-sub-solar').textContent = pqLineasSolar.length ? sym + fmtPQ(subSolar) : '—';
+  document.getElementById('pq-sub-manual').textContent = pqLineasManual.length ? sym + fmtPQ(subManual) : '—';
+  document.getElementById('pq-total').textContent = total > 0 ? sym + fmtPQ(total) : '—';
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function fmtPQ(n) {
+  if (!n && n !== 0) return '—';
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function fmtDatePQ(s) {
+  if (!s) return '';
+  const d = new Date(s + 'T12:00:00');
+  return d.toLocaleDateString('es-AR', { day:'2-digit', month:'long', year:'numeric' });
+}
+
+// ─── RESET ────────────────────────────────────────────────────────────────────
+async function pqReset() {
+  if ((pqLineasSolar.length || pqLineasManual.length) && !confirm('¿Limpiar el presupuesto en curso?')) return;
+  pqLineasSolar = [];
+  pqLineasManual = [];
+  pqAcActiveRow = null;
+  pqRenderSolar();
+  pqRenderManual();
+  pqRecalc();
+  document.getElementById('pq-ac-input').value = '';
+  document.getElementById('pq-cliente').value = '';
+  if(document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value = '';
+  if(document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
+  document.getElementById('pq-dir').value = '';
+  document.getElementById('pq-obs').value = '';
+  document.getElementById('pq-validez').value = '15 días hábiles';
+  document.getElementById('pq-fecha').value = new Date().toISOString().split('T')[0];
+  const nro = await pqGetNextNro();
+  document.getElementById('pq-nro').value = nro;
+  document.getElementById('pq-nro-badge').textContent = '#' + nro;
+}
+
+// ─── BUILD PDF HTML ──────────────────────────────────────────────────────────
+function pqBuildPDFHTML() {
+  const nro      = document.getElementById('pq-nro').value;
+  const fecha    = fmtDatePQ(document.getElementById('pq-fecha').value);
+  const validez  = document.getElementById('pq-validez').value;
+  const cliente  = document.getElementById('pq-cliente').value  || '';
+  const cuit     = document.getElementById('pq-cuit')     ? document.getElementById('pq-cuit').value     || '' : '';
+  const contacto = document.getElementById('pq-contacto') ? document.getElementById('pq-contacto').value || '' : '';
+  const dir      = document.getElementById('pq-dir').value || '';
+  const obs      = document.getElementById('pq-obs').value || '';
+  const sym      = '$ ';
+
+  let subSolar = 0, subManual = 0;
+  pqLineasSolar.forEach(r  => subSolar  += (r.precio||0)*(r.qty||1));
+  pqLineasManual.forEach(r => subManual += (r.precio||0)*(r.qty||1));
+  const total = subSolar + subManual;
+
+  const allItems = [
+    ...pqLineasSolar.map(r  => ({ desc: r.desc || r.modelo, qty: r.qty, precio: r.precio })),
+    ...pqLineasManual.map(r => ({ desc: r.desc || '—',      qty: r.qty, precio: r.precio }))
+  ];
+
+  // Estilos tabla — sin degradados, fondo blanco limpio
+  const TH  = 'padding:8px 10px;font-size:10.5px;font-weight:700;background:#ffffff;color:#1b6b2f;text-align:left;border-bottom:2px solid #1b6b2f;';
+  const THR = 'padding:8px 10px;font-size:10.5px;font-weight:700;background:#ffffff;color:#1b6b2f;text-align:right;border-bottom:2px solid #1b6b2f;';
+  const TD  = 'padding:9px 10px;font-size:12px;color:#1e2118;border-bottom:1px solid #e8eeea;vertical-align:middle;background:#fff;';
+  const TDR = 'padding:9px 10px;font-size:12px;color:#1e2118;border-bottom:1px solid #e8eeea;vertical-align:middle;text-align:right;background:#fff;';
+  const TDB = 'padding:9px 10px;font-size:12px;font-weight:700;color:#165a2a;border-bottom:1px solid #e8eeea;vertical-align:middle;text-align:right;background:#fff;';
+
+  const rows = allItems.map(function(r) {
+    const sub = (r.precio||0)*(r.qty||1);
+    return '<tr>' +
+      '<td style="' + TD  + '">' + escHtml(r.desc) + '</td>' +
+      '<td style="' + TDR + 'text-align:center;width:60px;">' + r.qty + '</td>' +
+      '<td style="' + TDR + 'width:130px;">' + sym + fmtPQ(r.precio) + '</td>' +
+      '<td style="' + TDB + 'width:130px;">' + sym + fmtPQ(sub) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  return (
+    '<style>#pq-pdf-canvas{font-family:-apple-system,Arial,sans-serif;color:#1e2118;background:#fff;}</style>' +
+
+    // HEADER
+    '<div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;">' +
+      '<div>' +
+        '<div style="font-size:28px;font-weight:800;letter-spacing:-.5px;line-height:1;">' +
+          '<span style="color:#1a3d1f;">Exer</span><span style="color:#2d9448;">Grid</span>' +
+        '</div>' +
+        '<div style="font-size:10.5px;color:#888;margin-top:4px;">info@exergrid.com.ar</div>' +
+      '</div>' +
+      '<div style="text-align:right;">' +
+        '<div style="font-size:20px;font-weight:700;color:#1e2118;">Presupuestos</div>' +
+        '<div style="font-size:11.5px;color:#444;margin-top:3px;">N° <strong>' + nro + '</strong></div>' +
+        '<div style="font-size:11.5px;color:#444;">Fecha: <strong>' + fecha + '</strong></div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="border-bottom:2px solid #165a2a;margin-bottom:14px;"></div>' +
+
+    // DATOS CLIENTE — texto plano sin fondo
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:14px;font-size:11.5px;">' +
+      '<tbody>' +
+        (cliente ?
+          '<tr>' +
+            '<td style="padding:3px 0;color:#555;width:80px;">Cliente:</td>' +
+            '<td style="padding:3px 0;font-weight:600;color:#1e2118;">' + escHtml(cliente) + '</td>' +
+            (cuit ?
+              '<td style="padding:3px 0;color:#555;width:50px;padding-left:30px;">CUIT:</td>' +
+              '<td style="padding:3px 0;font-weight:600;color:#1e2118;">' + escHtml(cuit) + '</td>'
+            : '<td colspan="2"></td>') +
+          '</tr>'
+        : '') +
+        (dir || contacto ?
+          '<tr>' +
+            (dir ?
+              '<td style="padding:3px 0;color:#555;">Dirección:</td>' +
+              '<td style="padding:3px 0;font-weight:600;color:#1e2118;">' + escHtml(dir) + '</td>'
+            : '<td colspan="2"></td>') +
+            (contacto ?
+              '<td style="padding:3px 0;color:#555;padding-left:30px;">Contacto:</td>' +
+              '<td style="padding:3px 0;font-weight:600;color:#1e2118;">' + escHtml(contacto) + '</td>'
+            : '<td colspan="2"></td>') +
+          '</tr>'
+        : '') +
+      '</tbody>' +
+    '</table>' +
+    '<div style="border-bottom:1px solid #ddd;margin-bottom:14px;"></div>' +
+
+    // TABLA ITEMS — fondo blanco, sin degradados
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">' +
+      '<thead><tr>' +
+        '<th style="' + TH  + '">Descripción</th>' +
+        '<th style="' + THR + 'text-align:center;width:60px;">Cant.</th>' +
+        '<th style="' + THR + 'width:130px;">Precio Unit.</th>' +
+        '<th style="' + THR + 'width:130px;">Importe</th>' +
+      '</tr></thead>' +
+      '<tbody>' + rows +
+        // TOTAL — fondo blanco, solo borde superior verde, texto verde
+        '<tr>' +
+          '<td colspan="3" style="padding:10px;font-weight:700;font-size:12px;border-top:2px solid #165a2a;text-align:right;color:#165a2a;background:#fff;">TOTAL</td>' +
+          '<td style="padding:10px;text-align:right;font-weight:800;font-size:15px;color:#165a2a;border-top:2px solid #165a2a;background:#fff;">' + sym + fmtPQ(total) + '</td>' +
+        '</tr>' +
+      '</tbody>' +
+    '</table>' +
+
+    // OBSERVACIONES — fondo verde suave como antes
+    (obs ?
+      '<div style="background:#eaf3ee;border-left:3px solid #2d9448;padding:9px 14px;margin-bottom:16px;font-size:11.5px;color:#2d4a35;line-height:1.6;">' +
+        '<strong>Observaciones:</strong> ' + escHtml(obs) +
+      '</div>'
+    : '') +
+
+    // PIE
+    '<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e0e0e0;display:flex;justify-content:space-between;">' +
+      '<span style="font-size:10px;color:#bbb;">info@exergrid.com.ar</span>' +
+      '<span style="font-size:10px;color:#bbb;">Validez: ' + validez + ' · N° ' + nro + '</span>' +
+    '</div>'
+  );
+}
+// ─── PREVIEW MODAL ────────────────────────────────────────────────────────────
+function pqPreview() {
+  const total = pqLineasSolar.reduce((a,r)=>a+r.precio*r.qty,0) + pqLineasManual.reduce((a,r)=>a+r.precio*r.qty,0);
+  if (total <= 0 && !pqLineasSolar.length && !pqLineasManual.length) {
+    toast('Agregá al menos un ítem al presupuesto');
+    return;
+  }
+  document.getElementById('pq-pdf-canvas').innerHTML = pqBuildPDFHTML();
+  document.getElementById('pq-modal-ovl').classList.add('open');
+}
+
+function pqCloseModal() {
+  document.getElementById('pq-modal-ovl').classList.remove('open');
+}
+
+// ─── DOWNLOAD PDF ─────────────────────────────────────────────────────────────
+async function pqDownloadPDF() {
+  const nro = document.getElementById('pq-nro').value;
+  document.getElementById('pq-pdf-canvas').innerHTML = pqBuildPDFHTML();
+  const el = document.getElementById('pq-pdf-canvas');
+  const dlBtn = document.getElementById('pq-btn-dl');
+  dlBtn.textContent = '⏳ Generando...';
+  dlBtn.disabled = true;
+
+  try {
+    // Load scripts dynamically if not present
+    if (!window.html2canvas) {
+      await new Promise(function(res, rej) {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    if (!window.jspdf) {
+      await new Promise(function(res, rej) {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+    const jsPDF = window.jspdf.jsPDF;
+    const pdfW = 210, pdfH = 297;
+    const canvasW = canvas.width, canvasH = canvas.height;
+    const ratio = pdfW / canvasW;
+    const totalH = canvasH * ratio;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageCount = Math.ceil(totalH / pdfH);
+    for (let i = 0; i < pageCount; i++) {
+      if (i > 0) doc.addPage();
+      const srcY = i * (pdfH / ratio);
+      const srcH = Math.min(pdfH / ratio, canvasH - srcY);
+      const pc = document.createElement('canvas');
+      pc.width = canvasW; pc.height = srcH;
+      pc.getContext('2d').drawImage(canvas, 0, srcY, canvasW, srcH, 0, 0, canvasW, srcH);
+      doc.addImage(pc.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pdfW, srcH * ratio);
+    }
+
+    const pdfBlob = doc.output('blob');
+
+    // Download to user
+    const url = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'Presupuesto_' + nro + '.pdf';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+    // Upload to storage
+    let pdfPath = null;
+    try {
+      const filename = 'pq_' + nro + '_' + Date.now() + '.pdf';
+      const up = await pqSbStorage('object/presupuestos-pdf/' + filename, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/pdf' },
+        body: pdfBlob
+      });
+      if (up.ok) pdfPath = filename;
+    } catch(e) {}
+
+    // Save to Supabase
+    await pqSaveToSupa(nro, pdfPath);
+
+    // Commit counter
+    await pqCommitNro(nro);
+
+    // Reset form — keep fecha (always today) and validez, clear everything else
+    setTimeout(async function() {
+      // Auto-save the client with all fields before clearing
+      const nombreAntes = document.getElementById('pq-cliente').value.trim();
+      if (nombreAntes) {
+        pqSaveClienteLocal({
+          nombre:   nombreAntes,
+          cuit:     (document.getElementById('pq-cuit')     || {}).value.trim() || '',
+          contacto: (document.getElementById('pq-contacto') || {}).value.trim() || '',
+          dir:      (document.getElementById('pq-dir')      || {}).value.trim() || '',
+          obs:      (document.getElementById('pq-obs')      || {}).value.trim() || ''
+        });
+      }
+
+      // Clear items
+      pqLineasSolar = [];
+      pqLineasManual = [];
+      pqRenderSolar();
+      pqRenderManual();
+      pqRecalc();
+      // Clear search input
+      document.getElementById('pq-ac-input').value = '';
+      // Clear client fields
+      document.getElementById('pq-cliente').value = '';
+      if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value = '';
+      if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
+      document.getElementById('pq-dir').value = '';
+      // Clear observations
+      document.getElementById('pq-obs').value = '';
+      // Keep validez and fecha as-is (fecha = today always)
+      document.getElementById('pq-validez').value = '15 días hábiles';
+      document.getElementById('pq-fecha').value = new Date().toISOString().split('T')[0];
+      // New number
+      pqCloseModal();
+      const nextNro = await pqGetNextNro();
+      document.getElementById('pq-nro').value = nextNro;
+      document.getElementById('pq-nro-badge').textContent = '#' + nextNro;
+      toast('✓ Presupuesto #' + nro + ' guardado');
+      pqLoadHistorial();
+    }, 500);
+
+  } catch(err) {
+    console.error(err);
+    toast('Error al generar PDF: ' + err.message);
+  } finally {
+    dlBtn.textContent = '⬇ Descargar PDF';
+    dlBtn.disabled = false;
+  }
+}
+
+// ─── SAVE TO SUPABASE ────────────────────────────────────────────────────────
+async function pqSaveToSupa(nro, pdfPath) {
+  try {
+    const moneda = 'ARS';
+    let subSolar = 0, subManual = 0;
+    pqLineasSolar.forEach(r => subSolar += r.precio * r.qty);
+    pqLineasManual.forEach(r => subManual += r.precio * r.qty);
+    const payload = {
+      nro: nro,
+      fecha: document.getElementById('pq-fecha').value || new Date().toISOString().split('T')[0],
+      validez: document.getElementById('pq-validez').value || null,
+      cliente: document.getElementById('pq-cliente').value || null,
+      cuit: document.getElementById('pq-cuit') ? document.getElementById('pq-cuit').value || null : null,
+      contacto: document.getElementById('pq-contacto') ? document.getElementById('pq-contacto').value || null : null,
+      direccion: document.getElementById('pq-dir').value || null,
+      observaciones: document.getElementById('pq-obs').value || null,
+      moneda: moneda,
+      subtotal_solar: subSolar || null,
+      subtotal_manual: subManual || null,
+      total: (subSolar + subManual) || null,
+      lineas_solar: pqLineasSolar.length ? JSON.stringify(pqLineasSolar) : null,
+      lineas_manual: pqLineasManual.length ? JSON.stringify(pqLineasManual) : null,
+      pdf_path: pdfPath || null
+    };
+    await pqFetch('hes_presupuestos_solar', { method: 'POST', body: JSON.stringify(payload) });
+  } catch(e) {
+    console.warn('No se pudo guardar en Supabase:', e);
+  }
+}
+
+// ─── HISTORIAL ────────────────────────────────────────────────────────────────
+async function pqLoadHistorial() {
+  const el = document.getElementById('pq-historial');
+  el.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">Cargando...</div>';
+  try {
+    const res = await pqFetch('hes_presupuestos_solar?select=*&order=created_at.desc&limit=50');
+    const docs = await res.json();
+    if (!Array.isArray(docs) || !docs.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">No hay presupuestos emitidos aún</div>';
+      return;
+    }
+    const monedaSym = { USD: 'USD ', ARS: '$ ' };
+    el.innerHTML = docs.map(function(d) {
+      const sym = '$ ';
+      const fechaStr = d.fecha ? new Date(d.fecha + 'T12:00:00').toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
+      return '<div class="pq-hist-row">' +
+        '<div class="pq-hist-nro">#' + (d.nro || '—') + '</div>' +
+        '<div class="pq-hist-body">' +
+          '<div class="pq-hist-title">' + (d.cliente || '(sin cliente)') + '</div>' +
+          '<div class="pq-hist-sub">' + fechaStr + (d.total ? ' · <strong>' + sym + fmtPQ(d.total) + '</strong>' : '') + (d.direccion ? ' · ' + d.direccion : '') + '</div>' +
+        '</div>' +
+        '<div class="pq-hist-actions">' +
+          (d.pdf_path ? '<button class="pq-btn-sm view" onclick="pqViewDoc(\'' + d.pdf_path + '\',\'' + (d.nro || '') + '\')">Ver PDF</button>' : '') +
+          '<button class="pq-btn-sm del" onclick="pqDeleteDoc(\'' + d.id + '\',\'' + (d.nro || '') + '\',\'' + (d.pdf_path || '') + '\')">🗑</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:16px;text-align:center">Error al cargar: ' + e.message + '</div>';
+  }
+}
+
+async function pqGetSignedURL(path) {
+  try {
+    const res = await pqSbStorage('object/sign/presupuestos-pdf/' + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expiresIn: 3600 })
+    });
+    const data = await res.json();
+    return data.signedURL ? PQ_SB_URL + '/storage/v1' + data.signedURL : null;
+  } catch(e) { return null; }
+}
+
+async function pqViewDoc(pdfPath, nro) {
+  const ovl = document.getElementById('pq-hist-modal-ovl');
+  const iframe = document.getElementById('pq-hist-iframe');
+  document.getElementById('pq-hist-modal-title').textContent = 'Presupuesto #' + nro;
+  iframe.src = 'about:blank';
+  ovl.classList.add('open');
+  const url = await pqGetSignedURL(pdfPath);
+  if (url) {
+    iframe.src = url;
+    document.getElementById('pq-hist-dl-btn').onclick = () => window.open(url, '_blank');
+  } else {
+    toast('No se pudo cargar el PDF');
+  }
+}
+
+async function pqDeleteDoc(id, nro, pdfPath) {
+  if (!confirm('¿Eliminar el presupuesto #' + nro + '?')) return;
+  try {
+    const res = await fetch(PQ_SB_URL + '/rest/v1/hes_presupuestos_solar?id=eq.' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: { 'apikey': PQ_SB_KEY, 'Authorization': 'Bearer ' + PQ_SB_KEY, 'Prefer': 'return=minimal' }
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      alert('Error al eliminar: ' + t + '\n\nVerificá que RLS permita DELETE en hes_presupuestos_solar');
+      return;
+    }
+    if (pdfPath && pdfPath !== 'undefined' && pdfPath !== '') {
+      try { await pqSbStorage('object/presupuestos-pdf/' + pdfPath, { method: 'DELETE' }); } catch(e) {}
+    }
+    toast('Presupuesto #' + nro + ' eliminado');
+    pqLoadHistorial();
+  } catch(e) {
+    toast('Error: ' + e.message);
+  }
+}
+
+// presupuesto tab hook — handled via direct showTab override below
+
+
+// ─── CLIENTES PRESUPUESTO (localStorage) ─────────────────────────────────────
+function pqLoadClientes() {
+  try { return JSON.parse(localStorage.getItem('pq_clientes')||'[]'); } catch(e) { return []; }
+}
+function pqSaveClienteLocal(c) {
+  try {
+    var list = pqLoadClientes();
+    var idx = list.findIndex(x => x.nombre.toLowerCase() === c.nombre.toLowerCase());
+    if (idx >= 0) list[idx] = c; else list.unshift(c);
+    if (list.length > 60) list = list.slice(0, 60);
+    localStorage.setItem('pq_clientes', JSON.stringify(list));
+    pqUpdateClientesCount();
+  } catch(e) {}
+}
+function pqUpdateClientesCount() {
+  var n = pqLoadClientes().length;
+  var el = document.getElementById('pq-clientes-count');
+  var btn = document.getElementById('pq-btn-gestionar');
+  if (el) el.textContent = n > 0 ? n + ' guardados' : '';
+  if (btn) btn.style.display = n > 0 ? '' : 'none';
+}
+function pqFillCliente(c) {
+  document.getElementById('pq-cliente').value  = c.nombre  || '';
+  document.getElementById('pq-cuit').value     = c.cuit    || '';
+  document.getElementById('pq-contacto').value = c.contacto|| '';
+  document.getElementById('pq-dir').value      = c.dir     || '';
+  if (document.getElementById('pq-obs') && c.obs) document.getElementById('pq-obs').value = c.obs || '';
+  document.getElementById('pq-cn-dropdown').style.display = 'none';
+}
+function pqShowClienteDropdown(q) {
+  var list = pqLoadClientes();
+  var dd   = document.getElementById('pq-cn-dropdown');
+  var inp  = document.getElementById('pq-cliente');
+  var matches = q
+    ? list.filter(c => c.nombre.toLowerCase().includes(q.toLowerCase()))
+    : list.slice(0, 8);
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.map(function(c, i) {
+    var details = [
+      c.cuit     ? 'CUIT: ' + c.cuit         : '',
+      c.contacto ? 'Contacto: ' + c.contacto  : '',
+      c.dir      ? c.dir                       : ''
+    ].filter(Boolean).join(' · ');
+    return '<div style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;" ' +
+      'onmousedown="event.preventDefault();pqFillCliente(' + JSON.stringify(c).replace(/"/g,"'") + ')" ' +
+      'onmouseover="this.style.background=\'#eaf5ec\'" onmouseout="this.style.background=\'\'"> ' +
+      '<div style="font-weight:600;font-size:13px;color:#1e2118">' + c.nombre + '</div>' +
+      (details ? '<div style="font-size:11px;color:#888;margin-top:2px">' + details + '</div>' : '') +
+    '</div>';
+  }).join('');
+  var rect = inp.getBoundingClientRect();
+  dd.style.left  = rect.left + 'px';
+  dd.style.top   = rect.bottom + 'px';
+  dd.style.width = rect.width + 'px';
+  dd.style.display = 'block';
+}
+
+// Init cliente autocomplete
+document.addEventListener('DOMContentLoaded', function() {
+  pqUpdateClientesCount();
+  var inp = document.getElementById('pq-cliente');
+  if (!inp) return;
+  var blurTimer = null;
+  inp.addEventListener('input',  function() { pqShowClienteDropdown(this.value); });
+  inp.addEventListener('focus',  function() { pqShowClienteDropdown(this.value); });
+  inp.addEventListener('blur',   function() {
+    blurTimer = setTimeout(function() {
+      document.getElementById('pq-cn-dropdown').style.display = 'none';
+    }, 300);
+  });
+
+  // Helper: save all client fields whenever any of them loses focus
+  function pqAutoSaveCliente() {
+    var nombre = (document.getElementById('pq-cliente') || {}).value || '';
+    if (!nombre.trim()) return;
+    pqSaveClienteLocal({
+      nombre:   nombre.trim(),
+      cuit:     (document.getElementById('pq-cuit')     || {}).value.trim() || '',
+      contacto: (document.getElementById('pq-contacto') || {}).value.trim() || '',
+      dir:      (document.getElementById('pq-dir')      || {}).value.trim() || '',
+      obs:      (document.getElementById('pq-obs')      || {}).value.trim() || ''
+    });
+  }
+
+  // Wire blur on all 5 fields
+  ['pq-cliente','pq-cuit','pq-contacto','pq-dir','pq-obs'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('blur', function() { setTimeout(pqAutoSaveCliente, 100); });
+  });
+});
+
+// Manage modal
+function pqOpenManageClientes() {
+  pqRenderClientesList();
+  document.getElementById('pq-cliente-edit-form').style.display = 'none';
+  openOverlay('pq-modal-clientes');
+}
+function pqCloseManageClientes() {
+  document.getElementById('pq-modal-clientes').style.display = 'none';
+  document.getElementById('pq-modal-clientes').classList.remove('open');
+}
+function pqRenderClientesList() {
+  var list = pqLoadClientes();
+  var el = document.getElementById('pq-clientes-list');
+  if (!list.length) {
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:13px">No hay clientes guardados</div>';
+    return;
+  }
+  el.innerHTML = list.map(function(c, i) {
+    var sub = [c.cuit, c.contacto, c.dir].filter(Boolean).join(' · ');
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--gris-borde)">' +
+      '<div style="cursor:pointer;flex:1" onmousedown="pqFillCliente(' + JSON.stringify(c).replace(/"/g,"'") + ');pqCloseManageClientes()">' +
+        '<div style="font-weight:600;font-size:13px;color:#1e2118">' + c.nombre + '</div>' +
+        (sub ? '<div style="font-size:11px;color:#888;margin-top:1px">' + sub + '</div>' : '') +
+      '</div>' +
+      '<div style="display:flex;gap:6px;flex-shrink:0">' +
+        '<button onclick="pqStartEditCliente(' + i + ')" style="background:var(--verde-light);border:1px solid var(--verde-badge);color:var(--verde);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:11px;font-family:inherit;font-weight:600">✏ Editar</button>' +
+        '<button onclick="pqDeleteCliente(' + i + ')" style="background:none;border:1px solid #f0c0c0;color:var(--rojo);border-radius:6px;padding:3px 9px;cursor:pointer;font-size:11px;font-family:inherit">🗑</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+var _pqEditIdx = null;
+function pqStartEditCliente(i) {
+  var list = pqLoadClientes();
+  var c = list[i]; if (!c) return;
+  _pqEditIdx = i;
+  document.getElementById('pq-edit-idx').value     = i;
+  document.getElementById('pq-edit-nombre').value   = c.nombre   || '';
+  document.getElementById('pq-edit-cuit').value     = c.cuit     || '';
+  document.getElementById('pq-edit-contacto').value = c.contacto || '';
+  document.getElementById('pq-edit-dir').value      = c.dir      || '';
+  document.getElementById('pq-cliente-edit-form').style.display = '';
+  document.getElementById('pq-cliente-edit-form').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function pqCancelEditCliente() {
+  _pqEditIdx = null;
+  document.getElementById('pq-cliente-edit-form').style.display = 'none';
+}
+function pqSaveEditCliente() {
+  if (_pqEditIdx === null) return;
+  var list = pqLoadClientes();
+  list[_pqEditIdx] = {
+    nombre:   document.getElementById('pq-edit-nombre').value.trim(),
+    cuit:     document.getElementById('pq-edit-cuit').value.trim(),
+    contacto: document.getElementById('pq-edit-contacto').value.trim(),
+    dir:      document.getElementById('pq-edit-dir').value.trim()
+  };
+  localStorage.setItem('pq_clientes', JSON.stringify(list));
+  _pqEditIdx = null;
+  document.getElementById('pq-cliente-edit-form').style.display = 'none';
+  pqUpdateClientesCount();
+  pqRenderClientesList();
+}
+function pqDeleteCliente(i) {
+  var list = pqLoadClientes();
+  list.splice(i, 1);
+  localStorage.setItem('pq_clientes', JSON.stringify(list));
+  pqUpdateClientesCount();
+  pqRenderClientesList();
+}
+function pqDeleteAllClientes() {
+  if (!confirm('¿Borrar todos los clientes guardados?')) return;
+  localStorage.removeItem('pq_clientes');
+  pqUpdateClientesCount();
+  pqCloseManageClientes();
+}
+
 </script>
+
+<!-- Presupuesto: autocomplete dropdown -->
+<div id="pq-ac-dropdown"></div>
+<!-- Presupuesto: clientes dropdown -->
+<div id="pq-cn-dropdown" style="display:none;position:fixed;background:#fff;border:1.5px solid var(--verde);border-top:none;border-radius:0 0 8px 8px;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.18);max-height:220px;overflow-y:auto;"></div>
+<!-- Presupuesto: modal gestionar clientes -->
+<div class="modal-overlay" id="pq-modal-clientes" style="display:none">
+  <div class="modal" style="max-width:460px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h2 style="margin:0;font-size:16px">Clientes guardados</h2>
+      <button onclick="pqCloseManageClientes()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999">×</button>
+    </div>
+    <div id="pq-clientes-list" style="max-height:45vh;overflow-y:auto;border:1px solid var(--gris-borde);border-radius:8px;margin-bottom:12px"></div>
+    <div id="pq-cliente-edit-form" style="display:none;padding:14px;border:1px solid var(--gris-borde);border-radius:8px;background:#fafafa;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:600;color:var(--verde);margin-bottom:10px;text-transform:uppercase;letter-spacing:.04em">Editar cliente</div>
+      <input type="hidden" id="pq-edit-idx">
+      <div style="margin-bottom:8px"><label style="font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px">Razón Social</label><input type="text" id="pq-edit-nombre" style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:13px;font-family:inherit"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div><label style="font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px">CUIT</label><input type="text" id="pq-edit-cuit" style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:13px;font-family:inherit"></div>
+        <div><label style="font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px">Contacto</label><input type="text" id="pq-edit-contacto" style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:13px;font-family:inherit"></div>
+      </div>
+      <div style="margin-bottom:10px"><label style="font-size:11px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px">Dirección</label><input type="text" id="pq-edit-dir" style="width:100%;border:1px solid var(--gris-borde);border-radius:7px;padding:8px;font-size:13px;font-family:inherit"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-secondary" onclick="pqCancelEditCliente()">Cancelar</button>
+        <button class="btn btn-primary" onclick="pqSaveEditCliente()">Guardar</button>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between">
+      <button class="btn btn-delete" style="font-size:12px" onclick="pqDeleteAllClientes()">🗑 Borrar todos</button>
+      <button class="btn btn-secondary" onclick="pqCloseManageClientes()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Presupuesto: modal preview PDF -->
+<div class="pq-modal-ovl" id="pq-modal-ovl">
+  <div class="pq-modal-box">
+    <div class="pq-modal-head">
+      <h3>Vista previa del presupuesto</h3>
+      <button class="xbtn" onclick="pqCloseModal()">×</button>
+    </div>
+    <div id="pq-pdf-canvas"></div>
+    <div class="pq-modal-foot">
+      <button class="btn btn-secondary" onclick="pqCloseModal()">Cerrar</button>
+      <button class="btn btn-primary" id="pq-btn-dl">⬇ Descargar PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- Presupuesto: modal historial view -->
+<div class="pq-modal-ovl" id="pq-hist-modal-ovl">
+  <div class="pq-modal-box" style="max-width:960px">
+    <div class="pq-modal-head">
+      <h3 id="pq-hist-modal-title">Presupuestos</h3>
+      <button class="xbtn" onclick="document.getElementById('pq-hist-modal-ovl').classList.remove('open')">×</button>
+    </div>
+    <div style="background:#fff">
+      <iframe id="pq-hist-iframe" src="about:blank" style="width:100%;height:70vh;border:none"></iframe>
+    </div>
+    <div class="pq-modal-foot">
+      <button class="btn btn-secondary" onclick="document.getElementById('pq-hist-modal-ovl').classList.remove('open');document.getElementById('pq-hist-iframe').src='about:blank'">Cerrar</button>
+      <button class="btn btn-primary" id="pq-hist-dl-btn">⬇ Descargar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

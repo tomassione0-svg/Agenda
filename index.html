@@ -408,6 +408,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .pq-field input:focus, .pq-field textarea:focus { border-color: var(--verde); }
 .pq-field textarea { resize: vertical; min-height: 60px; }
 .pq-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 480px) { .pq-grid2 { grid-template-columns: 1fr; } }
 .pq-lineas { border: 1px solid var(--gris-borde); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
 .pq-linea { display: grid; grid-template-columns: 1fr 70px 90px 28px; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--gris-borde); align-items: center; background: #fff; }
 .pq-linea:last-child { border-bottom: none; }
@@ -4508,15 +4509,7 @@ async function pqDownloadPDF() {
 
     const pdfBlob = doc.output('blob');
 
-    // Download to user
-    const url = URL.createObjectURL(pdfBlob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'Presupuesto_' + nro + '.pdf';
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-
-    // Upload to storage
+    // Upload to storage FIRST (before any navigation or download)
     let pdfPath = null;
     try {
       const filename = 'pq_' + nro + '_' + Date.now() + '.pdf';
@@ -4540,49 +4533,64 @@ async function pqDownloadPDF() {
     const wasEditing = !!_pqEditRecord;
     const editedNro  = wasEditing ? _pqEditRecord.nro : nro;
 
-    setTimeout(async function() {
-      // Save client data before clearing
-      const nombreAntes = document.getElementById('pq-cliente').value.trim();
-      if (nombreAntes) {
-        pqSaveClienteLocal({
-          nombre:   nombreAntes,
-          cuit:     (document.getElementById('pq-cuit')     || {}).value.trim() || '',
-          contacto: (document.getElementById('pq-contacto') || {}).value.trim() || '',
-          dir:      (document.getElementById('pq-dir')      || {}).value.trim() || '',
-          obs:      (document.getElementById('pq-obs')      || {}).value.trim() || ''
-        });
-      }
+    // Save client data before clearing
+    const nombreAntes = document.getElementById('pq-cliente').value.trim();
+    if (nombreAntes) {
+      pqSaveClienteLocal({
+        nombre:   nombreAntes,
+        cuit:     (document.getElementById('pq-cuit')     || {}).value.trim() || '',
+        contacto: (document.getElementById('pq-contacto') || {}).value.trim() || '',
+        dir:      (document.getElementById('pq-dir')      || {}).value.trim() || '',
+        obs:      (document.getElementById('pq-obs')      || {}).value.trim() || ''
+      });
+    }
 
-      // Exit edit mode
-      _pqEditRecord = null;
-      document.getElementById('pq-edit-banner').style.display = 'none';
-      document.getElementById('pq-btn-preview').textContent = 'Ver presupuesto';
+    // Exit edit mode + clear fields
+    _pqEditRecord = null;
+    document.getElementById('pq-edit-banner').style.display = 'none';
+    document.getElementById('pq-btn-preview').textContent = 'Ver presupuesto';
+    pqLineasSolar = []; pqLineasManual = [];
+    pqRenderSolar(); pqRenderManual(); pqRecalc();
+    document.getElementById('pq-ac-input').value = '';
+    document.getElementById('pq-cliente').value  = '';
+    if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = '';
+    if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
+    document.getElementById('pq-dir').value     = '';
+    document.getElementById('pq-obs').value     = '';
+    document.getElementById('pq-validez').value = '15 días hábiles';
+    document.getElementById('pq-fecha').value   = new Date().toISOString().split('T')[0];
+    pqCloseModal();
+    if (!wasEditing) {
+      const nextNro = await pqGetNextNro();
+      document.getElementById('pq-nro').value = nextNro;
+      document.getElementById('pq-nro-badge').textContent = '#' + nextNro;
+    }
+    toast(wasEditing
+      ? '✓ Presupuesto #' + editedNro + ' actualizado'
+      : '✓ Presupuesto #' + editedNro + ' guardado');
+    pqLoadHistorial();
 
-      // Clear all fields
-      pqLineasSolar = []; pqLineasManual = [];
-      pqRenderSolar(); pqRenderManual(); pqRecalc();
-      document.getElementById('pq-ac-input').value = '';
-      document.getElementById('pq-cliente').value  = '';
-      if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = '';
-      if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
-      document.getElementById('pq-dir').value     = '';
-      document.getElementById('pq-obs').value     = '';
-      document.getElementById('pq-validez').value = '15 días hábiles';
-      document.getElementById('pq-fecha').value   = new Date().toISOString().split('T')[0];
-
-      pqCloseModal();
-
-      if (!wasEditing) {
-        const nextNro = await pqGetNextNro();
-        document.getElementById('pq-nro').value = nextNro;
-        document.getElementById('pq-nro-badge').textContent = '#' + nextNro;
-      }
-
-      toast(wasEditing
-        ? '✓ Presupuesto #' + editedNro + ' actualizado correctamente'
-        : '✓ Presupuesto #' + editedNro + ' guardado');
-      pqLoadHistorial();
-    }, 500);
+    // NOW trigger download — after all saves are done
+    const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (isIOS) {
+      // iOS Safari: open data URI directly — user taps share to save
+      const dataUri = doc.output('datauristring');
+      const a = document.createElement('a');
+      a.href = dataUri;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else {
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'Presupuesto_' + nro + '.pdf';
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
 
   } catch(err) {
     console.error(err);

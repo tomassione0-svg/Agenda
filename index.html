@@ -533,6 +533,13 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 <!-- ══ PRESUPUESTO ══ -->
 <div class="page" id="page-presupuesto">
 
+  <!-- Banner modo edición — arriba de todo -->
+  <div id="pq-edit-banner" style="display:none;background:#fff8e1;border:1.5px solid #f0b429;border-radius:10px;padding:11px 16px;margin-bottom:14px;font-size:13px;align-items:center;gap:10px;">
+    <span style="font-size:17px">✏️</span>
+    <span style="font-weight:600;color:#7a5800;">Editando presupuesto <span id="pq-edit-banner-nro" style="color:#1b6b2f"></span></span>
+    <button onclick="pqCancelEdit()" style="margin-left:auto;background:#fff;border:1.5px solid #e0a800;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:12px;font-family:inherit;color:#7a5800;font-weight:600">✕ Cancelar edición</button>
+  </div>
+
   <!-- Datos del presupuesto -->
   <div class="pq-card">
     <div class="pq-card-head">
@@ -623,7 +630,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 
   <div style="display:flex;gap:10px;margin-bottom:24px;padding:0 2px">
     <button class="btn btn-secondary" style="flex:1" onclick="pqReset()">🗑 Limpiar</button>
-    <button class="btn btn-primary" style="flex:2" onclick="pqPreview()">Ver presupuesto</button>
+    <button class="btn btn-primary" style="flex:2" id="pq-btn-preview" onclick="pqPreview()">Ver presupuesto</button>
   </div>
 
   <!-- Historial -->
@@ -4105,6 +4112,7 @@ let pqLineasManual = []; // [{id, desc, precio, qty}]
 let pqNextId = 1;
 let pqAcActiveRow = null; // which solar row is being edited
 let _pqAcBlurTimer = null;
+let _pqEditRecord = null; // {id, nro, pdf_path} when editing an existing presupuesto
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 
@@ -4296,7 +4304,10 @@ function fmtDatePQ(s) {
 
 // ─── RESET ────────────────────────────────────────────────────────────────────
 async function pqReset() {
-  if ((pqLineasSolar.length || pqLineasManual.length) && !confirm('¿Limpiar el presupuesto en curso?')) return;
+  if ((pqLineasSolar.length || pqLineasManual.length || _pqEditRecord) && !confirm('¿Limpiar el presupuesto en curso?')) return;
+  _pqEditRecord = null;
+  document.getElementById('pq-edit-banner').style.display = 'none';
+  document.getElementById('pq-btn-preview').textContent = 'Ver presupuesto';
   pqLineasSolar = [];
   pqLineasManual = [];
   pqAcActiveRow = null;
@@ -4517,15 +4528,20 @@ async function pqDownloadPDF() {
       if (up.ok) pdfPath = filename;
     } catch(e) {}
 
-    // Save to Supabase
-    await pqSaveToSupa(nro, pdfPath);
+    // Save or Update to Supabase
+    if (_pqEditRecord) {
+      await pqUpdateToSupa(_pqEditRecord.id, nro, pdfPath || _pqEditRecord.pdf_path);
+    } else {
+      await pqSaveToSupa(nro, pdfPath);
+      await pqCommitNro(nro);
+    }
 
-    // Commit counter
-    await pqCommitNro(nro);
+    // Reset form
+    const wasEditing = !!_pqEditRecord;
+    const editedNro  = wasEditing ? _pqEditRecord.nro : nro;
 
-    // Reset form — keep fecha (always today) and validez, clear everything else
     setTimeout(async function() {
-      // Auto-save the client with all fields before clearing
+      // Save client data before clearing
       const nombreAntes = document.getElementById('pq-cliente').value.trim();
       if (nombreAntes) {
         pqSaveClienteLocal({
@@ -4537,30 +4553,34 @@ async function pqDownloadPDF() {
         });
       }
 
-      // Clear items
-      pqLineasSolar = [];
-      pqLineasManual = [];
-      pqRenderSolar();
-      pqRenderManual();
-      pqRecalc();
-      // Clear search input
+      // Exit edit mode
+      _pqEditRecord = null;
+      document.getElementById('pq-edit-banner').style.display = 'none';
+      document.getElementById('pq-btn-preview').textContent = 'Ver presupuesto';
+
+      // Clear all fields
+      pqLineasSolar = []; pqLineasManual = [];
+      pqRenderSolar(); pqRenderManual(); pqRecalc();
       document.getElementById('pq-ac-input').value = '';
-      // Clear client fields
-      document.getElementById('pq-cliente').value = '';
-      if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value = '';
+      document.getElementById('pq-cliente').value  = '';
+      if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = '';
       if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
-      document.getElementById('pq-dir').value = '';
-      // Clear observations
-      document.getElementById('pq-obs').value = '';
-      // Keep validez and fecha as-is (fecha = today always)
+      document.getElementById('pq-dir').value     = '';
+      document.getElementById('pq-obs').value     = '';
       document.getElementById('pq-validez').value = '15 días hábiles';
-      document.getElementById('pq-fecha').value = new Date().toISOString().split('T')[0];
-      // New number
+      document.getElementById('pq-fecha').value   = new Date().toISOString().split('T')[0];
+
       pqCloseModal();
-      const nextNro = await pqGetNextNro();
-      document.getElementById('pq-nro').value = nextNro;
-      document.getElementById('pq-nro-badge').textContent = '#' + nextNro;
-      toast('✓ Presupuesto #' + nro + ' guardado');
+
+      if (!wasEditing) {
+        const nextNro = await pqGetNextNro();
+        document.getElementById('pq-nro').value = nextNro;
+        document.getElementById('pq-nro-badge').textContent = '#' + nextNro;
+      }
+
+      toast(wasEditing
+        ? '✓ Presupuesto #' + editedNro + ' actualizado correctamente'
+        : '✓ Presupuesto #' + editedNro + ' guardado');
       pqLoadHistorial();
     }, 500);
 
@@ -4603,6 +4623,99 @@ async function pqSaveToSupa(nro, pdfPath) {
   }
 }
 
+async function pqUpdateToSupa(id, nro, pdfPath) {
+  try {
+    const moneda = 'ARS';
+    let subSolar = 0, subManual = 0;
+    pqLineasSolar.forEach(r => subSolar += r.precio * r.qty);
+    pqLineasManual.forEach(r => subManual += r.precio * r.qty);
+    const payload = {
+      fecha: document.getElementById('pq-fecha').value || new Date().toISOString().split('T')[0],
+      validez: document.getElementById('pq-validez').value || null,
+      cliente: document.getElementById('pq-cliente').value || null,
+      cuit: document.getElementById('pq-cuit') ? document.getElementById('pq-cuit').value || null : null,
+      contacto: document.getElementById('pq-contacto') ? document.getElementById('pq-contacto').value || null : null,
+      direccion: document.getElementById('pq-dir').value || null,
+      observaciones: document.getElementById('pq-obs').value || null,
+      moneda: moneda,
+      subtotal_solar: subSolar || null,
+      subtotal_manual: subManual || null,
+      total: (subSolar + subManual) || null,
+      lineas_solar: pqLineasSolar.length ? JSON.stringify(pqLineasSolar) : null,
+      lineas_manual: pqLineasManual.length ? JSON.stringify(pqLineasManual) : null,
+      pdf_path: pdfPath || null
+    };
+    await pqFetch('hes_presupuestos_solar?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'Prefer': 'return=minimal' },
+      body: JSON.stringify(payload)
+    });
+  } catch(e) {
+    console.warn('No se pudo actualizar en Supabase:', e);
+  }
+}
+
+// ─── EDIT MODE ────────────────────────────────────────────────────────────────
+var _pqHistMap = {}; // id -> full record, populated in pqLoadHistorial
+
+function pqStartEdit(id) {
+  var d = _pqHistMap[id];
+  if (!d) { toast('No se encontró el presupuesto'); return; }
+
+  _pqEditRecord = { id: d.id, nro: d.nro, pdf_path: d.pdf_path || null };
+
+  // Fill header fields
+  document.getElementById('pq-nro').value              = d.nro       || '';
+  document.getElementById('pq-nro-badge').textContent  = '#' + (d.nro || '');
+  document.getElementById('pq-fecha').value            = d.fecha     || new Date().toISOString().split('T')[0];
+  document.getElementById('pq-validez').value          = d.validez   || '15 días hábiles';
+  document.getElementById('pq-cliente').value          = d.cliente   || '';
+  if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = d.cuit          || '';
+  if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = d.contacto      || '';
+  document.getElementById('pq-dir').value              = d.direccion || '';
+  document.getElementById('pq-obs').value              = d.observaciones || '';
+
+  // Restore line items
+  try { pqLineasSolar  = d.lineas_solar  ? JSON.parse(d.lineas_solar)  : []; } catch(e) { pqLineasSolar  = []; }
+  try { pqLineasManual = d.lineas_manual ? JSON.parse(d.lineas_manual) : []; } catch(e) { pqLineasManual = []; }
+  pqRenderSolar();
+  pqRenderManual();
+  pqRecalc();
+  document.getElementById('pq-ac-input').value = '';
+
+  // Show banner and change button
+  var banner = document.getElementById('pq-edit-banner');
+  banner.style.display = 'flex';
+  document.getElementById('pq-edit-banner-nro').textContent = '#' + (d.nro || '');
+  document.getElementById('pq-btn-preview').textContent = '↑ Actualizar presupuesto';
+
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function pqCancelEdit() {
+  if (!confirm('¿Querés dejar de editar el presupuesto #' + (_pqEditRecord ? _pqEditRecord.nro : '') + '?\nLos cambios no guardados se perderán.')) return;
+  _pqEditRecord = null;
+  document.getElementById('pq-edit-banner').style.display = 'none';
+  document.getElementById('pq-btn-preview').textContent = 'Ver presupuesto';
+  // Reset sin confirm (ya confirmamos arriba)
+  pqLineasSolar = []; pqLineasManual = [];
+  pqAcActiveRow = null;
+  pqRenderSolar(); pqRenderManual(); pqRecalc();
+  document.getElementById('pq-ac-input').value = '';
+  document.getElementById('pq-cliente').value  = '';
+  if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = '';
+  if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
+  document.getElementById('pq-dir').value     = '';
+  document.getElementById('pq-obs').value     = '';
+  document.getElementById('pq-validez').value = '15 días hábiles';
+  document.getElementById('pq-fecha').value   = new Date().toISOString().split('T')[0];
+  pqGetNextNro().then(function(nro) {
+    document.getElementById('pq-nro').value = nro;
+    document.getElementById('pq-nro-badge').textContent = '#' + nro;
+  });
+}
+
 // ─── HISTORIAL ────────────────────────────────────────────────────────────────
 async function pqLoadHistorial() {
   const el = document.getElementById('pq-historial');
@@ -4615,7 +4728,9 @@ async function pqLoadHistorial() {
       return;
     }
     const monedaSym = { USD: 'USD ', ARS: '$ ' };
+    _pqHistMap = {}; // reset map
     el.innerHTML = docs.map(function(d) {
+      _pqHistMap[d.id] = d; // store full record
       const sym = '$ ';
       const fechaStr = d.fecha ? new Date(d.fecha + 'T12:00:00').toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
       return '<div class="pq-hist-row">' +
@@ -4626,6 +4741,7 @@ async function pqLoadHistorial() {
         '</div>' +
         '<div class="pq-hist-actions">' +
           (d.pdf_path ? '<button class="pq-btn-sm view" onclick="pqViewDoc(\'' + d.pdf_path + '\',\'' + (d.nro || '') + '\')">Ver PDF</button>' : '') +
+          '<button class="pq-btn-sm" style="background:var(--amber-light);border-color:#e0a800;color:#7a5800;" onclick="pqStartEdit(' + JSON.stringify(d.id) + ')">✏ Editar</button>' +
           '<button class="pq-btn-sm del" onclick="pqDeleteDoc(\'' + d.id + '\',\'' + (d.nro || '') + '\',\'' + (d.pdf_path || '') + '\')">🗑</button>' +
         '</div>' +
       '</div>';

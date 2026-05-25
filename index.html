@@ -408,7 +408,8 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .pq-field input:focus, .pq-field textarea:focus { border-color: var(--verde); }
 .pq-field textarea { resize: vertical; min-height: 60px; }
 .pq-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-@media (max-width: 480px) { .pq-grid2 { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .pq-grid2 { grid-template-columns: 1fr; } }
+.pq-field input[type="date"] { -webkit-appearance: none; appearance: none; min-width: 0; width: 100%; }
 .pq-lineas { border: 1px solid var(--gris-borde); border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
 .pq-linea { display: grid; grid-template-columns: 1fr 70px 90px 28px; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--gris-borde); align-items: center; background: #fff; }
 .pq-linea:last-child { border-bottom: none; }
@@ -445,12 +446,17 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 #pq-pdf-canvas { padding: 40px 48px; background: #fff; }
 
 /* Historial presupuestos */
-.pq-hist-row { background: #fff; border: 1px solid var(--gris-borde); border-radius: 8px; padding: 11px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; }
-.pq-hist-nro { font-size: 13px; font-weight: 700; color: var(--verde); min-width: 80px; }
+.pq-hist-row { background: #fff; border: 1px solid var(--gris-borde); border-radius: 8px; padding: 11px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+.pq-hist-nro { font-size: 13px; font-weight: 700; color: var(--verde); min-width: 80px; flex-shrink: 0; }
 .pq-hist-body { flex: 1; min-width: 0; }
-.pq-hist-title { font-size: 13px; font-weight: 500; }
-.pq-hist-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.pq-hist-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.pq-hist-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pq-hist-sub { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pq-hist-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+@media (max-width: 520px) {
+  .pq-hist-row { flex-wrap: wrap; }
+  .pq-hist-body { flex: 1 1 calc(100% - 96px); }
+  .pq-hist-actions { width: 100%; justify-content: flex-end; margin-top: 6px; }
+}
 .pq-btn-sm { padding: 4px 10px; font-size: 11px; border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 500; border: 1px solid var(--gris-borde); background: #fff; color: var(--texto); }
 .pq-btn-sm:hover { border-color: var(--verde); color: var(--verde); }
 .pq-btn-sm.del { border-color: #f0c0c0; color: var(--rojo); }
@@ -4489,7 +4495,20 @@ async function pqDownloadPDF() {
       });
     }
 
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+    // Force A4 width before capture so mobile renders identically to desktop
+    const el = document.getElementById('pq-pdf-canvas');
+    const prevWidth = el.style.width;
+    const prevMinWidth = el.style.minWidth;
+    el.style.width = '794px';
+    el.style.minWidth = '794px';
+    // Let browser reflow
+    await new Promise(r => setTimeout(r, 80));
+
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: 794 });
+
+    // Restore original width
+    el.style.width = prevWidth;
+    el.style.minWidth = prevMinWidth;
     const jsPDF = window.jspdf.jsPDF;
     const pdfW = 210, pdfH = 297;
     const canvasW = canvas.width, canvasH = canvas.height;

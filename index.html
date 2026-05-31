@@ -771,77 +771,390 @@ window.addEventListener('load', function() {
     <div id="dim-lista"></div>
   </div>
   <div id="dim-fv" style="display:none">
-    <div class="calc-grid">
-      <div class="calc-card">
-        <h3>Datos del proyecto FV profesional</h3>
-        <div class="calc-field"><label>Cliente / Empresa</label><input type="text" id="fv-cliente" placeholder="Nombre del cliente"></div>
-        <div class="calc-field"><label>Ubicación / Provincia</label><input type="text" id="fv-ubicacion" placeholder="Ej: Buenos Aires, Córdoba, Mendoza"></div>
-        <div class="calc-field"><label>Tarifa estimada ($/kWh)</label><input type="number" id="fv-tarifa" value="120" min="0" oninput="calcularFV()"><span style="font-size:10px;color:var(--muted)">Usar valor aproximado de factura. Sirve para estimar ahorro.</span></div>
-        <div class="calc-field"><label>% consumo a cubrir</label>
-          <select id="fv-cobertura" onchange="calcularFV()">
-            <option value="0.50">50%</option>
-            <option value="0.75">75%</option>
-            <option value="1.00" selected>100%</option>
-            <option value="1.20">120% con excedente</option>
-          </select></div>
-        <div class="calc-field"><label>Zona / HSP</label>
-          <select id="fv-zona" onchange="calcularFV()">
-            <option value="4.2">Buenos Aires / AMBA — 4.2</option>
-            <option value="4.5">Córdoba / Santa Fe — 4.5</option>
-            <option value="5.2">Mendoza / San Juan — 5.2</option>
-            <option value="5.8">NOA — 5.8</option>
-            <option value="3.5">Patagonia — 3.5</option>
-            <option value="4.0">Entre Ríos / Rosario — 4.0</option>
-          </select></div>
-        <div class="calc-field"><label>Panel</label>
-          <select id="fv-panel" onchange="calcularFV()">
-            <option value="400">400W — estándar</option>
-            <option value="430" selected>430W — N-Type TOPCon</option>
-            <option value="550">550W — comercial</option>
-            <option value="600">600W — industrial</option>
-          </select></div>
-        <div class="calc-field"><label>Performance Ratio</label>
-          <select id="fv-pr" onchange="calcularFV()">
-            <option value="0.75">0.75 — conservador</option>
-            <option value="0.80" selected>0.80 — estándar</option>
-            <option value="0.85">0.85 — óptimo</option>
-          </select></div>
-        <div class="calc-field"><label>Sistema</label>
-          <select id="fv-sistema" onchange="calcularFV()">
-            <option value="ongrid">On-Grid con medidor bidireccional</option>
-            <option value="offgrid">Off-Grid autónomo</option>
-          </select></div>
+
+    <!-- ── Datos del cliente + selector On-Grid / Off-Grid ── -->
+    <!-- hidden: mantiene compatibilidad con getFVData() heredado -->
+    <input type="hidden" id="fv-sistema" value="ongrid">
+    <div class="calc-card">
+      <div class="calc-grid" style="gap:12px">
+        <div class="calc-field" style="margin-bottom:0"><label>Cliente / Empresa</label><input type="text" id="fv-cliente" placeholder="Nombre del cliente"></div>
+        <div class="calc-field" style="margin-bottom:0"><label>Ubicación / Provincia</label><input type="text" id="fv-ubicacion" placeholder="Ej: Buenos Aires, Córdoba, Mendoza"></div>
       </div>
-      <div class="calc-card">
-        <h3>Consumos mensuales de las 12 facturas</h3>
-        <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-bottom:8px">Cargá los kWh de cada factura. Si dejás meses vacíos, el sistema calcula con los meses cargados.</div>
-        <div class="fv-months-grid" id="fv-months-grid"></div>
-        <div class="fv-summary-card">
-          <div class="fv-summary-row"><span>Consumo anual</span><strong id="fv-consumo-anual">0 kWh</strong></div>
-          <div class="fv-summary-row"><span>Promedio mensual</span><strong id="fv-promedio-mensual">0 kWh</strong></div>
-          <div class="fv-summary-row"><span>Mes de mayor consumo</span><strong id="fv-pico-mensual">0 kWh</strong></div>
-        </div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button id="fvtab-ongrid"  onclick="showFVTab('ongrid')"
+          style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--azul);background:var(--azul);color:#fff;font-size:13px;font-weight:600;cursor:pointer">
+          🔌 On-Grid</button>
+        <button id="fvtab-offgrid" onclick="showFVTab('offgrid')"
+          style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--gris-borde);background:#fff;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer">
+          🔋 Off-Grid</button>
       </div>
     </div>
 
-    <div class="calc-card" style="margin-top:12px">
-      <h3>Resultados técnicos y comerciales</h3>
-      <div class="result-grid">
-        <div class="result-box"><div class="result-val" id="fv-r-kwp">0</div><div class="result-label">kWp recomendados</div></div>
-        <div class="result-box"><div class="result-val" id="fv-r-paneles">0</div><div class="result-label" id="fv-r-wpanel">paneles 430W</div></div>
-        <div class="result-box accent"><div class="result-val" id="fv-r-inversor">0</div><div class="result-label">kW inversor</div></div>
-        <div class="result-box accent"><div class="result-val" id="fv-r-bateria">—</div><div class="result-label" id="fv-r-bat-note">solo Off-Grid</div></div>
-        <div class="result-box"><div class="result-val" id="fv-r-gen-mes">0</div><div class="result-label">kWh/mes estimados</div></div>
-        <div class="result-box"><div class="result-val" id="fv-r-ahorro-mes">$0</div><div class="result-label">ahorro mensual estimado</div></div>
-        <div class="result-box accent"><div class="result-val" id="fv-r-ahorro-anual">$0</div><div class="result-label">ahorro anual estimado</div></div>
-        <div class="result-box accent"><div class="result-val" id="fv-r-co2">0</div><div class="result-label">kg CO₂ evitados/año</div></div>
+    <!-- ════════════════════════════════════════════
+         ON-GRID — dimensionamiento desde facturas
+         Fórmula: P_S = E_C × cob / (365 × HSP × PR)
+         ════════════════════════════════════════════ -->
+    <div id="fv-tab-ongrid">
+
+      <!-- Paso 1 + Paso 2 en grilla -->
+      <div class="calc-grid" style="margin-top:10px">
+
+        <!-- Paso 1: Consumo eléctrico anual -->
+        <div class="calc-card">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="width:22px;height:22px;border-radius:50%;background:var(--azul);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</span>
+            <h3 style="margin:0">Consumo eléctrico anual (E_C)</h3>
+          </div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-bottom:8px">
+            Cargá los kWh de cada factura. Con los meses cargados el sistema calcula el E_C anual. Usá el HSP promedio anual (no el peor mes).
+          </div>
+          <div class="fv-months-grid" id="fv-months-grid"></div>
+          <div class="fv-summary-card">
+            <div class="fv-summary-row"><span>E_C anual</span><strong id="fv-consumo-anual">0 kWh</strong></div>
+            <div class="fv-summary-row"><span>Promedio mensual</span><strong id="fv-promedio-mensual">0 kWh</strong></div>
+            <div class="fv-summary-row"><span>Mes pico</span><strong id="fv-pico-mensual">0 kWh</strong></div>
+          </div>
+        </div>
+
+        <!-- Paso 2: Recurso solar y parámetros -->
+        <div class="calc-card">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="width:22px;height:22px;border-radius:50%;background:var(--azul);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</span>
+            <h3 style="margin:0">Recurso solar y parámetros</h3>
+          </div>
+          <div class="calc-field">
+            <label>Zona / HSP promedio anual</label>
+            <select id="fv-zona" onchange="calcularFV()">
+              <optgroup label="── Región Centro ──">
+                <option value="4.7">Buenos Aires / GBA — 4.7 h/día</option>
+                <option value="4.7">AMBA / Cap. Federal — 4.7 h/día</option>
+                <option value="5.0">Córdoba — 5.0 h/día</option>
+                <option value="4.8">Santa Fe / Rosario — 4.8 h/día</option>
+                <option value="4.6">Entre Ríos — 4.6 h/día</option>
+                <option value="4.9">La Pampa — 4.9 h/día</option>
+              </optgroup>
+              <optgroup label="── Cuyo ──">
+                <option value="5.8">Mendoza — 5.8 h/día</option>
+                <option value="6.2">San Juan — 6.2 h/día</option>
+                <option value="5.5">San Luis — 5.5 h/día</option>
+              </optgroup>
+              <optgroup label="── NOA ──">
+                <option value="5.8">Salta — 5.8 h/día</option>
+                <option value="5.9">Jujuy — 5.9 h/día</option>
+                <option value="5.2">Tucumán — 5.2 h/día</option>
+                <option value="6.0">Catamarca — 6.0 h/día</option>
+                <option value="6.2">La Rioja — 6.2 h/día</option>
+                <option value="5.8">Santiago del Estero — 5.8 h/día</option>
+              </optgroup>
+              <optgroup label="── NEA ──">
+                <option value="5.4">Formosa — 5.4 h/día</option>
+                <option value="5.2">Chaco — 5.2 h/día</option>
+                <option value="4.8">Corrientes — 4.8 h/día</option>
+                <option value="4.4">Misiones — 4.4 h/día</option>
+              </optgroup>
+              <optgroup label="── Patagonia ──">
+                <option value="4.8">Neuquén — 4.8 h/día</option>
+                <option value="4.6">Río Negro — 4.6 h/día</option>
+                <option value="4.3">Chubut — 4.3 h/día</option>
+                <option value="4.0">Santa Cruz — 4.0 h/día</option>
+                <option value="3.2">Tierra del Fuego — 3.2 h/día</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="calc-field">
+            <label>Panel solar</label>
+            <select id="fv-panel" onchange="calcularFV()">
+              <option value="400">400 Wp — estándar</option>
+              <option value="430" selected>430 Wp — N-Type TOPCon</option>
+              <option value="550">550 Wp — comercial</option>
+              <option value="600">600 Wp — industrial</option>
+            </select>
+          </div>
+          <div class="calc-field">
+            <label>Performance Ratio (PR)</label>
+            <select id="fv-pr" onchange="calcularFV()">
+              <option value="0.75">0.75 — conservador</option>
+              <option value="0.80" selected>0.80 — estándar</option>
+              <option value="0.85">0.85 — óptimo</option>
+            </select>
+          </div>
+          <div class="calc-field">
+            <label>Cobertura objetivo</label>
+            <select id="fv-cobertura" onchange="calcularFV()">
+              <option value="0.50">50 %</option>
+              <option value="0.75">75 %</option>
+              <option value="1.00" selected>100 %</option>
+              <option value="1.20">120 % con excedente</option>
+            </select>
+          </div>
+          <div class="calc-field">
+            <label>Tarifa estimada ($/kWh)</label>
+            <input type="number" id="fv-tarifa" value="156" min="0" oninput="calcularFV()">
+            <span style="font-size:10px;color:var(--muted)">Para estimar el ahorro económico</span>
+          </div>
+          <div style="background:var(--azul-light);border:1px solid #b8d4f0;border-radius:8px;padding:10px;font-size:11px;line-height:1.6;margin-top:4px">
+            <strong>Fórmula:</strong> P_S = E_C × cobertura / (365 × HSP × PR)
+          </div>
+        </div>
       </div>
-      <div style="margin-top:12px;background:var(--gris);border-radius:8px;padding:10px;font-size:12px;line-height:1.8" id="fv-r-resumen">—</div>
-      <div class="pdf-actions">
-        <button class="btn btn-azul" onclick="guardarDimFV()">Guardar presupuesto FV</button>
-        <button class="btn btn-outline" onclick="exportarPDFfv()">Exportar propuesta PDF</button>
+
+      <!-- Paso 3: Resultados On-Grid -->
+      <div class="calc-card" style="margin-top:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="width:22px;height:22px;border-radius:50%;background:var(--azul);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</span>
+          <h3 style="margin:0">Dimensionamiento On-Grid</h3>
+        </div>
+        <div class="result-grid">
+          <div class="result-box"><div class="result-val" id="fv-r-kwp">0</div><div class="result-label">kWp instalados</div></div>
+          <div class="result-box"><div class="result-val" id="fv-r-paneles">0</div><div class="result-label" id="fv-r-wpanel">paneles 430 Wp</div></div>
+          <div class="result-box accent"><div class="result-val" id="fv-r-inversor">0</div><div class="result-label">kW inversor mín.</div></div>
+          <div class="result-box"><div class="result-val" id="fv-r-gen-mes">0</div><div class="result-label">kWh/mes estimados</div></div>
+          <div class="result-box"><div class="result-val" id="fv-r-ahorro-mes">$0</div><div class="result-label">ahorro mensual est.</div></div>
+          <div class="result-box accent"><div class="result-val" id="fv-r-ahorro-anual">$0</div><div class="result-label">ahorro anual est.</div></div>
+          <div class="result-box"><div class="result-val" id="fv-r-co2">0</div><div class="result-label">kg CO₂ evitados/año</div></div>
+          <div class="result-box accent"><div class="result-val" id="fv-r-bateria">—</div><div class="result-label" id="fv-r-bat-note">solo Off-Grid</div></div>
+        </div>
+        <div style="margin-top:12px;background:var(--gris);border-radius:8px;padding:10px;font-size:12px;line-height:1.8" id="fv-r-resumen">—</div>
+        <div class="pdf-actions">
+          <button class="btn btn-azul" onclick="guardarDimFV()">Guardar</button>
+          <button class="btn btn-outline" onclick="exportarPDFfv()">Exportar PDF</button>
+        </div>
       </div>
-    </div>
+    </div><!-- /fv-tab-ongrid -->
+
+    <!-- ════════════════════════════════════════════
+         OFF-GRID — dimensionamiento por inventario
+         Fórmulas:
+           E_R = Σ(W × h/día)
+           P_S = E_R / HSP  →  paneles
+           C   = E_R / (V × η)  →  banco baterías
+         ════════════════════════════════════════════ -->
+    <div id="fv-tab-offgrid" style="display:none">
+
+      <!-- Paso 1: Inventario de cargas -->
+      <div class="calc-card" style="margin-top:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:22px;height:22px;border-radius:50%;background:var(--teal);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</span>
+            <h3 style="margin:0">Inventario de cargas eléctricas</h3>
+          </div>
+          <button class="btn btn-secondary" style="font-size:12px;padding:5px 12px" onclick="agregarCargaOG()">＋ Agregar carga</button>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+          Listá cada artefacto con su potencia y horas de uso diarias. La energía requerida (E_R) se calcula automáticamente.
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px" id="og-cargas-table">
+            <thead>
+              <tr style="background:var(--teal-light);color:var(--teal)">
+                <th style="text-align:left;padding:7px 8px;font-weight:600;font-size:11px;text-transform:uppercase">Aparato</th>
+                <th style="text-align:center;padding:7px 8px;font-weight:600;font-size:11px;text-transform:uppercase">Potencia (W)</th>
+                <th style="text-align:center;padding:7px 8px;font-weight:600;font-size:11px;text-transform:uppercase">Horas/día</th>
+                <th style="text-align:center;padding:7px 8px;font-weight:600;font-size:11px;text-transform:uppercase">Wh/día</th>
+                <th style="padding:7px 4px"></th>
+              </tr>
+            </thead>
+            <tbody id="og-cargas-tbody">
+              <!-- filas dinámicas -->
+            </tbody>
+            <tfoot>
+              <tr style="background:var(--gris);font-weight:700">
+                <td style="padding:8px;font-size:12px">TOTALES</td>
+                <td style="padding:8px;text-align:center;font-size:13px" id="og-total-w">0 W</td>
+                <td style="padding:8px"></td>
+                <td style="padding:8px;text-align:center;font-size:13px;color:var(--teal)" id="og-total-wh">0 Wh/día</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="result-grid" style="margin-top:12px">
+          <div class="result-box accent"><div class="result-val" id="og-r-potencia">0</div><div class="result-label">W potencia instalada</div></div>
+          <div class="result-box accent" style="border-color:var(--teal)"><div class="result-val" style="color:var(--teal)" id="og-r-er">0</div><div class="result-label">Wh/día — E_R</div></div>
+        </div>
+      </div>
+
+      <!-- Paso 2 + Paso 3 en grilla -->
+      <div class="calc-grid" style="margin-top:10px">
+
+        <!-- Paso 2: Recurso solar — peor mes -->
+        <div class="calc-card">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="width:22px;height:22px;border-radius:50%;background:var(--teal);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</span>
+            <h3 style="margin:0">Recurso solar — peor mes</h3>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">
+            Off-Grid usa el HSP del <strong>peor mes</strong> (generalmente julio en Argentina). Si el sistema cubre ese mes, cubre todo el año.
+          </div>
+          <div class="calc-field">
+            <label>Zona / HSP peor mes</label>
+            <select id="og-zona" onchange="calcularOffGrid()">
+              <optgroup label="── Región Centro ──">
+                <option value="2.8">Buenos Aires / GBA — 2.8 h/día</option>
+                <option value="2.8">AMBA / Cap. Federal — 2.8 h/día</option>
+                <option value="3.2">Córdoba — 3.2 h/día</option>
+                <option value="3.0">Santa Fe / Rosario — 3.0 h/día</option>
+                <option value="2.9">Entre Ríos — 2.9 h/día</option>
+                <option value="3.0">La Pampa — 3.0 h/día</option>
+              </optgroup>
+              <optgroup label="── Cuyo ──">
+                <option value="3.8">Mendoza — 3.8 h/día</option>
+                <option value="4.0">San Juan — 4.0 h/día</option>
+                <option value="3.6">San Luis — 3.6 h/día</option>
+              </optgroup>
+              <optgroup label="── NOA ──">
+                <option value="4.2">Salta — 4.2 h/día</option>
+                <option value="4.2">Jujuy — 4.2 h/día</option>
+                <option value="3.5">Tucumán — 3.5 h/día</option>
+                <option value="4.0">Catamarca — 4.0 h/día</option>
+                <option value="4.0">La Rioja — 4.0 h/día</option>
+                <option value="3.8">Santiago del Estero — 3.8 h/día</option>
+              </optgroup>
+              <optgroup label="── NEA ──">
+                <option value="3.4">Formosa — 3.4 h/día</option>
+                <option value="3.2">Chaco — 3.2 h/día</option>
+                <option value="3.0">Corrientes — 3.0 h/día</option>
+                <option value="2.8">Misiones — 2.8 h/día</option>
+              </optgroup>
+              <optgroup label="── Patagonia ──">
+                <option value="3.2">Neuquén — 3.2 h/día</option>
+                <option value="3.0">Río Negro — 3.0 h/día</option>
+                <option value="2.8">Chubut — 2.8 h/día</option>
+                <option value="2.5">Santa Cruz — 2.5 h/día</option>
+                <option value="1.8">Tierra del Fuego — 1.8 h/día</option>
+              </optgroup>
+            </select>
+          </div>
+          <div style="background:var(--teal-light);border:1px solid #a0ddd6;border-radius:8px;padding:10px;font-size:12px">
+            HSP seleccionada: <strong id="og-hsp-display">3.2 h/día</strong>
+          </div>
+        </div>
+
+        <!-- Paso 3: Parámetros del sistema -->
+        <div class="calc-card">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="width:22px;height:22px;border-radius:50%;background:var(--teal);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</span>
+            <h3 style="margin:0">Parámetros del sistema</h3>
+          </div>
+          <div class="calc-field">
+            <label>Panel solar</label>
+            <select id="og-panel" onchange="calcularOffGrid()">
+              <option value="100">100 Wp — micro sistema</option>
+              <option value="150">150 Wp — off-grid pequeño</option>
+              <option value="200">200 Wp — off-grid chico</option>
+              <option value="250">250 Wp — off-grid mediano</option>
+              <option value="300">300 Wp — off-grid estándar</option>
+              <option value="370">370 Wp — estándar</option>
+              <option value="400" selected>400 Wp — estándar</option>
+              <option value="450">450 Wp — premium</option>
+              <option value="475">475 Wp — N-TOPCon</option>
+              <option value="500">500 Wp — premium</option>
+              <option value="550">550 Wp — comercial</option>
+              <option value="585">585 Wp — N-TOPCon</option>
+              <option value="600">600 Wp — comercial grande</option>
+              <option value="635">635 Wp — bifacial</option>
+              <option value="700">700 Wp — industrial</option>
+              <option value="720">720 Wp — industrial</option>
+            </select>
+          </div>
+          <div class="calc-field">
+            <label>Tensión del banco de baterías</label>
+            <select id="og-tension" onchange="calcularOffGrid()">
+              <option value="12">12 V — pequeños sistemas</option>
+              <option value="24" selected>24 V — mediano</option>
+              <option value="48">48 V — grande / industrial</option>
+            </select>
+          </div>
+          <div class="calc-field">
+            <label>Tipo de batería (profundidad descarga η)</label>
+            <select id="og-bateria-tipo" onchange="calcularOffGrid()">
+              <option value="0.50">Plomo-ácido sellada — η 50%</option>
+              <option value="0.70" selected>Plomo-ácido tubular — η 70%</option>
+              <option value="0.85">Litio LiFePO4 — η 85%</option>
+            </select>
+          </div>
+          <div class="calc-field">
+            <label>Performance Ratio (PR)</label>
+            <select id="og-pr" onchange="calcularOffGrid()">
+              <option value="0.70">0.70 — conservador off-grid</option>
+              <option value="0.75" selected>0.75 — estándar off-grid</option>
+              <option value="0.80">0.80 — óptimo</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pasos 4-7: Resultados + tabla resumen igual al documento -->
+      <div class="calc-card" style="margin-top:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <span style="width:22px;height:22px;border-radius:50%;background:var(--teal);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</span>
+          <h3 style="margin:0">Dimensionamiento resultante</h3>
+        </div>
+
+        <!-- Pasos con fórmulas visibles -->
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px">
+          <div style="border-left:3px solid var(--verde);background:var(--verde-light);border-radius:0 8px 8px 0;padding:10px 12px;font-size:12px;line-height:1.7">
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--verde);display:block;margin-bottom:3px">Paso 4 — Inversor</span>
+            <span id="og-step-inversor">—</span>
+          </div>
+          <div style="border-left:3px solid var(--azul);background:var(--azul-light);border-radius:0 8px 8px 0;padding:10px 12px;font-size:12px;line-height:1.7">
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--azul);display:block;margin-bottom:3px">Paso 5 — Paneles solares · P_S = E_R / HSP</span>
+            <span id="og-step-paneles">—</span>
+          </div>
+          <div style="border-left:3px solid var(--amber);background:var(--amber-light);border-radius:0 8px 8px 0;padding:10px 12px;font-size:12px;line-height:1.7">
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--amber);display:block;margin-bottom:3px">Paso 6 — Banco de baterías · C = E_R / (V × η)</span>
+            <span id="og-step-baterias">—</span>
+          </div>
+          <div style="border-left:3px solid var(--rojo);background:var(--rojo-light);border-radius:0 8px 8px 0;padding:10px 12px;font-size:12px;line-height:1.7">
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--rojo);display:block;margin-bottom:3px">Paso 7 — Regulador solar</span>
+            <span id="og-step-regulador">—</span>
+          </div>
+        </div>
+
+        <!-- Tabla resumen igual al documento: Componente | Cálculo | Modelo -->
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">Resumen del sistema resultante</div>
+        <div style="border:1.5px solid var(--gris-borde);border-radius:8px;overflow:hidden;margin-bottom:14px">
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead>
+              <tr style="background:var(--teal);color:#fff">
+                <th style="text-align:left;padding:7px 10px;font-weight:600">Componente</th>
+                <th style="text-align:left;padding:7px 10px;font-weight:600">Cálculo</th>
+                <th style="text-align:left;padding:7px 10px;font-weight:600">Modelo elegido</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="padding:7px 10px;font-weight:600">Inversor</td>
+                <td style="padding:7px 10px;color:var(--muted)" id="og-tabla-inv-calc">—</td>
+                <td style="padding:7px 10px"><select id="og-modelo-inversor" style="border:1.5px solid var(--gris-borde);border-radius:6px;padding:4px 8px;font-size:12px;width:100%;font-family:inherit"><option value="">— Seleccioná modelo —</option></select></td>
+              </tr>
+              <tr style="background:var(--gris)">
+                <td style="padding:7px 10px;font-weight:600">Paneles solares</td>
+                <td style="padding:7px 10px;color:var(--muted)" id="og-tabla-pan-calc">—</td>
+                <td style="padding:7px 10px"><select id="og-modelo-panel" style="border:1.5px solid var(--gris-borde);border-radius:6px;padding:4px 8px;font-size:12px;width:100%;font-family:inherit"><option value="">— Seleccioná modelo —</option></select></td>
+              </tr>
+              <tr>
+                <td style="padding:7px 10px;font-weight:600">Regulador solar</td>
+                <td style="padding:7px 10px;color:var(--muted)" id="og-tabla-reg-calc">—</td>
+                <td style="padding:7px 10px"><select id="og-modelo-regulador" style="border:1.5px solid var(--gris-borde);border-radius:6px;padding:4px 8px;font-size:12px;width:100%;font-family:inherit"><option value="">— Seleccioná modelo —</option></select></td>
+              </tr>
+              <tr style="background:var(--gris)">
+                <td style="padding:7px 10px;font-weight:600">Banco de baterías</td>
+                <td style="padding:7px 10px;color:var(--muted)" id="og-tabla-bat-calc">—</td>
+                <td style="padding:7px 10px"><select id="og-modelo-bateria" style="border:1.5px solid var(--gris-borde);border-radius:6px;padding:4px 8px;font-size:12px;width:100%;font-family:inherit"><option value="">— Seleccioná modelo —</option></select></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pdf-actions">
+          <button class="btn btn-azul" style="background:var(--teal);border-color:var(--teal)" onclick="guardarDimOG()">Guardar</button>
+          <button class="btn btn-outline" onclick="exportarPDFog()">Exportar PDF</button>
+        </div>
+      </div>
+
+    </div><!-- /fv-tab-offgrid -->
+
     <div class="section-sep"></div>
     <div class="section-label">Dimensionamientos guardados — Fotovoltaico</div>
     <div id="fv-dim-lista"></div>
@@ -2295,6 +2608,19 @@ function construirPropuestaFV() {
     <div class="pdf-section"><h3>Consumos cargados desde facturas</h3>
       <table class="pdf-table"><thead><tr><th>Mes</th><th>Consumo kWh</th></tr></thead><tbody>${filasConsumo}</tbody></table>
     </div>
+    <div class="pdf-section"><h3>Memoria de cálculo</h3>
+      <table class="pdf-table"><tbody>
+        <tr><td>Consumo anual (E_C)</td><td><strong>${Math.round(d.anual).toLocaleString('es-AR')} kWh/año</strong></td></tr>
+        <tr><td>Cobertura objetivo</td><td><strong>${Math.round(d.cobertura*100)}%</strong></td></tr>
+        <tr><td>HSP del sitio utilizada</td><td><strong>${d.hsp} h/día</strong></td></tr>
+        <tr><td>Performance Ratio (PR)</td><td><strong>${d.pr}</strong></td></tr>
+        <tr><td>Fórmula aplicada</td><td><strong>P_S = E_C × cobertura / (365 × HSP × PR)</strong></td></tr>
+        <tr><td>kWp calculado</td><td><strong>${(d.anual*d.cobertura/365/d.hsp/d.pr).toFixed(2)} kWp → ${d.kwpReal.toFixed(1)} kWp reales instalados</strong></td></tr>
+        <tr><td>Configuración de paneles</td><td><strong>${d.paneles} paneles × ${d.panelW} W = ${d.kwpReal.toFixed(1)} kWp</strong></td></tr>
+        <tr><td>Inversor sugerido</td><td><strong>${d.inversor} kW (≥ kWp instalados)</strong></td></tr>
+        ${d.sistema==='offgrid'?`<tr><td>Sistema / batería estimada</td><td><strong>Off-Grid autónomo · ${d.bateria} kWh almacenamiento</strong></td></tr>`:`<tr><td>Sistema</td><td><strong>On-Grid · excedentes volcados a la red con medidor bidireccional</strong></td></tr>`}
+      </tbody></table>
+    </div>
     <div class="pdf-note">Documento preliminar de dimensionamiento. Los resultados son estimativos y deben validarse con relevamiento técnico, disponibilidad de superficie, orientación, sombras, estructura, normativa de la distribuidora y condiciones comerciales vigentes.</div>
   </div>`;
 }
@@ -2304,6 +2630,375 @@ function exportarPDFfv() {
   if(!cliente){toast('Ingresá el nombre del cliente antes de exportar');return;}
   document.getElementById('pdf-propuesta').innerHTML = construirPropuestaFV();
   setTimeout(()=>window.print(),120);
+}
+
+// ── TABS On-Grid / Off-Grid ───────────────────────────────────────────────────
+function showFVTab(tab) {
+  var isOG = tab === 'ongrid';
+  document.getElementById('fv-tab-ongrid').style.display  = isOG ? 'block' : 'none';
+  document.getElementById('fv-tab-offgrid').style.display = isOG ? 'none'  : 'block';
+  var azul = 'flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--azul);background:var(--azul);color:#fff';
+  var teal = 'flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--teal);background:var(--teal);color:#fff';
+  var off  = 'flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--gris-borde);background:#fff;color:var(--muted)';
+  document.getElementById('fvtab-ongrid').style.cssText  = isOG ? azul : off;
+  document.getElementById('fvtab-offgrid').style.cssText = isOG ? off  : teal;
+  if (!isOG) calcularOffGrid();
+}
+
+// ── OFF-GRID: tabla de cargas ─────────────────────────────────────────────────
+var ogFilaIdx = 0;
+
+function agregarCargaOG(nombre, w, h) {
+  var tbody = document.getElementById('og-cargas-tbody');
+  var idx = ogFilaIdx++;
+  var tr = document.createElement('tr');
+  tr.id = 'og-fila-' + idx;
+  tr.style.borderBottom = '1px solid var(--gris-borde)';
+  tr.innerHTML =
+    '<td style="padding:4px 6px"><input type="text" placeholder="Ej: Heladera" value="'+(nombre||'')+'" style="width:100%;border:1.5px solid var(--gris-borde);border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit"></td>' +
+    '<td style="padding:4px 6px"><input type="number" min="0" placeholder="W" value="'+(w||'')+'" oninput="calcularOffGrid()" style="width:80px;border:1.5px solid var(--gris-borde);border-radius:6px;padding:5px 8px;font-size:12px;text-align:center;font-family:inherit" class="og-w"></td>' +
+    '<td style="padding:4px 6px"><input type="number" min="0" step="0.5" placeholder="h" value="'+(h||'')+'" oninput="calcularOffGrid()" style="width:70px;border:1.5px solid var(--gris-borde);border-radius:6px;padding:5px 8px;font-size:12px;text-align:center;font-family:inherit" class="og-h"></td>' +
+    '<td style="padding:4px 6px;text-align:center;font-weight:700;font-size:13px;color:var(--teal)" class="og-wh">0</td>' +
+    '<td style="padding:4px 2px;text-align:center"><button onclick="eliminarCargaOG(\'og-fila-'+idx+'\')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px" title="Eliminar">✕</button></td>';
+  tbody.appendChild(tr);
+  calcularOffGrid();
+}
+
+function eliminarCargaOG(id) {
+  var el = document.getElementById(id);
+  if (el) { el.remove(); calcularOffGrid(); }
+}
+
+function calcularOffGrid() {
+  var filas = document.querySelectorAll('#og-cargas-tbody tr');
+  var totalW = 0, totalWh = 0;
+  filas.forEach(function(tr) {
+    var wEl = tr.querySelector('.og-w');
+    var hEl = tr.querySelector('.og-h');
+    var whEl = tr.querySelector('.og-wh');
+    var w = parseFloat(wEl ? wEl.value : 0) || 0;
+    var h = parseFloat(hEl ? hEl.value : 0) || 0;
+    var wh = w * h;
+    if (whEl) whEl.textContent = wh > 0 ? wh.toLocaleString('es-AR') : '0';
+    totalW  += w;
+    totalWh += wh;
+  });
+  document.getElementById('og-total-w').textContent  = totalW.toLocaleString('es-AR')  + ' W';
+  document.getElementById('og-total-wh').textContent = totalWh.toLocaleString('es-AR') + ' Wh/día';
+  document.getElementById('og-r-potencia').textContent = totalW.toLocaleString('es-AR');
+  document.getElementById('og-r-er').textContent       = totalWh.toLocaleString('es-AR');
+
+  if (!totalW && !totalWh) {
+    document.getElementById('og-r-resumen').innerHTML = 'Agregá cargas para ver el dimensionamiento.';
+    return;
+  }
+
+  var hsp     = parseFloat(document.getElementById('og-zona').value)            || 3.2;
+  var panelW  = parseFloat(document.getElementById('og-panel').value)           || 400;
+  var tension = parseFloat(document.getElementById('og-tension').value)         || 24;
+  var eta     = parseFloat(document.getElementById('og-bateria-tipo').value)    || 0.70;
+  var pr      = parseFloat(document.getElementById('og-pr').value)              || 0.75;
+
+  document.getElementById('og-hsp-display').textContent = hsp.toFixed(1) + ' h/día';
+
+  var ps       = Math.ceil(totalWh / (hsp * pr));
+  var nPaneles = Math.ceil(ps / panelW);
+  var kwpReal  = (nPaneles * panelW / 1000);
+  var capAh    = Math.ceil(totalWh / (tension * eta));
+  var vmpEst   = panelW <= 150 ? 18 : panelW <= 250 ? 30 : panelW <= 400 ? 37 : 45;
+  var iscEst   = (panelW / vmpEst) * 1.05;
+  var iReg     = Math.ceil(nPaneles * iscEst * 1.25);
+  var tipoReg  = kwpReal < 1.5 ? 'PWM' : 'MPPT';
+
+  // Pasos con fórmulas
+  document.getElementById('og-step-inversor').innerHTML =
+    'P instalada = <strong>' + totalW.toLocaleString('es-AR') + ' W</strong> → elegir modelo comercial ≥ <strong>' + totalW.toLocaleString('es-AR') + ' W</strong>';
+  document.getElementById('og-step-paneles').innerHTML =
+    'P_S = E_R / HSP = ' + totalWh.toLocaleString('es-AR') + ' / ' + hsp.toFixed(1) + ' = <strong>' + ps.toLocaleString('es-AR') + ' W</strong> &nbsp;→&nbsp; ' +
+    'Cantidad = ' + ps.toLocaleString('es-AR') + ' / ' + panelW + ' = <strong>' + nPaneles + ' paneles × ' + panelW + ' Wp = ' + kwpReal.toFixed(2) + ' kWp</strong>';
+  document.getElementById('og-step-baterias').innerHTML =
+    'C = E_R / (V × η) = ' + totalWh.toLocaleString('es-AR') + ' / (' + tension + ' × ' + eta + ') = <strong>' + capAh + ' Ah @ ' + tension + ' V</strong>';
+  document.getElementById('og-step-regulador').innerHTML =
+    'I_reg ≈ ' + nPaneles + ' × Isc × 1.25 ≈ <strong>' + iReg + ' A</strong> &nbsp;→&nbsp; tipo recomendado: <strong>' + tipoReg + '</strong>';
+
+  // Tabla resumen: columna Cálculo (auto)
+  var nSerie = tension === 12 ? 1 : tension === 24 ? 2 : 4;
+  document.getElementById('og-tabla-inv-calc').textContent  = 'P ≥ ' + totalW.toLocaleString('es-AR') + ' W';
+  document.getElementById('og-tabla-pan-calc').textContent  = 'P_S = ' + ps.toLocaleString('es-AR') + ' W';
+  document.getElementById('og-tabla-reg-calc').textContent  = 'Para ' + nPaneles + '× ' + panelW + 'Wp';
+  document.getElementById('og-tabla-bat-calc').textContent  = 'C = ' + capAh + ' Ah · ' + tension + 'V' + (nSerie > 1 ? ' (' + nSerie + '× serie)' : '');
+
+  // Auto-selección de modelos del catálogo
+  autoSeleccionarModelos(totalW, nPaneles, panelW, capAh, tension, iReg, tipoReg, eta);
+}
+
+// ── AUTO-SELECCIÓN DE MODELOS según cálculo ──────────────────────────────────
+function autoSeleccionarModelos(totalW, nPaneles, panelW, capAh, tension, iReg, tipoReg, eta) {
+  if (typeof ENERTIK_CATALOG === 'undefined') return;
+
+  // Parsers
+  function parseVoltage(code, desc) {
+    var m = desc.match(/(\d{2})Vcc/);
+    if (m) return parseInt(m[1]);
+    // modelo tipo IE-1000-24, IS-600-48, HGV-2K-24
+    m = (code||'').match(/-(\d{2})$/);
+    if (m) { var v = parseInt(m[1]); if (v===12||v===24||v===48) return v; }
+    return null;
+  }
+  function parseWatts(desc) {
+    var m = desc.match(/[–\-]\s*(\d{3,5})W\b/) || desc.match(/\b(\d{3,5})W\b/);
+    return m ? parseInt(m[1]) : null;
+  }
+  function parseAh(desc) {
+    var m = desc.match(/(\d{2,4})Ah/);
+    return m ? parseInt(m[1]) : null;
+  }
+  function parseAmps(desc) {
+    var m = desc.match(/\b(\d{2,3})A\b/);
+    return m ? parseInt(m[1]) : null;
+  }
+  function parseKwh(desc) {
+    var m = desc.match(/([\d.]+)\s*kWh/);
+    return m ? parseFloat(m[1]) : null;
+  }
+  function setSelectByValue(id, val) {
+    var sel = document.getElementById(id);
+    if (!sel) return;
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === val) { sel.selectedIndex = i; return; }
+    }
+  }
+
+  // ── INVERSOR: el más barato que cubre totalW con la tensión correcta ──
+  var INV_CATS = ['Inv. Onda Modificada','Inv. Senoidal Pura','Inv. Off-Grid','Inv. Híbrido'];
+  var allInv = ENERTIK_CATALOG.filter(function(x){ return INV_CATS.indexOf(x[3]) >= 0; });
+
+  var invByVolt = allInv.filter(function(x){
+    var v = parseVoltage(x[0], x[1]);
+    return !v || v === tension;
+  });
+  if (!invByVolt.length) invByVolt = allInv;
+
+  var invOk = invByVolt.filter(function(x){
+    var w = parseWatts(x[1]);
+    return w !== null && w >= totalW;
+  });
+  invOk.sort(function(a,b){ return a[2] - b[2]; }); // más barato primero
+  if (invOk.length) setSelectByValue('og-modelo-inversor', invOk[0][0]);
+
+  // ── PANEL: el del catálogo con wattaje más cercano al seleccionado ──
+  var allPanels = ENERTIK_CATALOG.filter(function(x){ return x[3]==='Panel Solar'; });
+  var panelBest = null, panelDiff = Infinity;
+  allPanels.forEach(function(x){
+    var w = parseWatts(x[1]);
+    if (w === null) return;
+    var diff = Math.abs(w - panelW);
+    if (diff < panelDiff) { panelDiff = diff; panelBest = x; }
+  });
+  if (panelBest) setSelectByValue('og-modelo-panel', panelBest[0]);
+
+  // ── REGULADOR: MPPT o PWM según tipo, mínimo que cubre iReg ──
+  var allReg = ENERTIK_CATALOG.filter(function(x){
+    return x[3]==='Regulador Solar' || x[3]==='Victron SmartSolar MPPT';
+  });
+  var regOk;
+  if (tipoReg === 'MPPT') {
+    regOk = allReg.filter(function(x){
+      var amps = parseAmps(x[1]);
+      var isMppt = x[0].indexOf('XTRA') >= 0 || x[3] === 'Victron SmartSolar MPPT';
+      return isMppt && amps !== null && amps >= iReg;
+    });
+  } else {
+    regOk = allReg.filter(function(x){
+      var amps = parseAmps(x[1]);
+      return x[0].indexOf('VS') === 0 && amps !== null && amps >= iReg;
+    });
+  }
+  if (!regOk.length) { // fallback: cualquier regulador con amperaje suficiente
+    regOk = allReg.filter(function(x){
+      var amps = parseAmps(x[1]);
+      return amps !== null && amps >= iReg;
+    });
+  }
+  regOk.sort(function(a,b){ return a[2] - b[2]; });
+  if (regOk.length) setSelectByValue('og-modelo-regulador', regOk[0][0]);
+
+  // ── BATERÍA: AGM o Litio según η, mínima que cubre capAh ──
+  var isLitio = eta >= 0.85;
+
+  if (isLitio) {
+    var allLitio = ENERTIK_CATALOG.filter(function(x){ return x[3]==='Batería Litio'; });
+    var needKwh = (capAh * tension) / 1000;
+    var litioOk = allLitio.filter(function(x){
+      var kwh = parseKwh(x[1]);
+      return kwh !== null && kwh >= needKwh;
+    });
+    litioOk.sort(function(a,b){ return a[2] - b[2]; }); // más barata suficiente
+    if (litioOk.length) {
+      setSelectByValue('og-modelo-bateria', litioOk[0][0]);
+    } else {
+      // Si ninguna cubre sola → sugerir la de mayor kWh
+      allLitio.sort(function(a,b){ return (parseKwh(b[1])||0) - (parseKwh(a[1])||0); });
+      if (allLitio.length) setSelectByValue('og-modelo-bateria', allLitio[0][0]);
+    }
+  } else {
+    // AGM 12V → en serie para subir tensión; Ah no cambia en serie
+    var allAgm = ENERTIK_CATALOG.filter(function(x){ return x[3]==='Batería AGM'; });
+    var agmOk = allAgm.filter(function(x){
+      var ah = parseAh(x[1]);
+      return ah !== null && ah >= capAh;
+    });
+    agmOk.sort(function(a,b){ return a[2] - b[2]; }); // más barata suficiente
+    if (agmOk.length) {
+      setSelectByValue('og-modelo-bateria', agmOk[0][0]);
+    } else {
+      // Ninguna cubre sola → sugerir la mayor Ah (usuario puede poner en paralelo)
+      allAgm.sort(function(a,b){ return (parseAh(b[1])||0) - (parseAh(a[1])||0); });
+      if (allAgm.length) setSelectByValue('og-modelo-bateria', allAgm[0][0]);
+    }
+  }
+}
+
+function construirPropuestaOG() {
+  var cliente   = document.getElementById('fv-cliente').value.trim()   || 'Cliente';
+  var ubicacion = document.getElementById('fv-ubicacion').value.trim() || 'No especificada';
+  var fecha     = new Date().toLocaleDateString('es-AR');
+  var zonaTxt   = document.getElementById('og-zona').options[document.getElementById('og-zona').selectedIndex].text;
+  var panelTxt  = document.getElementById('og-panel').options[document.getElementById('og-panel').selectedIndex].text;
+  var batTxt    = document.getElementById('og-bateria-tipo').options[document.getElementById('og-bateria-tipo').selectedIndex].text;
+  var tension   = parseFloat(document.getElementById('og-tension').value)       || 24;
+  var hsp       = parseFloat(document.getElementById('og-zona').value)          || 3.2;
+  var eta       = parseFloat(document.getElementById('og-bateria-tipo').value)  || 0.70;
+  var pr        = parseFloat(document.getElementById('og-pr').value)            || 0.75;
+  var panelW    = parseFloat(document.getElementById('og-panel').value)         || 400;
+
+  var totalW = 0, totalWh = 0;
+  var filasCargas = '';
+  document.querySelectorAll('#og-cargas-tbody tr').forEach(function(tr) {
+    var nombre = tr.querySelector('input[type=text]') ? (tr.querySelector('input[type=text]').value || '—') : '—';
+    var w  = parseFloat(tr.querySelector('.og-w') ? tr.querySelector('.og-w').value  : 0) || 0;
+    var h  = parseFloat(tr.querySelector('.og-h') ? tr.querySelector('.og-h').value  : 0) || 0;
+    var wh = w * h;
+    totalW += w; totalWh += wh;
+    filasCargas += '<tr><td>'+nombre+'</td><td style="text-align:center">'+w+'</td><td style="text-align:center">'+h.toFixed(1)+'</td><td style="text-align:center;font-weight:700">'+wh.toLocaleString('es-AR')+'</td></tr>';
+  });
+
+  var ps       = Math.ceil(totalWh / (hsp * pr));
+  var nPaneles = Math.ceil(ps / panelW);
+  var kwpReal  = (nPaneles * panelW / 1000);
+  var capAh    = Math.ceil(totalWh / (tension * eta));
+  var vmpEst   = panelW <= 150 ? 18 : panelW <= 250 ? 30 : panelW <= 400 ? 37 : 45;
+  var iscEst   = (panelW / vmpEst) * 1.05;
+  var iReg     = Math.ceil(nPaneles * iscEst * 1.25);
+  var tipoReg  = kwpReal < 1.5 ? 'PWM' : 'MPPT';
+
+  var modInv = (document.getElementById('og-modelo-inversor')  ? document.getElementById('og-modelo-inversor').value.trim()  : '') || '—';
+  var modPan = (document.getElementById('og-modelo-panel')     ? document.getElementById('og-modelo-panel').value.trim()     : '') || '—';
+  var modReg = (document.getElementById('og-modelo-regulador') ? document.getElementById('og-modelo-regulador').value.trim() : '') || '—';
+  var modBat = (document.getElementById('og-modelo-bateria')   ? document.getElementById('og-modelo-bateria').value.trim()   : '') || '—';
+
+  return '<div class="pdf-page">' +
+    '<div class="pdf-head"><div><div class="pdf-brand">ExerGrid</div>' +
+    '<div class="pdf-sub">Soluciones en Energías Renovables · Solar Fotovoltaica Off-Grid</div></div>' +
+    '<div class="pdf-date">Propuesta preliminar<br><strong>'+fecha+'</strong></div></div>' +
+    '<div class="pdf-title">Dimensionamiento fotovoltaico Off-Grid</div>' +
+    '<div class="pdf-client"><strong>Cliente:</strong> '+cliente+'<br><strong>Ubicación:</strong> '+ubicacion+'<br><strong>Sistema:</strong> Off-Grid autónomo · '+zonaTxt+'</div>' +
+    '<div class="pdf-kpis">' +
+      '<div class="pdf-kpi"><div class="v">'+kwpReal.toFixed(2)+'</div><div class="l">kWp instalados</div></div>' +
+      '<div class="pdf-kpi"><div class="v">'+nPaneles+'</div><div class="l">paneles '+panelW+'Wp</div></div>' +
+      '<div class="pdf-kpi"><div class="v">'+capAh+'</div><div class="l">Ah banco baterías</div></div>' +
+      '<div class="pdf-kpi"><div class="v">'+iReg+'A</div><div class="l">regulador '+tipoReg+'</div></div>' +
+    '</div>' +
+    '<div class="pdf-section"><h3>Paso 1 — Inventario de cargas eléctricas</h3>' +
+      '<table class="pdf-table">' +
+        '<thead><tr><th>Aparato</th><th style="text-align:center">Potencia (W)</th><th style="text-align:center">Horas/día</th><th style="text-align:center">Wh/día</th></tr></thead>' +
+        '<tbody>'+filasCargas+'</tbody>' +
+        '<tfoot><tr style="background:#EAF5EC"><td><strong>TOTALES</strong></td><td style="text-align:center;font-weight:700">'+totalW+' W</td><td></td><td style="text-align:center;font-weight:700;color:#1B6B2F">'+totalWh.toLocaleString('es-AR')+' Wh/día</td></tr></tfoot>' +
+      '</table></div>' +
+    '<div class="pdf-section"><h3>Paso 2 — Recurso solar (HSP peor mes)</h3>' +
+      '<table class="pdf-table"><tbody>' +
+        '<tr><td>Zona / provincia</td><td><strong>'+zonaTxt+'</strong></td></tr>' +
+        '<tr><td>HSP peor mes</td><td><strong>'+hsp.toFixed(1)+' h/día</strong></td></tr>' +
+        '<tr><td>Performance Ratio (PR)</td><td><strong>'+pr+'</strong></td></tr>' +
+      '</tbody></table></div>' +
+    '<div class="pdf-section"><h3>Resolución — pasos 4 al 7</h3>' +
+      '<table class="pdf-table"><tbody>' +
+        '<tr><td><strong>Paso 4 — Inversor</strong></td><td>P instalada = '+totalW.toLocaleString('es-AR')+' W → modelo ≥ <strong>'+totalW.toLocaleString('es-AR')+' W</strong></td></tr>' +
+        '<tr><td><strong>Paso 5 — P_S = E_R / HSP</strong></td><td>'+totalWh.toLocaleString('es-AR')+' / '+hsp.toFixed(1)+' = '+ps.toLocaleString('es-AR')+' W &nbsp;→&nbsp; <strong>'+nPaneles+' × '+panelW+' Wp = '+kwpReal.toFixed(2)+' kWp</strong></td></tr>' +
+        '<tr><td>Tensión banco / batería (η = '+eta+')</td><td>'+tension+' V · '+batTxt+'</td></tr>' +
+        '<tr><td><strong>Paso 6 — C = E_R / (V × η)</strong></td><td>'+totalWh.toLocaleString('es-AR')+' / ('+tension+' × '+eta+') = <strong>'+capAh+' Ah @ '+tension+' V</strong></td></tr>' +
+        '<tr><td><strong>Paso 7 — Regulador</strong></td><td>I_reg ≈ <strong>'+iReg+' A</strong> mínimo · tipo recomendado: <strong>'+tipoReg+'</strong></td></tr>' +
+      '</tbody></table></div>' +
+    '<div class="pdf-section"><h3>Resumen del sistema resultante</h3>' +
+      '<table class="pdf-table">' +
+        '<thead><tr><th>Componente</th><th>Cálculo</th><th>Modelo elegido</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td><strong>Inversor</strong></td><td>P ≥ '+totalW.toLocaleString('es-AR')+' W</td><td><strong>'+modInv+'</strong></td></tr>' +
+          '<tr><td><strong>Paneles solares</strong></td><td>P_S = '+ps.toLocaleString('es-AR')+' W</td><td><strong>'+modPan+'</strong></td></tr>' +
+          '<tr><td><strong>Regulador solar</strong></td><td>Para '+nPaneles+'× '+panelW+' Wp</td><td><strong>'+modReg+'</strong></td></tr>' +
+          '<tr><td><strong>Banco de baterías</strong></td><td>C = '+capAh+' Ah · '+tension+' V</td><td><strong>'+modBat+'</strong></td></tr>' +
+        '</tbody>' +
+      '</table></div>' +
+    '<div class="pdf-note">Documento preliminar de dimensionamiento Off-Grid. Los resultados son estimativos y deben validarse con relevamiento técnico, selección definitiva de equipos y condiciones del sitio.</div>' +
+  '</div>';
+}
+
+function exportarPDFog() {
+  var cliente = document.getElementById('fv-cliente').value.trim();
+  if (!cliente) { toast('Ingresá el nombre del cliente antes de exportar'); return; }
+  document.getElementById('pdf-propuesta').innerHTML = construirPropuestaOG();
+  setTimeout(function() { window.print(); }, 120);
+}
+
+async function guardarDimOG() {
+  var cliente = document.getElementById('fv-cliente').value.trim();
+  if (!cliente) { toast('Ingresá el nombre del cliente'); return; }
+  var hsp     = parseFloat(document.getElementById('og-zona').value)           || 3.2;
+  var panelW  = parseFloat(document.getElementById('og-panel').value)          || 400;
+  var tension = parseFloat(document.getElementById('og-tension').value)        || 24;
+  var eta     = parseFloat(document.getElementById('og-bateria-tipo').value)   || 0.70;
+  var pr      = parseFloat(document.getElementById('og-pr').value)             || 0.75;
+  var totalW = 0, totalWh = 0;
+  document.querySelectorAll('#og-cargas-tbody tr').forEach(function(tr) {
+    var w = parseFloat(tr.querySelector('.og-w') ? tr.querySelector('.og-w').value : 0) || 0;
+    var h = parseFloat(tr.querySelector('.og-h') ? tr.querySelector('.og-h').value : 0) || 0;
+    totalW += w; totalWh += w * h;
+  });
+  var ps       = Math.ceil(totalWh / (hsp * pr));
+  var nPaneles = Math.ceil(ps / panelW);
+  var kwpReal  = parseFloat((nPaneles * panelW / 1000).toFixed(2));
+  var capAh    = Math.ceil(totalWh / (tension * eta));
+  var vmpEst   = panelW <= 150 ? 18 : panelW <= 250 ? 30 : panelW <= 400 ? 37 : 45;
+  var iscEst   = (panelW / vmpEst) * 1.05;
+  var iReg     = Math.ceil(nPaneles * iscEst * 1.25);
+  var zonaTxt  = document.getElementById('og-zona').options[document.getElementById('og-zona').selectedIndex].text;
+  var panelTxt = document.getElementById('og-panel').options[document.getElementById('og-panel').selectedIndex].text;
+
+  // Guarda en hes_presupuestos (misma tabla que On-Grid) para aparecer en la lista
+  // tipo empieza con "FV |" → esPresupuestoFV() lo detecta como FV
+  var payload = {
+    cliente:    cliente,
+    personas:   0,
+    litros_dia: Math.round(totalWh) || 0,
+    zona:       zonaTxt,
+    tipo:       'FV | Off-Grid | ' + panelTxt + ' | Inv ≥ ' + totalW + 'W | E_R=' + totalWh + ' Wh/día | ' + capAh + 'Ah@' + tension + 'V',
+    colectores: nPaneles  || 0,
+    acumulador: capAh     || 0,
+    bomba:      iReg      || 0,
+    area:       kwpReal   || 0
+  };
+
+  setSyncState('loading');
+  const { error } = await db.from('hes_presupuestos').insert([payload]);
+  if (error) {
+    console.error('Error guardando Off-Grid:', error);
+    setSyncState('error');
+    toast('Error al guardar: ' + (error.message || 'revisar Supabase'));
+    return;
+  }
+  await loadPresupuestos();
+  toast('✅ Dimensionamiento Off-Grid guardado');
+  setSyncState('ok');
 }
 
 
@@ -2612,30 +3307,31 @@ function construirPDFPresupuestoGuardado(p) {
 
   if (esPresupuestoFV(p)) {
     const fv = parsePresupuestoFV(p);
+    const isOG = fv.sistema.toLowerCase().includes('off');
     return `
     <div class="pdf-page">
       <div class="pdf-head">
         <div>
           <div class="pdf-brand">ExerGrid</div>
-          <div class="pdf-sub">Soluciones en Energías Renovables · Solar Fotovoltaica</div>
+          <div class="pdf-sub">Soluciones en Energías Renovables · Solar Fotovoltaica ${isOG ? 'Off-Grid' : 'On-Grid'}</div>
         </div>
         <div class="pdf-date">Presupuesto guardado<br><strong>${fecha}</strong></div>
       </div>
-      <div class="pdf-title">Dimensionamiento fotovoltaico guardado</div>
+      <div class="pdf-title">Dimensionamiento fotovoltaico ${isOG ? 'Off-Grid' : 'On-Grid'} guardado</div>
       <div class="pdf-client"><strong>Cliente:</strong> ${p.cliente || 'Cliente'}<br><strong>Sistema:</strong> ${fv.sistema}<br><strong>Zona:</strong> ${p.zona || '—'}</div>
       <div class="pdf-kpis">
         <div class="pdf-kpi"><div class="v">${p.area || 0}</div><div class="l">kWp instalados</div></div>
         <div class="pdf-kpi"><div class="v">${p.colectores || 0}</div><div class="l">paneles</div></div>
         <div class="pdf-kpi"><div class="v">${fv.sistema}</div><div class="l">sistema</div></div>
-        <div class="pdf-kpi"><div class="v">${p.acumulador || 0}</div><div class="l">kWh batería</div></div>
+        <div class="pdf-kpi"><div class="v">${p.acumulador || 0}</div><div class="l">${isOG ? 'Ah banco baterías' : 'kWh batería'}</div></div>
       </div>
-      <div class="pdf-section"><h3>Detalle técnico y comercial</h3>
+      <div class="pdf-section"><h3>Detalle técnico</h3>
         <table class="pdf-table"><tbody>
           <tr><td>Panel</td><td><strong>${fv.panel}</strong></td></tr>
-          <tr><td>Inversor</td><td><strong>${fv.inversor}</strong></td></tr>
-          <tr><td>Generación estimada</td><td><strong>${fv.generacion}</strong></td></tr>
-          <tr><td>Ahorro estimado</td><td><strong>${fv.ahorro}</strong></td></tr>
-          <tr><td>Zona</td><td><strong>${p.zona || '—'}</strong></td></tr>
+          <tr><td>${isOG ? 'Inversor mínimo' : 'Inversor'}</td><td><strong>${fv.inversor}</strong></td></tr>
+          <tr><td>${isOG ? 'Energía requerida' : 'Generación estimada'}</td><td><strong>${fv.generacion}</strong></td></tr>
+          <tr><td>${isOG ? 'Banco de baterías' : 'Ahorro estimado'}</td><td><strong>${fv.ahorro}</strong></td></tr>
+          <tr><td>Zona / HSP</td><td><strong>${p.zona || '—'}</strong></td></tr>
         </tbody></table>
       </div>
       <div class="pdf-note">Documento generado desde un presupuesto guardado en el CRM técnico de ExerGrid. Valores preliminares sujetos a relevamiento técnico y condiciones comerciales vigentes.</div>
@@ -4922,6 +5618,7 @@ function pqShowClienteDropdown(q) {
 
 // Init cliente autocomplete
 document.addEventListener('DOMContentLoaded', function() {
+  poblarSelectsOG();
   pqUpdateClientesCount();
   var inp = document.getElementById('pq-cliente');
   if (!inp) return;
@@ -5029,6 +5726,127 @@ function pqDeleteAllClientes() {
   localStorage.removeItem('pq_clientes');
   pqUpdateClientesCount();
   pqCloseManageClientes();
+}
+
+// ── POBLAR SELECTORES DE CATÁLOGO — Off-Grid ──────────────────────────────────
+function poblarSelectsOG() {
+  if (typeof ENERTIK_CATALOG === 'undefined') return;
+
+  function crearOption(value, label, dataset) {
+    var o = document.createElement('option');
+    o.value = value;
+    o.textContent = label;
+    if (dataset) Object.keys(dataset).forEach(function(k){ o.dataset[k] = dataset[k]; });
+    return o;
+  }
+  function crearOptgroup(label) {
+    var g = document.createElement('optgroup');
+    g.label = label;
+    return g;
+  }
+  function poblarSelect(id, grupos) {
+    var sel = document.getElementById(id);
+    if (!sel || sel.tagName !== 'SELECT') return;
+    sel.innerHTML = '<option value="">— Seleccioná modelo —</option>';
+    grupos.forEach(function(g) {
+      var grp = crearOptgroup(g.label);
+      g.items.forEach(function(x) { grp.appendChild(crearOption(x[0], x[2], x[3]||null)); });
+      sel.appendChild(grp);
+    });
+  }
+
+  // Helpers de texto corto
+  function short(s, max) { return s.length > max ? s.slice(0,max)+'…' : s; }
+  function panLabel(x)  { return x[0] + ' · ' + short(x[1].replace('Panel Solar ',''),44); }
+  function invLabel(x)  { return x[0] + ' · ' + short(x[1].replace(/^Inversor\s+/,'').replace(/^Híbrido\s+/,''),44); }
+  function regLabel(x)  { return x[0] + ' · ' + short(x[1].replace(/^(Regulador Solar|SmartSolar)\s+/,''),44); }
+  function batLabel(x)  { return x[0] + ' · ' + short(x[1].replace(/^Batería\s+/,''),44); }
+
+  // Función que convierte cada item del catálogo en [value, _, label, dataset]
+  // para reutilizar poblarSelect
+  function catItems(cats, labelFn, dataFn) {
+    return cats.map(function(cat) {
+      return {
+        label: cat,
+        items: ENERTIK_CATALOG
+          .filter(function(x){ return x[3] === cat; })
+          .map(function(x){
+            return [x[0], null, labelFn(x), dataFn ? dataFn(x) : null];
+          })
+      };
+    }).filter(function(g){ return g.items.length > 0; });
+  }
+
+  // ── INVERSOR ──
+  poblarSelect('og-modelo-inversor', catItems(
+    ['Inv. Onda Modificada','Inv. Senoidal Pura','Inv. Off-Grid','Inv. Híbrido'],
+    invLabel
+  ));
+
+  // ── PANEL ──
+  var selPan = document.getElementById('og-modelo-panel');
+  if (selPan && selPan.tagName === 'SELECT') {
+    selPan.innerHTML = '<option value="">— Seleccioná modelo —</option>';
+    var grpPan = crearOptgroup('Paneles solares');
+    ENERTIK_CATALOG.filter(function(x){ return x[3]==='Panel Solar'; }).forEach(function(x){
+      var wMatch = x[1].match(/(\d{3,4})W/);
+      var w = wMatch ? parseInt(wMatch[1]) : null;
+      var o = crearOption(x[0], panLabel(x), w ? {w: w} : null);
+      grpPan.appendChild(o);
+    });
+    selPan.appendChild(grpPan);
+    // Auto-sync wattaje al elegir panel
+    selPan.addEventListener('change', function() {
+      var opt = this.options[this.selectedIndex];
+      if (opt && opt.dataset.w) {
+        var w = parseInt(opt.dataset.w);
+        var panSel = document.getElementById('og-panel');
+        if (panSel) {
+          // Encontrar la opción más cercana al wattaje del modelo elegido
+          var best = 0, bestDiff = Infinity;
+          for (var i = 0; i < panSel.options.length; i++) {
+            var diff = Math.abs(parseFloat(panSel.options[i].value) - w);
+            if (diff < bestDiff) { bestDiff = diff; best = i; }
+          }
+          panSel.selectedIndex = best;
+          calcularOffGrid();
+        }
+      }
+    });
+  }
+
+  // ── REGULADOR ──
+  poblarSelect('og-modelo-regulador', catItems(
+    ['Regulador Solar','Victron SmartSolar MPPT'],
+    regLabel
+  ));
+
+  // ── BATERÍA ──
+  var selBat = document.getElementById('og-modelo-bateria');
+  if (selBat && selBat.tagName === 'SELECT') {
+    selBat.innerHTML = '<option value="">— Seleccioná modelo —</option>';
+    ['Batería AGM','Batería Litio'].forEach(function(cat) {
+      var items = ENERTIK_CATALOG.filter(function(x){ return x[3]===cat; });
+      if (!items.length) return;
+      var grp = crearOptgroup(cat);
+      items.forEach(function(x){
+        var tipo = cat==='Batería Litio' ? 'litio' : 'agm';
+        grp.appendChild(crearOption(x[0], batLabel(x), {batType: tipo}));
+      });
+      selBat.appendChild(grp);
+    });
+    // Auto-sync η al elegir batería
+    selBat.addEventListener('change', function() {
+      var opt = this.options[this.selectedIndex];
+      if (opt && opt.dataset.batType) {
+        var tipoSel = document.getElementById('og-bateria-tipo');
+        if (tipoSel) {
+          tipoSel.value = opt.dataset.batType === 'litio' ? '0.85' : '0.70';
+          calcularOffGrid();
+        }
+      }
+    });
+  }
 }
 
 </script>

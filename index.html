@@ -2118,7 +2118,7 @@ function renderProveedores() {
           <div class="prov-header">
             <div style="min-width:0">
               <div class="prov-name">${p.nombre}</div>
-              ${p.web?`<div class="prov-web">${p.web}</div>`:''}
+              ${p.web?`<div class="prov-web"><a href="${p.web.startsWith('http')?p.web:'https://'+p.web}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${p.web}</a></div>`:''}
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
               <span class="prio-pill ${pCls}">${pTxt}</span>

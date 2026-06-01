@@ -278,28 +278,32 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .pdf-preview{display:none;}
 .pdf-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
 .btn-outline{background:#fff;color:var(--verde);border:1.5px solid var(--verde);}
-@media(max-width:520px){.fv-months-grid{grid-template-columns:repeat(2,1fr)}.pdf-actions{grid-template-columns:1fr}}
+@media(max-width:520px){.fv-months-grid{grid-template-columns:repeat(2,1fr)}.pdf-actions{grid-template-columns:1fr}.af-params-grid{grid-template-columns:1fr!important}}
+@page { size: A4; margin: 0; }
 @media print{
-  body *{visibility:hidden!important;}
-  #pdf-propuesta, #pdf-propuesta *{visibility:visible!important;}
-  #pdf-propuesta{display:block!important;position:absolute;left:0;top:0;width:100%;background:#fff;color:#111;padding:0;}
-  .pdf-page{width:190mm;margin:0 auto;padding:14mm;font-family:Arial,sans-serif;}
-  .pdf-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1B6B2F;padding-bottom:14px;margin-bottom:18px;}
-  .pdf-brand{font-size:26px;font-weight:800;color:#1B6B2F;}
-  .pdf-sub{font-size:12px;color:#555;margin-top:4px;}
-  .pdf-date{text-align:right;font-size:11px;color:#555;}
-  .pdf-title{font-size:22px;font-weight:800;margin:18px 0 8px;color:#1a1a1a;}
-  .pdf-client{background:#EAF5EC;border:1px solid #D6EEDD;border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;}
-  .pdf-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0;}
-  .pdf-kpi{border:1px solid #ddd;border-radius:10px;padding:10px;background:#fafafa;}
-  .pdf-kpi .v{font-size:22px;font-weight:800;color:#1B6B2F;line-height:1;}
-  .pdf-kpi .l{font-size:10px;color:#666;margin-top:5px;}
-  .pdf-table{width:100%;border-collapse:collapse;margin:12px 0;font-size:11px;}
-  .pdf-table th{background:#1B6B2F;color:#fff;text-align:left;padding:7px;}
-  .pdf-table td{border-bottom:1px solid #ddd;padding:7px;}
-  .pdf-section{margin-top:16px;}
-  .pdf-section h3{font-size:14px;color:#1B6B2F;margin-bottom:6px;border-bottom:1px solid #ddd;padding-bottom:5px;}
-  .pdf-note{font-size:10px;color:#666;line-height:1.45;margin-top:16px;border-top:1px solid #ddd;padding-top:10px;}
+  html,body{margin:0!important;padding:0!important;}
+  body > *:not(#pdf-propuesta){display:none!important;}
+  #pdf-propuesta{display:block!important;position:relative;width:100%;background:#fff;color:#111;margin:0;padding:0;}
+  .pdf-page{width:100%;margin:0;padding:12mm 10mm;font-family:Arial,sans-serif;font-size:10px;box-sizing:border-box;}
+  .pdf-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1B6B2F;padding-bottom:8px;margin-bottom:10px;}
+  .pdf-brand{font-size:20px;font-weight:800;color:#1B6B2F;}
+  .pdf-sub{font-size:10px;color:#555;margin-top:3px;}
+  .pdf-date{text-align:right;font-size:10px;color:#555;}
+  .pdf-title{font-size:17px;font-weight:800;margin:10px 0 5px;color:#1a1a1a;}
+  .pdf-client{background:#EAF5EC;border:1px solid #D6EEDD;border-radius:6px;padding:7px 10px;margin-bottom:10px;font-size:10px;}
+  .pdf-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:8px 0;}
+  .pdf-kpi{border:1px solid #ddd;border-radius:6px;padding:6px 8px;background:#fafafa;}
+  .pdf-kpi .v{font-size:17px;font-weight:800;color:#1B6B2F;line-height:1;}
+  .pdf-kpi .l{font-size:9px;color:#666;margin-top:3px;}
+  .pdf-table{width:100%;border-collapse:collapse;margin:5px 0;font-size:9.5px;}
+  .pdf-table th{background:#1B6B2F;color:#fff;text-align:left;padding:4px 6px;}
+  .pdf-table td{border-bottom:1px solid #ddd;padding:4px 6px;}
+  .pdf-section{margin-top:9px;}
+  .pdf-section h3{font-size:11px;color:#1B6B2F;margin-bottom:3px;border-bottom:1px solid #ddd;padding-bottom:3px;}
+  .pdf-note{font-size:8.5px;color:#666;line-height:1.4;margin-top:8px;border-top:1px solid #ddd;padding-top:6px;}
+  .pdf-fin-table{width:100%;border-collapse:collapse;font-size:9px;}
+  .pdf-fin-table th{background:#185FA5;color:#fff;padding:4px 6px;text-align:left;}
+  .pdf-fin-table td{border-bottom:1px solid #e0e0e0;padding:3px 6px;}
 }
 
 /* Clientes */
@@ -382,7 +386,8 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 #page-agenda,
 #page-proveedores,
 #page-dimension,
-#page-presupuesto{
+#page-presupuesto,
+#page-finanzas{
   max-width:700px !important;
   margin:0 auto !important;
 }
@@ -547,8 +552,9 @@ window.addEventListener('load', function() {
   <div class="tab active" onclick="showTab('agenda')">Checkpoints</div>
   <div class="tab" onclick="showTab('proveedores')">Proveedores</div>
   <div class="tab" onclick="showTab('dimension')">Dimensionamientos</div>
-  <div class="tab" onclick="showTab('documentos')">Documentos</div>
+  <div class="tab" onclick="showTab('finanzas')">Análisis Financiero</div>
   <div class="tab" onclick="showTab('presupuesto')">Presupuestos</div>
+  <div class="tab" onclick="showTab('documentos')">Documentos</div>
   <div class="tab" onclick="showTab('clientes')">Clientes</div>
 </div>
 
@@ -739,10 +745,10 @@ window.addEventListener('load', function() {
             <option value="3.5">Patagonia — 3.5</option>
             <option value="4.0">Entre Ríos / Rosario — 4.0</option>
           </select></div>
-        <div class="calc-field"><label>Colector</label>
+        <div class="calc-field"><label>Tipo de sistema</label>
           <select id="d-tipo" onchange="calcular()">
-            <option value="0.60">Plano — η 60%</option>
-            <option value="0.70">Tubular al vacío — η 70%</option>
+            <option value="0.60">Atmosférico — termosifón, sin bomba</option>
+            <option value="0.70">Presurizado — circulación forzada</option>
           </select></div>
         <div class="calc-field"><label>Cobertura solar</label>
           <select id="d-cobertura" onchange="calcular()">
@@ -752,12 +758,14 @@ window.addEventListener('load', function() {
           </select></div>
       </div>
       <div class="calc-card">
-        <h3>Resultados</h3>
-        <div class="result-grid">
-          <div class="result-box"><div class="result-val" id="r-area">0</div><div class="result-label">m² colector</div></div>
-          <div class="result-box"><div class="result-val" id="r-colectores">0</div><div class="result-label">colectores 2m²</div></div>
+        <h3>Dimensionamiento</h3>
+        <!-- IDs ocultos preservados para guardarDim() y PDF -->
+        <span id="r-area" style="display:none">0</span>
+        <span id="r-colectores" style="display:none">0</span>
+        <span id="r-bomba" style="display:none">0</span>
+        <div class="result-grid" style="grid-template-columns:1fr 1fr">
+          <div class="result-box accent"><div class="result-val" id="r-sistema" style="font-size:15px">—</div><div class="result-label">tipo sistema</div></div>
           <div class="result-box accent"><div class="result-val" id="r-acum">0</div><div class="result-label">litros acumulador</div></div>
-          <div class="result-box accent"><div class="result-val" id="r-bomba">0</div><div class="result-label">L/h bomba</div></div>
         </div>
         <div style="margin-top:12px;background:var(--gris);border-radius:8px;padding:10px;font-size:12px;line-height:1.8" id="r-resumen">—</div>
         <div style="display:flex;gap:8px;margin-top:12px">
@@ -1159,6 +1167,169 @@ window.addEventListener('load', function() {
     <div class="section-label">Dimensionamientos guardados — Fotovoltaico</div>
     <div id="fv-dim-lista"></div>
   </div></div>
+</div>
+
+<!-- ══ ANÁLISIS FINANCIERO ══ -->
+<div class="page" id="page-finanzas">
+  <div style="padding:0 8px">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:14px">Análisis Financiero — Retorno de Inversión</div>
+
+    <!-- ① Seleccionar dimensionamiento -->
+    <div class="calc-card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="width:22px;height:22px;border-radius:50%;background:var(--azul);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</span>
+        <h3 style="margin:0">Seleccionar dimensionamiento</h3>
+      </div>
+      <select id="af-dim-select" onchange="afCargarDim()" style="width:100%;padding:9px 12px;border:1.5px solid var(--gris-borde);border-radius:8px;font-size:13px;margin-bottom:8px">
+        <option value="">— Seleccioná un dimensionamiento guardado —</option>
+      </select>
+      <div id="af-dim-info" style="display:none;background:var(--azul-light);border:1px solid #b8d4f0;border-radius:8px;padding:10px;font-size:12px;line-height:1.8"></div>
+    </div>
+
+    <!-- ② Desglose de inversión manual -->
+    <div class="calc-card" style="margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:22px;height:22px;border-radius:50%;background:var(--azul);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</span>
+          <h3 style="margin:0">Desglose de inversión</h3>
+        </div>
+        <button class="btn btn-primary" style="font-size:11px;padding:5px 10px" onclick="afAgregarItem()">＋ Ítem</button>
+      </div>
+      <div style="overflow-x:auto;border:1.5px solid var(--gris-borde);border-radius:8px;overflow:hidden;margin-bottom:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:var(--azul);color:#fff">
+              <th style="padding:7px 10px;text-align:left">Descripción</th>
+              <th style="padding:7px 8px;text-align:center;width:60px">Cant.</th>
+              <th style="padding:7px 8px;text-align:right;width:110px">Precio unit. USD</th>
+              <th style="padding:7px 8px;text-align:right;width:100px">Subtotal USD</th>
+              <th style="padding:7px 6px;width:32px"></th>
+            </tr>
+          </thead>
+          <tbody id="af-items-tbody">
+            <tr id="af-items-empty"><td colspan="5" style="padding:14px;text-align:center;color:var(--muted);font-size:12px">Seleccioná un dimensionamiento para cargar los ítems, o agregá manualmente</td></tr>
+          </tbody>
+          <tfoot>
+            <tr style="background:var(--gris)">
+              <td colspan="3" style="padding:7px 10px;font-weight:600;font-size:12px">Subtotal equipos</td>
+              <td style="padding:7px 10px;text-align:right;font-weight:700;font-size:13px" id="af-subtotal-eq">—</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td colspan="3" style="padding:7px 10px;display:flex;align-items:center;gap:8px;font-size:12px">
+                <span>Instalación / ingeniería</span>
+                <input type="number" id="af-inst-pct" min="0" max="200" value="30" oninput="afRecalcular()"
+                  style="width:60px;border:1px solid var(--gris-borde);border-radius:6px;padding:3px 7px;font-size:12px;font-family:inherit;text-align:center">
+                <span style="font-size:12px;color:var(--muted)">%</span>
+              </td>
+              <td style="padding:7px 10px;text-align:right;font-size:12px" id="af-subtotal-inst">—</td>
+              <td></td>
+            </tr>
+            <tr style="background:var(--teal-light)">
+              <td colspan="3" style="padding:9px 10px;font-weight:700;color:var(--teal);font-size:13px">INVERSIÓN TOTAL (USD)</td>
+              <td style="padding:9px 10px;text-align:right;font-weight:800;font-size:16px;color:var(--teal)" id="af-total-inv">—</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- ③ Parámetros del análisis -->
+    <div class="calc-card" style="margin-bottom:12px;display:none" id="af-params-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span style="width:22px;height:22px;border-radius:50%;background:var(--verde);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</span>
+        <h3 style="margin:0">Parámetros del análisis</h3>
+      </div>
+      <div class="af-params-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="calc-field">
+          <label>Energía anual generada/ahorrada (kWh/año)</label>
+          <input type="number" id="af-gen-anual" min="0" placeholder="ej: 4500" oninput="afCalcularROI()" style="font-weight:700;border-color:var(--verde)">
+          <span style="font-size:10px;color:var(--muted)">Valor pre-cargado del dimensionamiento · editable</span>
+        </div>
+        <div class="calc-field">
+          <label>Tarifa equivalente ($/kWh)</label>
+          <input type="number" id="af-tarifa" value="156" min="0" oninput="afCalcularROI()">
+          <span style="font-size:10px;color:var(--muted)">ARS/kWh que reemplaza el sistema</span>
+        </div>
+        <div class="calc-field">
+          <label>Tipo de cambio ARS/USD</label>
+          <input type="number" id="af-tc" value="1470" min="1" oninput="afCalcularROI()">
+        </div>
+        <!-- af-efectivo: se auto-detecta del dimensionamiento (Off-Grid=100%, On-Grid=87%) -->
+        <select id="af-efectivo" onchange="afCalcularROI()" style="display:none">
+          <option value="1.00">100% — Off-Grid total</option>
+          <option value="0.87" selected>87% — On-Grid mixto</option>
+          <option value="0.80">80% — On-Grid + volcado a red</option>
+        </select>
+        <div class="calc-field">
+          <label>Inflación electricidad/año</label>
+          <select id="af-inflacion" onchange="afCalcularROI()">
+            <option value="0.03">3%</option>
+            <option value="0.05" selected>5%</option>
+            <option value="0.08">8%</option>
+            <option value="0.10">10%</option>
+          </select>
+        </div>
+        <div class="calc-field">
+          <label>Tasa de descuento anual</label>
+          <select id="af-tasa" onchange="afCalcularROI()">
+            <option value="0.05" selected>5% — bonos tesoro EUA</option>
+            <option value="0.07">7%</option>
+            <option value="0.10">10%</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ Resultados ROI -->
+    <div id="af-resultados" style="display:none">
+      <div class="calc-card" style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:10px">Resultados del análisis financiero</div>
+        <div class="result-grid" style="margin-bottom:14px">
+          <div class="result-box accent"><div class="result-val" id="af-van" style="font-size:17px">—</div><div class="result-label">VAN (USD)</div></div>
+          <div class="result-box"><div class="result-val" id="af-tir">—</div><div class="result-label">TIR</div></div>
+          <div class="result-box"><div class="result-val" id="af-pb-simple">—</div><div class="result-label">Payback simple (años)</div></div>
+          <div class="result-box accent"><div class="result-val" id="af-pb-desc">—</div><div class="result-label">Payback descontado</div></div>
+          <div class="result-box"><div class="result-val" id="af-lcoe-red">—</div><div class="result-label">LCOE red ($/MWh)</div></div>
+          <div class="result-box"><div class="result-val" id="af-lcoe-solar">—</div><div class="result-label">LCOE solar ($/MWh)</div></div>
+          <div class="result-box accent"><div class="result-val" id="af-ahorro-anual">—</div><div class="result-label">Ahorro anual prom. USD</div></div>
+          <div class="result-box"><div class="result-val" id="af-usd-kwp">—</div><div class="result-label">USD/kWp instalado</div></div>
+        </div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">Proyección a 20 años</div>
+        <div style="overflow-x:auto;border:1.5px solid var(--gris-borde);border-radius:8px;margin-bottom:12px">
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <thead>
+              <tr style="background:var(--verde);color:#fff">
+                <th style="padding:6px 8px;text-align:center">Año</th>
+                <th style="padding:6px 8px;text-align:right">Gen. kWh</th>
+                <th style="padding:6px 8px;text-align:right">$/kWh USD</th>
+                <th style="padding:6px 8px;text-align:right">Mant. USD</th>
+                <th style="padding:6px 8px;text-align:right">Flujo USD</th>
+                <th style="padding:6px 8px;text-align:right">Flujo acum.</th>
+                <th style="padding:6px 8px;text-align:right">Valor actual</th>
+                <th style="padding:6px 8px;text-align:right">VAN</th>
+              </tr>
+            </thead>
+            <tbody id="af-tabla-20-body"></tbody>
+          </table>
+        </div>
+        <div class="pdf-actions">
+          <button class="btn btn-secondary" onclick="afGuardar()">💾 Guardar</button>
+          <button class="btn btn-azul" onclick="afExportarPDF()">📄 Exportar PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑤ ANÁLISIS GUARDADOS -->
+    <div style="margin-top:18px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:10px;padding:0 2px">Análisis guardados</div>
+      <div id="af-guardados-lista">
+        <div class="empty" style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Sin análisis guardados</div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <!-- ══ CLIENTES ══ -->
@@ -1582,10 +1753,11 @@ let dragSrcIdx = null, dragSrcCol = null;
 // ── UI Helpers ─────────────────────────────────────────────────────────────
 function showTab(name) {
   document.querySelectorAll('.tab').forEach((t,i) => {
-    t.classList.toggle('active', ['agenda','proveedores','dimension','documentos','presupuesto','clientes'][i] === name);
+    t.classList.toggle('active', ['agenda','proveedores','dimension','finanzas','presupuesto','documentos','clientes'][i] === name);
   });
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
+  if (name === 'finanzas') initFinanzas();
   if (name === 'documentos') renderDocs();
   if (name === 'presupuesto') {
     // Defaults (solo si están vacíos)
@@ -2492,12 +2664,19 @@ function calcular() {
   const cobertura=parseFloat(document.getElementById('d-cobertura').value)||0.70;
   const area=((personas*litros*(tacum-tred)*1.16/1000)*365*cobertura)/(hsp*eta*365);
   const colectores=Math.ceil(area/2);
+  const acum=Math.round(area*65);
+  const bomba=Math.round(area*35);
+  // Actualizar IDs ocultos (usados por guardarDim y exportarPDFTermica)
   document.getElementById('r-area').textContent=area.toFixed(1);
   document.getElementById('r-colectores').textContent=colectores;
-  document.getElementById('r-acum').textContent=Math.round(area*65);
-  document.getElementById('r-bomba').textContent=Math.round(area*35);
-  const tipoL=document.getElementById('d-tipo').options[document.getElementById('d-tipo').selectedIndex].text.split('—')[0].trim();
-  document.getElementById('r-resumen').innerHTML=`<b>${colectores} colectores</b> ${tipoL} · Acumulador: <b>${Math.round(area*65)}L</b> · Bomba: <b>${Math.round(area*35)} L/h</b> · Cobertura: <b>${Math.round(cobertura*100)}%</b>`;
+  document.getElementById('r-acum').textContent=acum;
+  document.getElementById('r-bomba').textContent=bomba;
+  // Sistema legible
+  const sistemaTxt = eta < 0.65 ? 'Atmosférico' : 'Presurizado';
+  const sistEl = document.getElementById('r-sistema');
+  if (sistEl) sistEl.textContent = sistemaTxt;
+  // Resumen simplificado
+  document.getElementById('r-resumen').innerHTML=`<b>${sistemaTxt}</b> · Acumulador: <b>${acum} L</b> · Cobertura solar: <b>${Math.round(cobertura*100)}%</b>`;
 }
 
 function initFVMonths() {
@@ -2578,7 +2757,7 @@ function construirPropuestaFV() {
         <div class="pdf-brand">ExerGrid</div>
         <div class="pdf-sub">Soluciones en Energías Renovables · Solar Fotovoltaica</div>
       </div>
-      <div class="pdf-date">Propuesta preliminar<br><strong>${fecha}</strong></div>
+      <div class="pdf-date">Dimensionamiento preliminar<br><strong>${fecha}</strong></div>
     </div>
     <div class="pdf-title">Dimensionamiento fotovoltaico preliminar</div>
     <div class="pdf-client"><strong>Cliente:</strong> ${cliente}<br><strong>Ubicación:</strong> ${ubicacion}<br><strong>Sistema:</strong> ${d.sistema==='offgrid'?'Off-Grid autónomo':'On-Grid con medidor bidireccional'}</div>
@@ -2629,7 +2808,8 @@ function exportarPDFfv() {
   const cliente=document.getElementById('fv-cliente').value.trim();
   if(!cliente){toast('Ingresá el nombre del cliente antes de exportar');return;}
   document.getElementById('pdf-propuesta').innerHTML = construirPropuestaFV();
-  setTimeout(()=>window.print(),120);
+  var t=document.title; document.title=' ';
+  setTimeout(()=>{ window.print(); document.title=t; },120);
 }
 
 // ── TABS On-Grid / Off-Grid ───────────────────────────────────────────────────
@@ -2637,6 +2817,9 @@ function showFVTab(tab) {
   var isOG = tab === 'ongrid';
   document.getElementById('fv-tab-ongrid').style.display  = isOG ? 'block' : 'none';
   document.getElementById('fv-tab-offgrid').style.display = isOG ? 'none'  : 'block';
+  // Actualizar fv-sistema para que guardarDimFV() detecte bien el sistema
+  var fsEl = document.getElementById('fv-sistema');
+  if (fsEl) fsEl.value = tab;
   var azul = 'flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--azul);background:var(--azul);color:#fff';
   var teal = 'flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--teal);background:var(--teal);color:#fff';
   var off  = 'flex:1;padding:9px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--gris-borde);background:#fff;color:var(--muted)';
@@ -2717,7 +2900,7 @@ function calcularOffGrid() {
     'P_S = E_R / HSP = ' + totalWh.toLocaleString('es-AR') + ' / ' + hsp.toFixed(1) + ' = <strong>' + ps.toLocaleString('es-AR') + ' W</strong> &nbsp;→&nbsp; ' +
     'Cantidad = ' + ps.toLocaleString('es-AR') + ' / ' + panelW + ' = <strong>' + nPaneles + ' paneles × ' + panelW + ' Wp = ' + kwpReal.toFixed(2) + ' kWp</strong>';
   document.getElementById('og-step-baterias').innerHTML =
-    'C = E_R / (V × η) = ' + totalWh.toLocaleString('es-AR') + ' / (' + tension + ' × ' + eta + ') = <strong>' + capAh + ' Ah @ ' + tension + ' V</strong>';
+    'C = E_R / (V × η) = ' + totalWh.toLocaleString('es-AR') + ' / (' + tension + ' × ' + eta + ') = <strong>' + capAh + ' Ah · ' + tension + ' V</strong>';
   document.getElementById('og-step-regulador').innerHTML =
     'I_reg ≈ ' + nPaneles + ' × Isc × 1.25 ≈ <strong>' + iReg + ' A</strong> &nbsp;→&nbsp; tipo recomendado: <strong>' + tipoReg + '</strong>';
 
@@ -2900,7 +3083,7 @@ function construirPropuestaOG() {
   return '<div class="pdf-page">' +
     '<div class="pdf-head"><div><div class="pdf-brand">ExerGrid</div>' +
     '<div class="pdf-sub">Soluciones en Energías Renovables · Solar Fotovoltaica Off-Grid</div></div>' +
-    '<div class="pdf-date">Propuesta preliminar<br><strong>'+fecha+'</strong></div></div>' +
+    '<div class="pdf-date">Dimensionamiento preliminar<br><strong>'+fecha+'</strong></div></div>' +
     '<div class="pdf-title">Dimensionamiento fotovoltaico Off-Grid</div>' +
     '<div class="pdf-client"><strong>Cliente:</strong> '+cliente+'<br><strong>Ubicación:</strong> '+ubicacion+'<br><strong>Sistema:</strong> Off-Grid autónomo · '+zonaTxt+'</div>' +
     '<div class="pdf-kpis">' +
@@ -2909,25 +3092,25 @@ function construirPropuestaOG() {
       '<div class="pdf-kpi"><div class="v">'+capAh+'</div><div class="l">Ah banco baterías</div></div>' +
       '<div class="pdf-kpi"><div class="v">'+iReg+'A</div><div class="l">regulador '+tipoReg+'</div></div>' +
     '</div>' +
-    '<div class="pdf-section"><h3>Paso 1 — Inventario de cargas eléctricas</h3>' +
+    '<div class="pdf-section"><h3>Inventario de cargas eléctricas</h3>' +
       '<table class="pdf-table">' +
         '<thead><tr><th>Aparato</th><th style="text-align:center">Potencia (W)</th><th style="text-align:center">Horas/día</th><th style="text-align:center">Wh/día</th></tr></thead>' +
         '<tbody>'+filasCargas+'</tbody>' +
         '<tfoot><tr style="background:#EAF5EC"><td><strong>TOTALES</strong></td><td style="text-align:center;font-weight:700">'+totalW+' W</td><td></td><td style="text-align:center;font-weight:700;color:#1B6B2F">'+totalWh.toLocaleString('es-AR')+' Wh/día</td></tr></tfoot>' +
       '</table></div>' +
-    '<div class="pdf-section"><h3>Paso 2 — Recurso solar (HSP peor mes)</h3>' +
+    '<div class="pdf-section"><h3>Recurso solar (HSP peor mes)</h3>' +
       '<table class="pdf-table"><tbody>' +
         '<tr><td>Zona / provincia</td><td><strong>'+zonaTxt+'</strong></td></tr>' +
         '<tr><td>HSP peor mes</td><td><strong>'+hsp.toFixed(1)+' h/día</strong></td></tr>' +
         '<tr><td>Performance Ratio (PR)</td><td><strong>'+pr+'</strong></td></tr>' +
       '</tbody></table></div>' +
-    '<div class="pdf-section"><h3>Resolución — pasos 4 al 7</h3>' +
+    '<div class="pdf-section"><h3>Especificación técnica del sistema</h3>' +
       '<table class="pdf-table"><tbody>' +
-        '<tr><td><strong>Paso 4 — Inversor</strong></td><td>P instalada = '+totalW.toLocaleString('es-AR')+' W → modelo ≥ <strong>'+totalW.toLocaleString('es-AR')+' W</strong></td></tr>' +
-        '<tr><td><strong>Paso 5 — P_S = E_R / HSP</strong></td><td>'+totalWh.toLocaleString('es-AR')+' / '+hsp.toFixed(1)+' = '+ps.toLocaleString('es-AR')+' W &nbsp;→&nbsp; <strong>'+nPaneles+' × '+panelW+' Wp = '+kwpReal.toFixed(2)+' kWp</strong></td></tr>' +
-        '<tr><td>Tensión banco / batería (η = '+eta+')</td><td>'+tension+' V · '+batTxt+'</td></tr>' +
-        '<tr><td><strong>Paso 6 — C = E_R / (V × η)</strong></td><td>'+totalWh.toLocaleString('es-AR')+' / ('+tension+' × '+eta+') = <strong>'+capAh+' Ah @ '+tension+' V</strong></td></tr>' +
-        '<tr><td><strong>Paso 7 — Regulador</strong></td><td>I_reg ≈ <strong>'+iReg+' A</strong> mínimo · tipo recomendado: <strong>'+tipoReg+'</strong></td></tr>' +
+        '<tr><td><strong>Inversor</strong></td><td>P instalada = '+totalW.toLocaleString('es-AR')+' W → potencia comercial ≥ <strong>'+totalW.toLocaleString('es-AR')+' W</strong></td></tr>' +
+        '<tr><td><strong>Paneles solares</strong></td><td>P_S = E_R / HSP = '+totalWh.toLocaleString('es-AR')+' / '+hsp.toFixed(1)+' = '+ps.toLocaleString('es-AR')+' W &nbsp;→&nbsp; <strong>'+nPaneles+' × '+panelW+' Wp = '+kwpReal.toFixed(2)+' kWp</strong></td></tr>' +
+        '<tr><td>Tensión banco / tipo batería</td><td>'+tension+' V · '+batTxt+' (η = '+eta+')</td></tr>' +
+        '<tr><td><strong>Banco de baterías</strong></td><td>C = E_R / (V × η) = '+totalWh.toLocaleString('es-AR')+' / ('+tension+' × '+eta+') = <strong>'+capAh+' Ah · '+tension+' V</strong></td></tr>' +
+        '<tr><td><strong>Regulador solar</strong></td><td>I_reg ≈ <strong>'+iReg+' A</strong> mínimo · tipo recomendado: <strong>'+tipoReg+'</strong></td></tr>' +
       '</tbody></table></div>' +
     '<div class="pdf-section"><h3>Resumen del sistema resultante</h3>' +
       '<table class="pdf-table">' +
@@ -2947,7 +3130,8 @@ function exportarPDFog() {
   var cliente = document.getElementById('fv-cliente').value.trim();
   if (!cliente) { toast('Ingresá el nombre del cliente antes de exportar'); return; }
   document.getElementById('pdf-propuesta').innerHTML = construirPropuestaOG();
-  setTimeout(function() { window.print(); }, 120);
+  var t = document.title; document.title = ' ';
+  setTimeout(function() { window.print(); document.title = t; }, 120);
 }
 
 async function guardarDimOG() {
@@ -2981,7 +3165,7 @@ async function guardarDimOG() {
     personas:   0,
     litros_dia: Math.round(totalWh) || 0,
     zona:       zonaTxt,
-    tipo:       'FV | Off-Grid | ' + panelTxt + ' | Inv ≥ ' + totalW + 'W | E_R=' + totalWh + ' Wh/día | ' + capAh + 'Ah@' + tension + 'V',
+    tipo:       'FV | Off-Grid | ' + panelTxt + ' | Inv ≥ ' + totalW + 'W | E_R=' + totalWh + ' Wh/día | ' + capAh + 'Ah·' + tension + 'V',
     colectores: nPaneles  || 0,
     acumulador: capAh     || 0,
     bomba:      iReg      || 0,
@@ -2997,6 +3181,7 @@ async function guardarDimOG() {
     return;
   }
   await loadPresupuestos();
+  limpiarDimensionOG();
   toast('✅ Dimensionamiento Off-Grid guardado');
   setSyncState('ok');
 }
@@ -3009,7 +3194,7 @@ function construirPropuestaTermica() {
   const tacum = parseFloat(document.getElementById('d-tacum').value) || 55;
   const tred = parseFloat(document.getElementById('d-tred').value) || 15;
   const zona = document.getElementById('d-zona').options[document.getElementById('d-zona').selectedIndex].text;
-  const tipo = document.getElementById('d-tipo').options[document.getElementById('d-tipo').selectedIndex].text;
+  const tipo = parseFloat(document.getElementById('d-tipo').value) < 0.65 ? 'Atmosférico' : 'Presurizado';
   const cobertura = parseFloat(document.getElementById('d-cobertura').value) || 0.70;
 
   const area = document.getElementById('r-area').textContent;
@@ -3032,7 +3217,7 @@ function construirPropuestaTermica() {
         <div class="pdf-sub">Energías Renovables · Solar Térmica + Fotovoltaico</div>
       </div>
       <div class="pdf-date">
-        Propuesta técnica preliminar<br>
+        Dimensionamiento preliminar<br>
         ${new Date().toLocaleDateString('es-AR')}
       </div>
     </div>
@@ -3046,10 +3231,10 @@ function construirPropuestaTermica() {
     </div>
 
     <div class="pdf-kpis">
-      <div class="pdf-kpi"><div class="v">${area}</div><div class="l">m² de área colectora</div></div>
-      <div class="pdf-kpi"><div class="v">${colectores}</div><div class="l">colectores solares</div></div>
-      <div class="pdf-kpi"><div class="v">${acumulador}</div><div class="l">litros de acumulación</div></div>
-      <div class="pdf-kpi"><div class="v">${bomba}</div><div class="l">L/h caudal de bomba</div></div>
+      <div class="pdf-kpi"><div class="v">${tipo}</div><div class="l">tipo sistema</div></div>
+      <div class="pdf-kpi"><div class="v">${acumulador} L</div><div class="l">capacidad acumulador</div></div>
+      <div class="pdf-kpi"><div class="v">${Math.round(cobertura * 100)}%</div><div class="l">cobertura solar</div></div>
+      <div class="pdf-kpi"><div class="v">${Math.round(energiaAnual)} kWh</div><div class="l">energía térmica/año</div></div>
     </div>
 
     <div class="pdf-section">
@@ -3068,15 +3253,13 @@ function construirPropuestaTermica() {
     </div>
 
     <div class="pdf-section">
-      <h3>Resultados técnicos recomendados</h3>
+      <h3>Dimensionamiento recomendado</h3>
       <table class="pdf-table">
         <tbody>
-          <tr><td>Área colectora calculada</td><td><strong>${area} m²</strong></td></tr>
-          <tr><td>Cantidad de colectores</td><td><strong>${colectores} unidades de referencia 2 m²</strong></td></tr>
-          <tr><td>Acumulador recomendado</td><td><strong>${acumulador} litros</strong></td></tr>
-          <tr><td>Caudal de bomba estimado</td><td><strong>${bomba} L/h</strong></td></tr>
+          <tr><td>Sistema solar térmico</td><td><strong>${tipo}</strong></td></tr>
+          <tr><td>Capacidad del acumulador</td><td><strong>${acumulador} litros</strong></td></tr>
           <tr><td>Energía térmica anual estimada</td><td><strong>${Math.round(energiaAnual).toLocaleString('es-AR')} kWh térmicos/año</strong></td></tr>
-          <tr><td>Aporte solar anual estimado</td><td><strong>${Math.round(aporteSolar).toLocaleString('es-AR')} kWh térmicos/año</strong></td></tr>
+          <tr><td>Aporte solar anual (cobertura ${Math.round(cobertura*100)}%)</td><td><strong>${Math.round(aporteSolar).toLocaleString('es-AR')} kWh térmicos/año</strong></td></tr>
           <tr><td>Gas natural equivalente evitado</td><td><strong>${Math.round(ahorroGasM3).toLocaleString('es-AR')} m³/año aprox.</strong></td></tr>
           <tr><td>Emisiones evitadas estimadas</td><td><strong>${Math.round(co2).toLocaleString('es-AR')} kg CO₂/año</strong></td></tr>
         </tbody>
@@ -3106,7 +3289,8 @@ function exportarPDFTermica() {
   if(!cliente){toast('Ingresá el nombre del cliente antes de exportar');return;}
   calcular();
   document.getElementById('pdf-propuesta').innerHTML = construirPropuestaTermica();
-  setTimeout(()=>window.print(),120);
+  var t=document.title; document.title=' ';
+  setTimeout(()=>{ window.print(); document.title=t; },120);
 }
 
 
@@ -3121,6 +3305,33 @@ function limpiarDimensionTermica() {
   document.getElementById('d-tipo').selectedIndex = 0;
   document.getElementById('d-cobertura').value = '0.70';
   calcular();
+}
+
+function limpiarDimensionOG() {
+  // Limpiar cliente y ubicación (campos compartidos con FV tab)
+  var cli = document.getElementById('fv-cliente');
+  if (cli) cli.value = '';
+  var ubic = document.getElementById('fv-ubicacion');
+  if (ubic) ubic.value = '';
+  // Zona, panel, tensión, batería, PR → volver a defaults
+  var ogZona = document.getElementById('og-zona');
+  if (ogZona) ogZona.selectedIndex = 0;
+  var ogPanel = document.getElementById('og-panel');
+  if (ogPanel) ogPanel.value = '400';
+  var ogTension = document.getElementById('og-tension');
+  if (ogTension) ogTension.value = '24';
+  var ogBat = document.getElementById('og-bateria-tipo');
+  if (ogBat) ogBat.value = '0.70';
+  var ogPR = document.getElementById('og-pr');
+  if (ogPR) ogPR.value = '0.75';
+  // Vaciar tabla de cargas y dejar una fila vacía
+  var tbody = document.getElementById('og-cargas-tbody');
+  if (tbody) { tbody.innerHTML = ''; ogFilaIdx = 0; agregarCargaOG(); }
+  // Limpiar modelos seleccionados
+  ['og-modelo-inversor','og-modelo-panel','og-modelo-regulador','og-modelo-bateria'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  calcularOffGrid();
 }
 
 function limpiarDimensionFV() {
@@ -3156,7 +3367,7 @@ async function guardarDim() {
     personas: parseInt(document.getElementById('d-personas').value) || 0,
     litros_dia: parseInt(document.getElementById('d-litros').value) || 0,
     zona: document.getElementById('d-zona').options[document.getElementById('d-zona').selectedIndex].text,
-    tipo: 'Térmica | ' + document.getElementById('d-tipo').options[document.getElementById('d-tipo').selectedIndex].text,
+    tipo: 'Térmica | ' + (parseFloat(document.getElementById('d-tipo').value) < 0.65 ? 'Atmosférico' : 'Presurizado'),
     colectores: parseInt(document.getElementById('r-colectores').textContent) || 0,
     acumulador: parseInt(document.getElementById('r-acum').textContent) || 0,
     bomba: parseInt(document.getElementById('r-bomba').textContent) || 0,
@@ -3371,12 +3582,10 @@ function construirPDFPresupuestoGuardado(p) {
 
 function exportarPresupuestoPDF(id) {
   const p = presupuestos.find(x => String(x.id) === String(id));
-  if (!p) {
-    toast('No encontré ese presupuesto');
-    return;
-  }
+  if (!p) { toast('No encontré ese presupuesto'); return; }
   document.getElementById('pdf-propuesta').innerHTML = construirPDFPresupuestoGuardado(p);
-  setTimeout(() => window.print(), 120);
+  var t = document.title; document.title = ' ';
+  setTimeout(function(){ window.print(); document.title = t; }, 120);
 }
 
 function exportarPresupuestoActualPDF() {
@@ -3404,29 +3613,73 @@ async function loadPresupuestos() {
   const listaT = document.getElementById('dim-lista');
   const listaF = document.getElementById('fv-dim-lista');
 
-  listaT.innerHTML = !t.length ? '<div class="empty">Sin dimensionamientos térmicos</div>' : t.map(p => `
+  listaT.innerHTML = !t.length ? '<div class="empty">Sin dimensionamientos térmicos</div>' : t.map(p => {
+    // Detectar tipo sistema (nuevo formato: "Térmica | Atmosférico" / viejo: "Térmica | Plano — η 60%")
+    const tipoStr = (p.tipo||'');
+    const partesTipo = tipoStr.split('|');
+    const sistemaRaw = partesTipo[1] ? partesTipo[1].trim() : '';
+    let sistemaTermo = 'Atmosférico'; // default
+    if (/presurizado/i.test(sistemaRaw) || /tubo/i.test(sistemaRaw) || /vac/i.test(sistemaRaw)) {
+      sistemaTermo = 'Presurizado';
+    } else if (/atmosf/i.test(sistemaRaw) || /plano/i.test(sistemaRaw)) {
+      sistemaTermo = 'Atmosférico';
+    }
+    return `
     <div class="prov-card" style="margin-bottom:8px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
         <div>
           <strong>${p.cliente}</strong>
           <div style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleDateString('es-AR')}</div>
         </div>
+        <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;background:var(--verde-light);color:var(--verde)">${sistemaTermo}</span>
+      </div>
+      <div class="result-grid" style="grid-template-columns:1fr 1fr;margin-bottom:10px">
+        <div class="result-box accent"><div class="result-val" style="font-size:17px">${p.acumulador||0}</div><div class="result-label">litros acumulador</div></div>
+        <div class="result-box"><div class="result-val" style="font-size:17px">${p.area||0}</div><div class="result-label">m² colector</div></div>
       </div>
       <div class="prov-rows">
-        <div class="prov-row"><strong>Colectores:</strong> ${p.colectores || 0} × 2m²</div>
-        <div class="prov-row"><strong>Acumulador:</strong> ${p.acumulador || 0}L</div>
-        <div class="prov-row"><strong>Bomba:</strong> ${p.bomba || 0} L/h</div>
         <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
+        <div class="prov-row"><strong>Personas:</strong> ${p.personas||0} · <strong>${p.litros_dia||0} L/día</strong> por persona</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
         <button onclick="verPresupuesto(${p.id})" class="btn btn-secondary" style="font-size:11px;padding:7px 4px">Ver detalle</button>
         <button onclick="exportarPresupuestoPDF(${p.id})" class="btn btn-primary" style="font-size:11px;padding:7px 4px">Exportar PDF</button>
         <button onclick="deleteDim(${p.id})" class="btn btn-delete" style="font-size:11px;padding:7px 4px">Eliminar</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   listaF.innerHTML = !f.length ? '<div class="empty">Sin dimensionamientos FV</div>' : f.map(p => {
     const fv = parsePresupuestoFV(p);
+    const isOG = fv.sistema.toLowerCase().includes('off');
+    const esFmtOGDirecto = (p.tipo||'').indexOf('E_R=') !== -1 || (p.tipo||'').indexOf('Ah@') !== -1 || (p.tipo||'').indexOf('Ah·') !== -1;
+    // Formatear campos según tipo de guardado
+    let invLabel, invVal, genLabel, genVal, extra3Label, extra3Val;
+    if (esFmtOGDirecto) {
+      // Off-Grid directo: "Inv ≥ 7000W", "E_R=140 Wh/día", "12Ah@24V"
+      invLabel  = 'Inversor mínimo';
+      invVal    = fv.inversor.replace(/^Inv\s*[≥>=]?\s*/i,'').trim();
+      genLabel  = 'Energía requerida';
+      genVal    = fv.generacion.replace(/^E_R\s*=\s*/i,'').trim();
+      extra3Label = 'Banco baterías';
+      extra3Val = fv.ahorro.replace(/(\d+)\s*Ah\s*[@·]\s*(\d+)\s*V/i,'$1 Ah · $2V').trim();
+    } else if (isOG) {
+      // Off-Grid desde tab FV: "Inv X.XX kW", "Y kWh/mes", "Ahorro $..."
+      invLabel  = 'Inversor';
+      invVal    = fv.inversor.replace(/^Inv\s*/i,'').trim();
+      genLabel  = 'Generación';
+      genVal    = fv.generacion;
+      extra3Label = 'Batería';
+      extra3Val = (p.acumulador||'—') + ' kWh';
+    } else {
+      // On-Grid desde tab FV
+      invLabel  = 'Inversor';
+      invVal    = fv.inversor.replace(/^Inv\s*/i,'').trim();
+      genLabel  = 'Generación';
+      genVal    = fv.generacion;
+      extra3Label = 'Ahorro estimado';
+      extra3Val = fv.ahorro.replace(/^Ahorro\s*/i,'').trim();
+    }
     return `
     <div class="prov-card" style="margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -3434,14 +3687,14 @@ async function loadPresupuestos() {
           <strong>${p.cliente}</strong>
           <div style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleDateString('es-AR')}</div>
         </div>
+        <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:12px;background:${isOG?'var(--teal-light)':'var(--azul-light)'};color:${isOG?'var(--teal)':'var(--azul)'}">${fv.sistema}</span>
       </div>
       <div class="prov-rows">
-        <div class="prov-row"><strong>Sistema:</strong> ${fv.sistema}</div>
-        <div class="prov-row"><strong>kWp:</strong> ${p.area || 0}</div>
-        <div class="prov-row"><strong>Paneles:</strong> ${p.colectores || 0}</div>
-        <div class="prov-row"><strong>${fv.inversor}</strong></div>
-        <div class="prov-row"><strong>${fv.generacion}</strong></div>
-        <div class="prov-row"><strong>${fv.ahorro}</strong></div>
+        <div class="prov-row"><strong>kWp:</strong> ${p.area || 0} · <strong>Paneles:</strong> ${p.colectores || 0}</div>
+        <div class="prov-row"><strong>${invLabel}:</strong> ${invVal}</div>
+        <div class="prov-row"><strong>${genLabel}:</strong> ${genVal}</div>
+        <div class="prov-row"><strong>${extra3Label}:</strong> ${extra3Val}</div>
+        <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
         <button onclick="verPresupuesto(${p.id})" class="btn btn-secondary" style="font-size:11px;padding:7px 4px">Ver detalle</button>
@@ -5847,6 +6100,686 @@ function poblarSelectsOG() {
       }
     });
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ANÁLISIS FINANCIERO — funciones JS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function initFinanzas() {
+  var sel = document.getElementById('af-dim-select');
+  if (!sel) return;
+  var curVal = sel.value;
+  sel.innerHTML = '<option value="">— Seleccioná un dimensionamiento guardado —</option>';
+  if (!presupuestos || !presupuestos.length) {
+    var opt0 = document.createElement('option');
+    opt0.disabled = true;
+    opt0.textContent = 'Sin dimensionamientos guardados';
+    sel.appendChild(opt0);
+  } else {
+    presupuestos.forEach(function(p) {
+      var fecha   = p.created_at ? new Date(p.created_at).toLocaleDateString('es-AR') : '—';
+      var tipo    = (p.tipo || '');
+      var sistema = tipo.toLowerCase().startsWith('fv |')
+        ? (tipo.split('|')[1]||'FV').trim()
+        : 'Solar Térmica';
+      var opt = document.createElement('option');
+      opt.value       = p.id;
+      opt.textContent = (p.cliente||'Cliente') + ' — ' + sistema + ' — ' + fecha;
+      sel.appendChild(opt);
+    });
+    if (curVal) sel.value = curVal;
+  }
+  afCargarGuardados();
+}
+
+async function afCargarGuardados() {
+  var el = document.getElementById('af-guardados-lista');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:10px;color:var(--muted);font-size:12px">Cargando...</div>';
+
+  var result = await db.from('hes_analisis_financiero').select('*').order('created_at', {ascending:false});
+  if (result.error || !result.data || !result.data.length) {
+    el.innerHTML = '<div class="empty" style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Sin análisis guardados</div>';
+    _afGuardadosCache = [];
+    return;
+  }
+  _afGuardadosCache = result.data;
+  el.innerHTML = result.data.map(function(a) {
+    var fecha = a.created_at ? new Date(a.created_at).toLocaleDateString('es-AR') : '—';
+    var vanSign = (a.van_usd||0) >= 0 ? '+' : '';
+    var vanColor= (a.van_usd||0) >= 0 ? 'var(--verde)' : 'var(--rojo)';
+    var tirPct  = a.tir != null ? (a.tir * 100).toFixed(1) + '%' : '—';
+    var inv     = a.inversion_usd ? 'USD ' + Number(a.inversion_usd).toLocaleString('es-AR', {maximumFractionDigits:0}) : '—';
+    var van     = a.van_usd != null ? 'USD ' + vanSign + Number(a.van_usd).toLocaleString('es-AR', {maximumFractionDigits:0}) : '—';
+    return '<div class="prov-card" style="margin-bottom:8px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">' +
+        '<div>' +
+          '<strong style="font-size:14px">' + (a.cliente||'Cliente') + '</strong>' +
+          '<div style="font-size:11px;color:var(--muted)">' + fecha + (a.sistema ? ' · ' + a.sistema : '') + '</div>' +
+        '</div>' +
+        (a.inversion_usd ? '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;background:var(--azul-light);color:var(--azul)">' + inv + '</span>' : '') +
+      '</div>' +
+      '<div class="result-grid" style="margin-bottom:10px">' +
+        '<div class="result-box accent"><div class="result-val" style="font-size:15px;color:'+vanColor+'">' + van + '</div><div class="result-label">VAN (USD)</div></div>' +
+        '<div class="result-box"><div class="result-val" style="font-size:15px">' + tirPct + '</div><div class="result-label">TIR</div></div>' +
+        '<div class="result-box"><div class="result-val" style="font-size:15px">' + (a.payback_simple||'—') + '</div><div class="result-label">Payback simple</div></div>' +
+      '</div>' +
+      '<div class="prov-rows" style="margin-bottom:10px">' +
+        (a.gen_anual_kwh ? '<div class="prov-row"><strong>Generación anual:</strong> ' + Number(a.gen_anual_kwh).toLocaleString('es-AR') + ' kWh/año</div>' : '') +
+        (a.lcoe_solar ? '<div class="prov-row"><strong>LCOE solar:</strong> USD ' + Number(a.lcoe_solar).toFixed(1) + '/MWh · <strong>LCOE red:</strong> USD ' + (a.lcoe_red ? Number(a.lcoe_red).toFixed(1) : '—') + '/MWh</div>' : '') +
+        (a.payback_desc ? '<div class="prov-row"><strong>Payback descontado:</strong> ' + a.payback_desc + '</div>' : '') +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">' +
+        '<button onclick="afVerDetalleGuardado(' + a.id + ')" class="btn btn-secondary" style="font-size:11px;padding:7px 4px">Ver detalle</button>' +
+        '<button onclick="afExportarPDFGuardado(' + a.id + ')" class="btn btn-primary" style="font-size:11px;padding:7px 4px">Exportar PDF</button>' +
+        '<button onclick="afEliminarGuardado(' + a.id + ')" class="btn btn-delete" style="font-size:11px;padding:7px 4px">Eliminar</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function afEliminarGuardado(id) {
+  if (!confirm('¿Eliminar este análisis guardado?')) return;
+  var result = await db.from('hes_analisis_financiero').delete().eq('id', id);
+  if (result.error) { toast('Error al eliminar'); return; }
+  toast('Análisis eliminado');
+  afCargarGuardados();
+}
+
+var _afRowId = 0;
+var _afGuardadosCache = []; // cache de análisis cargados para modal/PDF
+
+function afVerDetalleGuardado(id) {
+  var a = _afGuardadosCache.find(function(x){ return x.id === id; });
+  if (!a) { toast('Datos no encontrados'); return; }
+  var fecha = a.created_at ? new Date(a.created_at).toLocaleDateString('es-AR') : '—';
+  var vanSign = (a.van_usd||0) >= 0 ? '+' : '';
+  var body =
+    '<div style="font-size:13px;line-height:2">' +
+    '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px">Análisis financiero</div>' +
+    '<strong>' + (a.cliente||'—') + '</strong> · ' + fecha + (a.sistema?' · '+a.sistema:'') + '<br><br>' +
+    '<b>Inversión total:</b> USD ' + (a.inversion_usd ? Number(a.inversion_usd).toLocaleString('es-AR',{maximumFractionDigits:0}) : '—') + '<br>' +
+    '<b>Generación anual:</b> ' + (a.gen_anual_kwh ? Number(a.gen_anual_kwh).toLocaleString('es-AR') + ' kWh/año' : '—') + '<br>' +
+    '<b>Tarifa equivalente:</b> $' + (a.tarifa_ars||'—') + '/kWh · TC: $' + (a.tipo_cambio||'—') + '/USD<br>' +
+    '<b>Inflación electricidad:</b> ' + (a.inflacion ? (a.inflacion*100).toFixed(0)+'%/año' : '—') + ' · <b>Tasa descuento:</b> ' + (a.tasa_descuento ? (a.tasa_descuento*100).toFixed(0)+'%' : '—') + '<br><br>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">' +
+      '<div style="background:var(--verde-light);border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--verde)">' + (a.van_usd!=null?'USD '+(a.van_usd>=0?'+':'')+Number(a.van_usd).toLocaleString('es-AR',{maximumFractionDigits:0}):'—') + '</div><div style="font-size:10px;color:var(--muted)">VAN</div></div>' +
+      '<div style="background:var(--gris);border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800">' + (a.tir!=null?(a.tir*100).toFixed(1)+'%':'—') + '</div><div style="font-size:10px;color:var(--muted)">TIR</div></div>' +
+      '<div style="background:var(--gris);border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800">' + (a.payback_simple||'—') + '</div><div style="font-size:10px;color:var(--muted)">Payback simple</div></div>' +
+      '<div style="background:var(--gris);border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800">' + (a.payback_desc||'—') + '</div><div style="font-size:10px;color:var(--muted)">Payback descontado</div></div>' +
+    '</div>' +
+    (a.lcoe_solar ? '<b>LCOE solar:</b> USD ' + Number(a.lcoe_solar).toFixed(1) + '/MWh · <b>LCOE red:</b> USD ' + Number(a.lcoe_red||0).toFixed(1) + '/MWh<br>' : '') +
+    (a.ahorro_anual_usd ? '<b>Ahorro anual prom.:</b> USD ' + Number(a.ahorro_anual_usd).toLocaleString('es-AR',{maximumFractionDigits:0}) + '/año<br>' : '') +
+    '</div>';
+  // Abrir modal genérico de dimensionamiento con este contenido
+  var modal = document.getElementById('modal-dim-detalle');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modal-dim-detalle';
+    modal.className = 'modal-overlay';
+    modal.style.cssText = 'display:flex;align-items:flex-end;justify-content:center';
+    modal.innerHTML = '<div class="modal" style="max-width:460px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px"><h2 style="margin:0;font-size:15px">Detalle del análisis</h2><button onclick="document.getElementById(\'modal-dim-detalle\').style.display=\'none\'" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999">×</button></div><div id="modal-dim-detalle-body"></div></div>';
+    document.body.appendChild(modal);
+  }
+  document.getElementById('modal-dim-detalle-body').innerHTML = body;
+  modal.style.display = 'flex';
+}
+
+function afExportarPDFGuardado(id) {
+  var a = _afGuardadosCache.find(function(x){ return x.id === id; });
+  if (!a) { toast('Datos no encontrados'); return; }
+
+  // Recalcular ROI completo desde los parámetros guardados
+  var inv      = parseFloat(a.inversion_usd)  || 0;
+  var genAnual = parseFloat(a.gen_anual_kwh)   || 0;
+  var tarifa   = parseFloat(a.tarifa_ars)      || 0;
+  var tc       = parseFloat(a.tipo_cambio)     || 1;
+  var efectivo = parseFloat(a.efectivo)        || 1;
+  var inflacion= parseFloat(a.inflacion)       || 0.05;
+  var tasa     = parseFloat(a.tasa_descuento)  || 0.05;
+
+  var ANOS=20, DEGR=0.004, MANT=0.01;
+  var flujos=[], sumaAcum=-inv, vanAcum=-inv, pbS=null, pbD=null, totalGen=0;
+  for (var y=1; y<=ANOS; y++) {
+    var gen_y    = genAnual * Math.pow(1-DEGR, y-1);
+    var tarUSD_y = (tarifa * Math.pow(1+inflacion, y-1)) / tc;
+    var ahorro_y = gen_y * tarUSD_y * efectivo;
+    var mant_y   = y>=3 ? inv*MANT : 0;
+    var flujo_y  = ahorro_y - mant_y;
+    var va_y     = flujo_y / Math.pow(1+tasa, y);
+    sumaAcum    += flujo_y;
+    vanAcum     += va_y;
+    totalGen    += gen_y;
+    if (pbS===null && sumaAcum>=0) pbS = (y-1) + Math.abs(sumaAcum-flujo_y)/flujo_y;
+    if (pbD===null && vanAcum >=0) pbD = (y-1) + Math.abs(vanAcum -va_y)   /va_y;
+    flujos.push({y:y,gen_y:gen_y,tarUSD_y:tarUSD_y,mant_y:mant_y,flujo_y:flujo_y,acum:sumaAcum,va_y:va_y,van_acum:vanAcum});
+  }
+  function npv(r){ var s=-inv; flujos.forEach(function(f,i){s+=f.flujo_y/Math.pow(1+r,i+1);}); return s; }
+  var tirVal=null;
+  if (npv(0)>0){ var lo=0,hi=5,mid=0; for(var i=0;i<64;i++){mid=(lo+hi)/2; npv(mid)>0?lo=mid:hi=mid;} tirVal=mid; }
+
+  var pbSLbl = pbS!==null ? pbS.toFixed(1)+' años' : '> 20 años';
+  var pbDLbl = pbD!==null ? pbD.toFixed(1)+' años' : '> 20 años';
+  var lcoeRed   = (tarifa/tc)*1000;
+  var mantNPV   = 0; for(var y2=3;y2<=ANOS;y2++) mantNPV+=(inv*MANT)/Math.pow(1+tasa,y2);
+  var lcoeSolar = totalGen>0 ? (inv+mantNPV)/totalGen*1000 : 0;
+  var ahorroPromUSD = flujos.reduce(function(s,f){return s+f.flujo_y;},0)/ANOS;
+
+  var fecha  = a.created_at ? new Date(a.created_at).toLocaleDateString('es-AR') : new Date().toLocaleDateString('es-AR');
+  var cliente= a.cliente||'Cliente';
+  var sistema= a.sistema||'Sistema solar';
+
+  var proyRows = flujos.map(function(f){
+    var cA = f.acum>=0    ? 'color:#1B6B2F;font-weight:700':'color:#c0392b';
+    return '<tr><td style="text-align:center">'+f.y+'</td><td style="text-align:right">'+Math.round(f.gen_y).toLocaleString('es-AR')+'</td><td style="text-align:right">'+f.tarUSD_y.toFixed(4)+'</td><td style="text-align:right">'+(f.mant_y>0?'- '+afFmt(f.mant_y):'—')+'</td><td style="text-align:right">'+afFmt(f.flujo_y)+'</td><td style="text-align:right;'+cA+'">'+afFmt(f.acum)+'</td></tr>';
+  }).join('');
+
+  var params = 'Tarifa '+tarifa+' $/kWh · TC '+tc+' ARS/USD · Inf. elec. '+(inflacion*100).toFixed(0)+'%/año · Descuento '+(tasa*100).toFixed(0)+'% · Degr. 0.4%/año · Mant. 1% desde año 3';
+
+  var htmlContent =
+  '<div class="pdf-page">'+
+    '<div class="pdf-head">'+
+      '<div><div class="pdf-brand">ExerGrid</div><div class="pdf-sub">Energías Renovables</div></div>'+
+      '<div class="pdf-date">Análisis financiero · Retorno de inversión<br><strong>'+fecha+'</strong></div>'+
+    '</div>'+
+    '<div class="pdf-title" style="font-size:14px;margin:5px 0 4px">Análisis de retorno de inversión</div>'+
+    '<div class="pdf-client"><strong>Cliente:</strong> '+cliente+' &nbsp;·&nbsp; <strong>Sistema:</strong> '+sistema+'</div>'+
+    '<div class="pdf-section"><h3>Inversión</h3>'+
+      '<table class="pdf-fin-table">'+
+        '<tfoot>'+
+          '<tr style="background:#E6F9F5"><td style="font-weight:800;color:#0D9E8C">INVERSIÓN TOTAL (USD)</td><td style="text-align:right;font-weight:800;color:#0D9E8C;font-size:13px">$ '+afFmt(inv)+'</td></tr>'+
+        '</tfoot>'+
+      '</table>'+
+    '</div>'+
+    '<div class="pdf-section"><h3>Resultados financieros</h3>'+
+      '<div class="pdf-kpis">'+
+        '<div class="pdf-kpi"><div class="v" style="color:#0D9E8C">$ '+afFmt(vanAcum)+'</div><div class="l">VAN (USD)</div></div>'+
+        '<div class="pdf-kpi"><div class="v">'+(tirVal!==null?(tirVal*100).toFixed(1)+'%':'< 0%')+'</div><div class="l">TIR</div></div>'+
+        '<div class="pdf-kpi"><div class="v">'+pbSLbl+'</div><div class="l">Payback simple</div></div>'+
+        '<div class="pdf-kpi"><div class="v">'+pbDLbl+'</div><div class="l">Payback descontado</div></div>'+
+        '<div class="pdf-kpi"><div class="v">$ '+afFmt(ahorroPromUSD)+'</div><div class="l">Ahorro anual prom. USD</div></div>'+
+        '<div class="pdf-kpi"><div class="v">USD '+lcoeSolar.toFixed(1)+'/MWh</div><div class="l">LCOE solar</div></div>'+
+      '</div>'+
+      '<div style="font-size:8px;color:#666;margin-top:3px">'+params+'</div>'+
+    '</div>'+
+    '<div class="pdf-section"><h3>Proyección a 20 años (USD)</h3>'+
+      '<table class="pdf-fin-table">'+
+        '<thead><tr><th style="text-align:center">Año</th><th style="text-align:right">Gen. kWh</th><th style="text-align:right">$/kWh USD</th><th style="text-align:right">Mant.</th><th style="text-align:right">Flujo USD</th><th style="text-align:right">Flujo acum.</th></tr></thead>'+
+        '<tbody>'+proyRows+'</tbody>'+
+      '</table>'+
+    '</div>'+
+    '<div class="pdf-note">Análisis generado por ExerGrid · '+fecha+' · Los valores son estimativos y pueden variar según condiciones reales de instalación, evolución de tarifas y tipo de cambio.</div>'+
+  '</div>';
+
+  var el = document.getElementById('pdf-propuesta');
+  if (!el) return;
+  el.innerHTML = htmlContent;
+  var t = document.title; document.title = ' ';
+  setTimeout(function(){ window.print(); document.title = t; el.innerHTML=''; }, 130);
+}
+
+function afFmt(v) {
+  return Number(v).toLocaleString('es-AR', {minimumFractionDigits:0, maximumFractionDigits:0});
+}
+
+function afInsertarFila(desc, qty) {
+  _afRowId++;
+  var id    = 'afrow-' + _afRowId;
+  var tbody = document.getElementById('af-items-tbody');
+  var empty = document.getElementById('af-items-empty');
+  if (empty) empty.remove();
+  var tr = document.createElement('tr');
+  tr.id             = id;
+  tr.style.cssText  = 'border-bottom:1px solid #e0e0e0';
+  tr.innerHTML =
+    '<td style="padding:5px 8px">' +
+      '<input type="text" value="' + (desc||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;') + '" ' +
+      'style="width:100%;border:1px solid #e0e0e0;border-radius:5px;padding:4px 7px;font-size:12px;font-family:inherit" ' +
+      'oninput="afActualizarTotales()">' +
+    '</td>' +
+    '<td style="padding:5px 6px;text-align:center">' +
+      '<input type="number" value="' + (qty||1) + '" min="0" step="1" ' +
+      'style="width:54px;text-align:center;border:1px solid #e0e0e0;border-radius:5px;padding:4px 5px;font-size:12px;font-family:inherit" ' +
+      'oninput="afActualizarTotales()">' +
+    '</td>' +
+    '<td style="padding:5px 6px;text-align:right">' +
+      '<input type="number" min="0" step="0.01" placeholder="0" ' +
+      'style="width:100px;text-align:right;border:1.5px solid #185FA5;border-radius:5px;padding:4px 7px;font-size:12px;font-family:inherit;color:#185FA5;font-weight:600" ' +
+      'oninput="afActualizarTotales()">' +
+    '</td>' +
+    '<td class="af-sub-cell" style="padding:5px 8px;text-align:right;font-weight:700;font-size:12px;min-width:90px">—</td>' +
+    '<td style="padding:5px 4px;text-align:center">' +
+      '<button onclick="afEliminarFila(\'' + id + '\')" ' +
+      'style="background:none;border:none;cursor:pointer;color:#991f1f;font-size:15px;padding:2px 5px;line-height:1" title="Eliminar">✕</button>' +
+    '</td>';
+  tbody.appendChild(tr);
+}
+
+function afAgregarItem() {
+  afInsertarFila('', 1);
+  afActualizarTotales();
+}
+
+function afEliminarFila(rowId) {
+  var tr = document.getElementById(rowId);
+  if (tr) tr.remove();
+  var tbody = document.getElementById('af-items-tbody');
+  if (tbody && !tbody.querySelector('tr[id^="afrow-"]')) {
+    tbody.innerHTML = '<tr id="af-items-empty"><td colspan="5" style="padding:14px;text-align:center;color:#666;font-size:12px">Seleccioná un dimensionamiento o agregá ítems manualmente</td></tr>';
+  }
+  afActualizarTotales();
+}
+
+function afActualizarTotales() {
+  var tbody   = document.getElementById('af-items-tbody');
+  var totalEq = 0;
+  if (tbody) {
+    tbody.querySelectorAll('tr[id^="afrow-"]').forEach(function(tr) {
+      var nums   = tr.querySelectorAll('input[type="number"]');
+      var qty    = parseFloat(nums[0] ? nums[0].value : 0) || 0;
+      var precio = parseFloat(nums[1] ? nums[1].value : 0) || 0;
+      var sub    = qty * precio;
+      totalEq   += sub;
+      var cell   = tr.querySelector('.af-sub-cell');
+      if (cell) cell.textContent = sub > 0 ? '$ ' + afFmt(sub) : '—';
+    });
+  }
+  var pctSel  = document.getElementById('af-inst-pct');
+  // Input numérico: valor en % (ej: 30), convertir a decimal
+  var pct     = (parseFloat(pctSel ? pctSel.value : 30) || 30) / 100;
+  var instVal = totalEq * pct;
+  var total   = totalEq + instVal;
+  var el1 = document.getElementById('af-subtotal-eq');   if (el1) el1.textContent = totalEq > 0 ? '$ '+afFmt(totalEq)  : '—';
+  var el2 = document.getElementById('af-subtotal-inst'); if (el2) el2.textContent = instVal > 0 ? '$ '+afFmt(instVal) : '—';
+  var el3 = document.getElementById('af-total-inv');     if (el3) el3.textContent = total > 0   ? '$ '+afFmt(total)   : '—';
+  var paramsCard = document.getElementById('af-params-card');
+  if (paramsCard) paramsCard.style.display = totalEq > 0 ? 'block' : 'none';
+  window._af_inv = total;
+  if (total > 0) afCalcularROI();
+  else { var res = document.getElementById('af-resultados'); if (res) res.style.display = 'none'; }
+}
+
+function afRecalcular() { afActualizarTotales(); }
+
+function afCargarDim() {
+  var sel    = document.getElementById('af-dim-select');
+  var infoEl = document.getElementById('af-dim-info');
+  var tbody  = document.getElementById('af-items-tbody');
+  var id     = sel ? sel.value : '';
+
+  if (!id) {
+    infoEl.style.display = 'none';
+    tbody.innerHTML = '<tr id="af-items-empty"><td colspan="5" style="padding:14px;text-align:center;color:#666;font-size:12px">Seleccioná un dimensionamiento o agregá ítems manualmente</td></tr>';
+    afActualizarTotales();
+    return;
+  }
+
+  var p = (presupuestos||[]).find(function(x){ return String(x.id)===String(id); });
+  if (!p) return;
+
+  var fecha  = p.created_at ? new Date(p.created_at).toLocaleDateString('es-AR') : '—';
+  var tipo   = (p.tipo||'');
+  var partes = tipo.split('|').map(function(x){ return x.trim(); });
+  var items  = [], genAnual = 0, infoHtml = '';
+
+  _afRowId = 0;
+  tbody.innerHTML = '';
+
+  if (tipo.toLowerCase().startsWith('fv |')) {
+    var sistema   = partes[1]||'FV';
+    var esOG      = sistema.toLowerCase().includes('off');
+    var panelInfo = partes[2]||'';
+    var invInfo   = partes[3]||'';
+    var kWp       = parseFloat(p.area)||0;
+    var nPaneles  = parseInt(p.colectores)||0;
+
+    infoHtml = '<strong>'+(p.cliente||'—')+'</strong> · '+sistema+' · '+fecha+'<br>' +
+               'Paneles: <strong>'+nPaneles+'</strong>' +
+               (kWp>0 ? ' · kWp: <strong>'+kWp.toFixed(2)+'</strong>' : '') +
+               (panelInfo ? ' · '+panelInfo : '') +
+               (invInfo   ? '<br>'+invInfo   : '') +
+               (p.zona    ? ' · Zona: '+p.zona : '');
+
+    if (esOG) {
+      // Formato antiguo (Off-Grid directo): tiene "E_R="
+      // Formato nuevo (FV unificado): tiene "kWh/mes"
+      var esFmtOG = tipo.indexOf('E_R=')!==-1;
+      if (esFmtOG) {
+        genAnual = Math.round((parseFloat(p.litros_dia)||0) * 365 / 1000);
+        var batStr   = partes[5]||'';
+        var batMatch = batStr.match(/(\d+)\s*Ah\s*[@·]\s*(\d+)\s*V/i);
+        var capAh    = batMatch ? parseInt(batMatch[1]) : (parseInt(p.acumulador)||0);
+        var tension  = batMatch ? parseInt(batMatch[2]) : 24;
+        items = [
+          { desc:'Inversor Off-Grid — '+invInfo.replace('Inv ≥','≥').trim(), qty:1 },
+          { desc:'Panel solar — '+panelInfo, qty:nPaneles },
+          { desc:'Regulador MPPT', qty:1 },
+          { desc:'Banco de baterías — '+(capAh?capAh+' Ah · '+tension+'V':''), qty:1 },
+          { desc:'Estructura / soporte', qty:nPaneles },
+          { desc:'Cableado + protecciones (lote)', qty:1 }
+        ];
+      } else {
+        var kWhDia = parseFloat(p.litros_dia)||0;
+        genAnual   = kWhDia>0 ? Math.round(kWhDia*365) : Math.round(kWp*1200);
+        var batKwh  = parseInt(p.acumulador)||0;
+        items = [
+          { desc:'Inversor Off-Grid — '+invInfo, qty:1 },
+          { desc:'Panel solar — '+panelInfo, qty:nPaneles },
+          { desc:'Regulador MPPT', qty:1 },
+          { desc:'Banco de baterías — '+(batKwh?batKwh+' kWh':''), qty:1 },
+          { desc:'Estructura / soporte', qty:nPaneles },
+          { desc:'Cableado + protecciones (lote)', qty:1 }
+        ];
+      }
+      var ef1 = document.getElementById('af-efectivo'); if (ef1) ef1.value='1.00';
+
+    } else {
+      // On-Grid
+      var kWhDiaOG = parseFloat(p.litros_dia)||0;
+      genAnual = kWp>0 ? Math.round(kWp*1200) : Math.round(kWhDiaOG*365);
+      items = [
+        { desc:'Inversor On-Grid — '+invInfo, qty:1 },
+        { desc:'Panel solar — '+panelInfo, qty:nPaneles },
+        { desc:'Estructura / soporte', qty:nPaneles },
+        { desc:'Medidor bidireccional', qty:1 },
+        { desc:'Cableado + protecciones (lote)', qty:1 }
+      ];
+      var ef2 = document.getElementById('af-efectivo'); if (ef2) ef2.value='0.87';
+    }
+
+  } else {
+    // Solar Térmica
+    var nColect    = parseInt(p.colectores)||0;
+    var litrosAcum = parseInt(p.acumulador)||0;
+    var bombaPot   = parseInt(p.bomba)||0;
+    genAnual = Math.round(nColect * 1200);
+
+    infoHtml = '<strong>'+(p.cliente||'—')+'</strong> · Solar Térmica · '+fecha+'<br>' +
+               'Colectores: <strong>'+nColect+'</strong>' +
+               (litrosAcum ? ' · Acumulador: <strong>'+litrosAcum+' L</strong>' : '') +
+               (bombaPot   ? ' · Bomba: <strong>'+bombaPot+' L/h</strong>' : '') +
+               (p.zona     ? ' · Zona: '+p.zona : '');
+    items = [
+      { desc:'Colectores solares planos (2 m² c/u)', qty:nColect },
+      { desc:'Acumulador / tanque solar — '+litrosAcum+' L', qty:1 },
+      { desc:'Bomba circuladora', qty:1 },
+      { desc:'Controlador diferencial', qty:1 },
+      { desc:'Estructura soporte colectores', qty:nColect },
+      { desc:'Fluido caloportador + accesorios (lote)', qty:1 }
+    ];
+    var ef3 = document.getElementById('af-efectivo'); if (ef3) ef3.value='1.00';
+  }
+
+  infoEl.innerHTML  = infoHtml;
+  infoEl.style.display = 'block';
+
+  var genEl = document.getElementById('af-gen-anual');
+  if (genEl && genAnual>0) genEl.value = genAnual;
+
+  if (items.length) {
+    items.forEach(function(it){ afInsertarFila(it.desc, it.qty); });
+  } else {
+    tbody.innerHTML = '<tr id="af-items-empty"><td colspan="5" style="padding:14px;text-align:center;color:#666;font-size:12px">No se detectaron ítems — podés agregarlos manualmente</td></tr>';
+  }
+
+  afActualizarTotales();
+}
+
+function afCalcularROI() {
+  var inv      = window._af_inv||0;
+  var genAnual = parseFloat((document.getElementById('af-gen-anual')||{}).value)||0;
+  var tarifa   = parseFloat((document.getElementById('af-tarifa')||{}).value)||0;
+  var tc       = parseFloat((document.getElementById('af-tc')||{}).value)||1;
+  var efectivo = parseFloat((document.getElementById('af-efectivo')||{}).value)||0.87;
+  var inflacion= parseFloat((document.getElementById('af-inflacion')||{}).value)||0.05;
+  var tasa     = parseFloat((document.getElementById('af-tasa')||{}).value)||0.05;
+  var resDiv   = document.getElementById('af-resultados');
+
+  if (inv<=0||genAnual<=0||tarifa<=0||tc<=0) { resDiv.style.display='none'; return; }
+
+  var ANOS=20, DEGR=0.004, MANT=0.01;
+  var flujos=[], sumaAcum=-inv, vanAcum=-inv, pbS=null, pbD=null, totalGen=0;
+
+  for (var y=1; y<=ANOS; y++) {
+    var gen_y    = genAnual * Math.pow(1-DEGR, y-1);
+    var tarUSD_y = (tarifa * Math.pow(1+inflacion, y-1)) / tc;
+    var ahorro_y = gen_y * tarUSD_y * efectivo;
+    var mant_y   = y>=3 ? inv*MANT : 0;
+    var flujo_y  = ahorro_y - mant_y;
+    var va_y     = flujo_y / Math.pow(1+tasa, y);
+    sumaAcum    += flujo_y;
+    vanAcum     += va_y;
+    totalGen    += gen_y;
+    if (pbS===null && sumaAcum>=0) pbS = (y-1) + Math.abs(sumaAcum-flujo_y)/flujo_y;
+    if (pbD===null && vanAcum >=0) pbD = (y-1) + Math.abs(vanAcum -va_y)   /va_y;
+    flujos.push({y:y,gen_y:gen_y,tarUSD_y:tarUSD_y,mant_y:mant_y,flujo_y:flujo_y,acum:sumaAcum,va_y:va_y,van_acum:vanAcum});
+  }
+
+  // TIR — bisección
+  function npv(r){ var s=-inv; flujos.forEach(function(f,i){s+=f.flujo_y/Math.pow(1+r,i+1);}); return s; }
+  var tirVal=null;
+  if (npv(0)>0){ var lo=0,hi=5,mid=0; for(var i=0;i<64;i++){mid=(lo+hi)/2; npv(mid)>0?lo=mid:hi=mid;} tirVal=mid; }
+
+  var pbSLbl = pbS!==null ? pbS.toFixed(1)+' años' : '> 20 años';
+  var pbDLbl = pbD!==null ? pbD.toFixed(1)+' años' : '> 20 años';
+  var lcoeRed   = (tarifa/tc)*1000;
+  var mantNPV   = 0; for(var y2=3;y2<=ANOS;y2++) mantNPV+=(inv*MANT)/Math.pow(1+tasa,y2);
+  var lcoeSolar = totalGen>0 ? (inv+mantNPV)/totalGen*1000 : 0;
+  var ahorroPromUSD = flujos.reduce(function(s,f){return s+f.flujo_y;},0)/ANOS;
+
+  var selVal = document.getElementById('af-dim-select').value;
+  var dimP   = selVal ? (presupuestos||[]).find(function(x){return String(x.id)===String(selVal);}) : null;
+  var kWp    = dimP ? (parseFloat(dimP.area)||0) : 0;
+  var usdKwp = kWp>0 ? afFmt(inv/kWp) : '—';
+
+  document.getElementById('af-van').textContent          = '$ '+afFmt(vanAcum);
+  document.getElementById('af-tir').textContent          = tirVal!==null?(tirVal*100).toFixed(1)+'%':'< 0%';
+  document.getElementById('af-pb-simple').textContent    = pbSLbl;
+  document.getElementById('af-pb-desc').textContent      = pbDLbl;
+  document.getElementById('af-lcoe-red').textContent     = '$ '+lcoeRed.toFixed(0);
+  document.getElementById('af-lcoe-solar').textContent   = '$ '+lcoeSolar.toFixed(0);
+  document.getElementById('af-ahorro-anual').textContent = '$ '+afFmt(ahorroPromUSD);
+  document.getElementById('af-usd-kwp').textContent      = usdKwp!=='—'?'$ '+usdKwp:'—';
+
+  var tb = document.getElementById('af-tabla-20-body');
+  if (tb) {
+    tb.innerHTML='';
+    flujos.forEach(function(f){
+      var tr = document.createElement('tr');
+      var bgBE = (f.acum>=0 && (f.acum-f.flujo_y)<0)||(f.van_acum>=0 && (f.van_acum-f.va_y)<0);
+      if (bgBE) tr.style.background='var(--verde-light)';
+      var cA = f.acum>=0    ? 'color:var(--verde);font-weight:700':'color:var(--rojo)';
+      var cV = f.van_acum>=0? 'color:var(--verde);font-weight:700':'color:var(--rojo)';
+      tr.innerHTML =
+        '<td style="padding:4px 7px;text-align:center">'+f.y+'</td>'+
+        '<td style="padding:4px 7px;text-align:right">'+Math.round(f.gen_y).toLocaleString('es-AR')+'</td>'+
+        '<td style="padding:4px 7px;text-align:right">'+f.tarUSD_y.toFixed(4)+'</td>'+
+        '<td style="padding:4px 7px;text-align:right">'+(f.mant_y>0?'- '+afFmt(f.mant_y):'—')+'</td>'+
+        '<td style="padding:4px 7px;text-align:right">'+afFmt(f.flujo_y)+'</td>'+
+        '<td style="padding:4px 7px;text-align:right;'+cA+'">'+afFmt(f.acum)+'</td>'+
+        '<td style="padding:4px 7px;text-align:right">'+afFmt(f.va_y)+'</td>'+
+        '<td style="padding:4px 7px;text-align:right;'+cV+'">'+afFmt(f.van_acum)+'</td>';
+      tb.appendChild(tr);
+    });
+  }
+
+  resDiv.style.display='block';
+  window._af_roi={inv:inv,genAnual:genAnual,tarifa:tarifa,tc:tc,efectivo:efectivo,inflacion:inflacion,tasa:tasa,van:vanAcum,tirVal:tirVal,pbSLbl:pbSLbl,pbDLbl:pbDLbl,lcoeRed:lcoeRed,lcoeSolar:lcoeSolar,ahorroPromUSD:ahorroPromUSD,usdKwp:usdKwp,kWp:kWp,flujos:flujos};
+}
+
+function afExportarPDF() {
+  var roi = window._af_roi;
+  if (!roi){ alert('Completá la inversión y los parámetros del análisis para generar el PDF.'); return; }
+
+  var dimSel  = document.getElementById('af-dim-select');
+  var dimId   = dimSel ? dimSel.value : '';
+  var p       = dimId ? (presupuestos||[]).find(function(x){return String(x.id)===String(dimId);}) : null;
+  var cliente = p?(p.cliente||'Cliente'):'Cliente';
+  var sistema = p?(function(){var t=(p.tipo||'');return t.toLowerCase().startsWith('fv |')?(t.split('|')[1]||'FV').trim():'Solar Térmica';})():'Sistema solar';
+  var fecha   = new Date().toLocaleDateString('es-AR');
+
+  var items=[]; var tbody=document.getElementById('af-items-tbody');
+  if(tbody) tbody.querySelectorAll('tr[id^="afrow-"]').forEach(function(tr){
+    var txt=tr.querySelector('input[type="text"]');
+    var nums=tr.querySelectorAll('input[type="number"]');
+    var desc=txt?txt.value.trim():'';
+    var qty=parseFloat(nums[0]?nums[0].value:0)||0;
+    var precio=parseFloat(nums[1]?nums[1].value:0)||0;
+    if(desc||qty) items.push({desc:desc,qty:qty,precio:precio,sub:qty*precio});
+  });
+
+  var pctSel=document.getElementById('af-inst-pct');
+  var pct=(parseFloat(pctSel?pctSel.value:30)||30)/100;
+  var totalEq=items.reduce(function(s,i){return s+i.sub;},0);
+  var instVal=totalEq*pct, total=totalEq+instVal;
+  var pctLbl=(pct*100).toFixed(0)+'%';
+
+  var itemsRows=items.map(function(it){
+    return '<tr><td>'+(it.desc||'—')+'</td><td style="text-align:center">'+it.qty+'</td><td style="text-align:right">'+(it.precio>0?'$ '+afFmt(it.precio):'—')+'</td><td style="text-align:right">'+(it.sub>0?'$ '+afFmt(it.sub):'—')+'</td></tr>';
+  }).join('');
+
+  var proyRows=(roi.flujos||[]).map(function(f){
+    return '<tr><td style="text-align:center">'+f.y+'</td><td style="text-align:right">'+Math.round(f.gen_y).toLocaleString('es-AR')+'</td><td style="text-align:right">'+f.tarUSD_y.toFixed(4)+'</td><td style="text-align:right">'+(f.mant_y>0?'- '+afFmt(f.mant_y):'—')+'</td><td style="text-align:right">'+afFmt(f.flujo_y)+'</td><td style="text-align:right">'+afFmt(f.acum)+'</td></tr>';
+  }).join('');
+
+  var params='Tarifa '+roi.tarifa+' $/kWh · TC '+roi.tc+' ARS/USD · Inf. elec. '+(roi.inflacion*100).toFixed(0)+'%/año · Descuento '+(roi.tasa*100).toFixed(0)+'% · Degr. 0.4%/año · Mant. 1% desde año 3';
+
+  var htmlContent=
+  '<div class="pdf-page">'+
+    '<div class="pdf-head">'+
+      '<div><div class="pdf-brand">ExerGrid</div><div class="pdf-sub">Energías Renovables</div></div>'+
+      '<div class="pdf-date">Análisis financiero · Retorno de inversión<br><strong>'+fecha+'</strong></div>'+
+    '</div>'+
+    '<div class="pdf-title" style="font-size:14px;margin:5px 0 4px">Análisis de retorno de inversión</div>'+
+    '<div class="pdf-client"><strong>Cliente:</strong> '+cliente+' &nbsp;·&nbsp; <strong>Sistema:</strong> '+sistema+'</div>'+
+    '<div class="pdf-section"><h3>Desglose de inversión</h3>'+
+      '<table class="pdf-fin-table">'+
+        '<thead><tr><th>Descripción</th><th style="text-align:center;width:40px">Cant.</th><th style="text-align:right;width:100px">Precio USD</th><th style="text-align:right;width:100px">Subtotal USD</th></tr></thead>'+
+        '<tbody>'+itemsRows+'</tbody>'+
+        '<tfoot>'+
+          '<tr><td colspan="3">Subtotal equipos</td><td style="text-align:right;font-weight:700">$ '+afFmt(totalEq)+'</td></tr>'+
+          '<tr><td colspan="3">Instalación / ingeniería ('+pctLbl+')</td><td style="text-align:right">$ '+afFmt(instVal)+'</td></tr>'+
+          '<tr style="background:#E6F9F5"><td colspan="3" style="font-weight:800;color:#0D9E8C">INVERSIÓN TOTAL (USD)</td><td style="text-align:right;font-weight:800;color:#0D9E8C;font-size:13px">$ '+afFmt(total)+'</td></tr>'+
+        '</tfoot>'+
+      '</table>'+
+    '</div>'+
+    '<div class="pdf-section"><h3>Resultados financieros</h3>'+
+      '<div class="pdf-kpis">'+
+        '<div class="pdf-kpi"><div class="v" style="color:#0D9E8C">$ '+afFmt(roi.van)+'</div><div class="l">VAN (USD)</div></div>'+
+        '<div class="pdf-kpi"><div class="v">'+(roi.tirVal!==null?(roi.tirVal*100).toFixed(1)+'%':'< 0%')+'</div><div class="l">TIR</div></div>'+
+        '<div class="pdf-kpi"><div class="v">'+roi.pbSLbl+'</div><div class="l">Payback simple</div></div>'+
+        '<div class="pdf-kpi"><div class="v">'+roi.pbDLbl+'</div><div class="l">Payback descontado</div></div>'+
+        '<div class="pdf-kpi"><div class="v">$ '+afFmt(roi.ahorroPromUSD)+'</div><div class="l">Ahorro anual prom. USD</div></div>'+
+        (roi.usdKwp!=='—'?'<div class="pdf-kpi"><div class="v">$ '+roi.usdKwp+'</div><div class="l">USD/kWp instalado</div></div>':'')+
+      '</div>'+
+      '<div style="font-size:8px;color:#666;margin-top:3px">'+params+'</div>'+
+    '</div>'+
+    '<div class="pdf-section"><h3>Proyección a 20 años (USD)</h3>'+
+      '<table class="pdf-fin-table">'+
+        '<thead><tr><th style="text-align:center">Año</th><th style="text-align:right">Gen. kWh</th><th style="text-align:right">$/kWh USD</th><th style="text-align:right">Mant.</th><th style="text-align:right">Flujo USD</th><th style="text-align:right">Flujo acum.</th></tr></thead>'+
+        '<tbody>'+proyRows+'</tbody>'+
+      '</table>'+
+    '</div>'+
+    '<div class="pdf-note">Análisis generado por ExerGrid · '+fecha+' · Los valores son estimativos y pueden variar según condiciones reales de instalación, evolución de tarifas y tipo de cambio.</div>'+
+  '</div>';
+
+  // Reutilizar el div permanente #pdf-propuesta (igual que los otros exportadores)
+  var el = document.getElementById('pdf-propuesta');
+  if (!el) return;
+  el.innerHTML = htmlContent;
+  var t = document.title; document.title = ' ';
+  setTimeout(function(){
+    window.print();
+    document.title = t;
+    el.innerHTML = '';
+  }, 130);
+}
+
+async function afGuardar() {
+  var roi = window._af_roi;
+  var inv = window._af_inv || 0;
+  if (!inv) { toast('⚠️ Completá la inversión antes de guardar.'); return; }
+
+  var dimSel  = document.getElementById('af-dim-select');
+  var dimId   = dimSel ? dimSel.value : '';
+  var p       = dimId ? (presupuestos||[]).find(function(x){return String(x.id)===String(dimId);}) : null;
+  var cliente = p ? (p.cliente||'') : '';
+
+  var genAnual = document.getElementById('af-gen-anual') ? (parseFloat(document.getElementById('af-gen-anual').value)||0) : 0;
+  var tarifa   = document.getElementById('af-tarifa')    ? (parseFloat(document.getElementById('af-tarifa').value)||0)    : 0;
+  var tc       = document.getElementById('af-tc')        ? (parseFloat(document.getElementById('af-tc').value)||1)        : 1;
+  var efectivo = document.getElementById('af-efectivo')  ? (parseFloat(document.getElementById('af-efectivo').value)||1)  : 1;
+  var inflacion= document.getElementById('af-inflacion') ? (parseFloat(document.getElementById('af-inflacion').value)||0.05): 0.05;
+  var tasa     = document.getElementById('af-tasa')      ? (parseFloat(document.getElementById('af-tasa').value)||0.05)   : 0.05;
+
+  // Tipo de sistema desde el dimensionamiento
+  var sistema = '';
+  if (p) {
+    var tp = (p.tipo||'').toLowerCase();
+    if (tp.startsWith('fv |')) {
+      var partes = (p.tipo||'').split('|'); sistema = (partes[1]||'FV').trim();
+    } else if (tp.startsWith('térmica')) {
+      sistema = 'Solar Térmica';
+    }
+  }
+
+  var payload = {
+    cliente:         cliente || 'Análisis financiero',
+    dim_id:          dimId ? parseInt(dimId) : null,
+    sistema:         sistema || null,
+    inversion_usd:   inv,
+    gen_anual_kwh:   genAnual,
+    tarifa_ars:      tarifa,
+    tipo_cambio:     tc,
+    efectivo:        efectivo,
+    inflacion:       inflacion,
+    tasa_descuento:  tasa,
+    van_usd:         roi ? (roi.van||null) : null,
+    tir:             roi ? (roi.tirVal||null) : null,
+    payback_simple:  roi ? (roi.pbSLbl||null) : null,
+    payback_desc:    roi ? (roi.pbDLbl||null) : null,
+    lcoe_red:        roi ? (roi.lcoeRed||null) : null,
+    lcoe_solar:      roi ? (roi.lcoeSolar||null) : null,
+    ahorro_anual_usd:roi ? (roi.ahorroPromUSD||null) : null
+  };
+
+  setSyncState('loading');
+  var result = await db.from('hes_analisis_financiero').insert([payload]);
+  if (result.error) {
+    console.error('Error guardando análisis:', result.error);
+    setSyncState('error');
+    toast('❌ Error al guardar: ' + (result.error.message||'revisar Supabase'));
+    return;
+  }
+  setSyncState('ok');
+  toast('✅ Análisis financiero guardado');
+
+  // Reset del formulario y refrescar lista
+  afReset();
+  afCargarGuardados();
+}
+
+function afReset() {
+  // Limpiar selector y tabla
+  var sel = document.getElementById('af-dim-select');
+  if (sel) sel.value = '';
+  var tbody = document.getElementById('af-items-tbody');
+  if (tbody) tbody.innerHTML = '<tr id="af-items-empty"><td colspan="5" style="padding:14px;text-align:center;color:var(--muted);font-size:12px">Seleccioná un dimensionamiento para cargar los ítems, o agregá manualmente</td></tr>';
+  // Limpiar totales
+  ['af-subtotal-eq','af-subtotal-inst','af-total-inv'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.textContent = '—';
+  });
+  // Limpiar campos parámetros
+  var ga = document.getElementById('af-gen-anual'); if (ga) ga.value = '';
+  // Ocultar secciones de resultados y parámetros
+  var pc = document.getElementById('af-params-card'); if (pc) pc.style.display = 'none';
+  var res = document.getElementById('af-resultados');  if (res) res.style.display = 'none';
+  var info = document.getElementById('af-dim-info');   if (info) info.style.display = 'none';
+  // Limpiar estado global
+  window._af_inv = 0;
+  window._af_roi = null;
+  _afRowId = 0;
 }
 
 </script>

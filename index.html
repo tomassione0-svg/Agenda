@@ -660,8 +660,8 @@ window.addEventListener('load', function() {
   </div>
 
   <div style="display:flex;gap:10px;margin-bottom:24px;padding:0 2px">
-    <button class="btn btn-secondary" style="flex:1" onclick="pqReset()">🗑 Limpiar</button>
-    <button class="btn btn-primary" style="flex:2" id="pq-btn-preview" onclick="pqPreview()">Ver presupuesto</button>
+    <button class="btn btn-secondary" style="flex:1" onclick="pqGuardar()">Guardar</button>
+    <button class="btn btn-primary" style="flex:2" id="pq-btn-preview" onclick="pqPreview()">Exportar PDF</button>
   </div>
 
   <!-- Historial -->
@@ -769,7 +769,7 @@ window.addEventListener('load', function() {
         </div>
         <div style="margin-top:12px;background:var(--gris);border-radius:8px;padding:10px;font-size:12px;line-height:1.8" id="r-resumen">—</div>
         <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn btn-primary" style="flex:1" onclick="guardarDim()">Guardar presupuesto</button>
+          <button class="btn btn-primary" style="flex:1" onclick="guardarDim()">Guardar</button>
           <button class="btn btn-secondary" style="flex:1" onclick="exportarPDFTermica()">Exportar PDF</button>
         </div>
       </div>
@@ -1315,8 +1315,8 @@ window.addEventListener('load', function() {
           </table>
         </div>
         <div class="pdf-actions">
-          <button class="btn btn-secondary" onclick="afGuardar()">💾 Guardar</button>
-          <button class="btn btn-azul" onclick="afExportarPDF()">📄 Exportar PDF</button>
+          <button class="btn btn-secondary" onclick="afGuardar()">Guardar</button>
+          <button class="btn btn-azul" onclick="afExportarPDF()">Exportar PDF</button>
         </div>
       </div>
     </div>
@@ -5281,7 +5281,7 @@ async function pqReset() {
   if ((pqLineasSolar.length || pqLineasManual.length || _pqEditRecord) && !confirm('¿Limpiar el presupuesto en curso?')) return;
   _pqEditRecord = null;
   document.getElementById('pq-edit-banner').style.display = 'none';
-  document.getElementById('pq-btn-preview').textContent = 'Ver presupuesto';
+  document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
   pqLineasSolar = [];
   pqLineasManual = [];
   pqAcActiveRow = null;
@@ -5400,6 +5400,59 @@ function pqBuildPDFHTML() {
   );
 }
 // ─── PREVIEW MODAL ────────────────────────────────────────────────────────────
+async function pqGuardar() {
+  const total = pqLineasSolar.reduce((a,r)=>a+r.precio*r.qty,0) + pqLineasManual.reduce((a,r)=>a+r.precio*r.qty,0);
+  if (total <= 0 && !pqLineasSolar.length && !pqLineasManual.length) {
+    toast('Agregá al menos un ítem al presupuesto');
+    return;
+  }
+  const nro = document.getElementById('pq-nro').value;
+  try {
+    if (_pqEditRecord) {
+      await pqUpdateToSupa(_pqEditRecord.id, nro, _pqEditRecord.pdf_path);
+    } else {
+      await pqSaveToSupa(nro, null);
+      await pqCommitNro(nro);
+    }
+    const nombre = document.getElementById('pq-cliente').value.trim();
+    if (nombre) {
+      pqSaveClienteLocal({
+        nombre:   nombre,
+        cuit:     (document.getElementById('pq-cuit')     || {}).value.trim() || '',
+        contacto: (document.getElementById('pq-contacto') || {}).value.trim() || '',
+        dir:      (document.getElementById('pq-dir')      || {}).value.trim() || '',
+        obs:      (document.getElementById('pq-obs')      || {}).value.trim() || ''
+      });
+    }
+    const wasEditing = !!_pqEditRecord;
+    const editedNro  = wasEditing ? _pqEditRecord.nro : nro;
+    _pqEditRecord = null;
+    document.getElementById('pq-edit-banner').style.display = 'none';
+    document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
+    pqLineasSolar = []; pqLineasManual = [];
+    pqRenderSolar(); pqRenderManual(); pqRecalc();
+    document.getElementById('pq-ac-input').value = '';
+    document.getElementById('pq-cliente').value  = '';
+    if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = '';
+    if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
+    document.getElementById('pq-dir').value     = '';
+    document.getElementById('pq-obs').value     = '';
+    document.getElementById('pq-validez').value = '15 días hábiles';
+    document.getElementById('pq-fecha').value   = new Date().toISOString().split('T')[0];
+    if (!wasEditing) {
+      const nextNro = await pqGetNextNro();
+      document.getElementById('pq-nro').value = nextNro;
+      document.getElementById('pq-nro-badge').textContent = '#' + nextNro;
+    }
+    toast(wasEditing
+      ? '✓ Presupuesto #' + editedNro + ' actualizado'
+      : '✓ Presupuesto #' + editedNro + ' guardado');
+    pqLoadHistorial();
+  } catch(e) {
+    toast('Error al guardar: ' + (e.message || e));
+  }
+}
+
 function pqPreview() {
   const total = pqLineasSolar.reduce((a,r)=>a+r.precio*r.qty,0) + pqLineasManual.reduce((a,r)=>a+r.precio*r.qty,0);
   if (total <= 0 && !pqLineasSolar.length && !pqLineasManual.length) {
@@ -5534,7 +5587,7 @@ async function pqDownloadPDF() {
     // Exit edit mode + clear fields
     _pqEditRecord = null;
     document.getElementById('pq-edit-banner').style.display = 'none';
-    document.getElementById('pq-btn-preview').textContent = 'Ver presupuesto';
+    document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
     pqLineasSolar = []; pqLineasManual = [];
     pqRenderSolar(); pqRenderManual(); pqRecalc();
     document.getElementById('pq-ac-input').value = '';
@@ -5691,7 +5744,7 @@ function pqCancelEdit() {
   if (!confirm('¿Querés dejar de editar el presupuesto #' + (_pqEditRecord ? _pqEditRecord.nro : '') + '?\nLos cambios no guardados se perderán.')) return;
   _pqEditRecord = null;
   document.getElementById('pq-edit-banner').style.display = 'none';
-  document.getElementById('pq-btn-preview').textContent = 'Ver presupuesto';
+  document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
   // Reset sin confirm (ya confirmamos arriba)
   pqLineasSolar = []; pqLineasManual = [];
   pqAcActiveRow = null;

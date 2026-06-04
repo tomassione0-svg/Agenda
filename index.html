@@ -4007,6 +4007,27 @@ async function init() {
     await Promise.all([loadTasks(), loadProveedores(), loadPresupuestos(), loadClientes(), loadDocs()]);
     setSyncState('ok');
   } catch(e){ setSyncState('error'); }
+
+  // ── REALTIME: escucha inserts en hes_clientes ──────────────────────────
+  try {
+    db.channel('leads_live')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'hes_clientes'
+      }, function() {
+        loadClientes();
+        toast('🔔 Nuevo lead recibido!');
+      })
+      .subscribe(function(status) {
+        console.log('Realtime status:', status);
+      });
+  } catch(e) { console.warn('Realtime no disponible:', e); }
+
+  // ── POLLING cada 30s como respaldo ────────────────────────────────────
+  setInterval(function() {
+    loadClientes();
+  }, 30000);
 }
 
 // ── DOCUMENTOS ─────────────────────────────────────────────────────────────

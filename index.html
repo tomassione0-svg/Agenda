@@ -2048,7 +2048,18 @@ async function saveTask() {
   setSyncState('loading');
   let error;
   if(id){({error}=await db.from('hes_tareas').update(payload).eq('id',id));}
-  else{({error}=await db.from('hes_tareas').insert(payload));}
+  else{
+    // Calcular el orden máximo en esa sección/columna para que vaya al final
+    const { data: ordenData } = await db.from('hes_tareas')
+      .select('orden')
+      .eq('columna', payload.columna)
+      .eq('seccion', payload.seccion)
+      .order('orden', { ascending: false, nullsFirst: false })
+      .limit(1);
+    const maxOrden = (ordenData && ordenData.length && ordenData[0].orden != null) ? ordenData[0].orden : 0;
+    payload.orden = maxOrden + 1;
+    ({error}=await db.from('hes_tareas').insert(payload));
+  }
   closeModal('modal-task');
   if(!error){await loadTasks();toast('Guardado ✓');}
   else{setSyncState('error');toast('Error al guardar');}

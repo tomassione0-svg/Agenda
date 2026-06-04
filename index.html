@@ -1681,7 +1681,9 @@ function fmtPrecio(precio, moneda) {
 }
 
 const { createClient } = supabase;
-const db = createClient(SUPA_URL, SUPA_KEY);
+const db = createClient(SUPA_URL, SUPA_KEY, {
+  auth: { persistSession: false }
+});
 
 // ── AUTH ───────────────────────────────────────────────────────────────────
 function togglePwVisibility() {

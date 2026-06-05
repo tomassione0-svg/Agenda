@@ -846,43 +846,8 @@ window.addEventListener('load', function() {
             <h3 style="margin:0">Recurso solar y parámetros</h3>
           </div>
           <div class="calc-field">
-            <label>Zona / HSP promedio anual</label>
-            <select id="fv-zona" onchange="calcularFV()">
-              <optgroup label="── Región Centro ──">
-                <option value="4.7">Buenos Aires / GBA — 4.7 h/día</option>
-                <option value="4.7">AMBA / Cap. Federal — 4.7 h/día</option>
-                <option value="5.0">Córdoba — 5.0 h/día</option>
-                <option value="4.8">Santa Fe / Rosario — 4.8 h/día</option>
-                <option value="4.6">Entre Ríos — 4.6 h/día</option>
-                <option value="4.9">La Pampa — 4.9 h/día</option>
-              </optgroup>
-              <optgroup label="── Cuyo ──">
-                <option value="5.8">Mendoza — 5.8 h/día</option>
-                <option value="6.2">San Juan — 6.2 h/día</option>
-                <option value="5.5">San Luis — 5.5 h/día</option>
-              </optgroup>
-              <optgroup label="── NOA ──">
-                <option value="5.8">Salta — 5.8 h/día</option>
-                <option value="5.9">Jujuy — 5.9 h/día</option>
-                <option value="5.2">Tucumán — 5.2 h/día</option>
-                <option value="6.0">Catamarca — 6.0 h/día</option>
-                <option value="6.2">La Rioja — 6.2 h/día</option>
-                <option value="5.8">Santiago del Estero — 5.8 h/día</option>
-              </optgroup>
-              <optgroup label="── NEA ──">
-                <option value="5.4">Formosa — 5.4 h/día</option>
-                <option value="5.2">Chaco — 5.2 h/día</option>
-                <option value="4.8">Corrientes — 4.8 h/día</option>
-                <option value="4.4">Misiones — 4.4 h/día</option>
-              </optgroup>
-              <optgroup label="── Patagonia ──">
-                <option value="4.8">Neuquén — 4.8 h/día</option>
-                <option value="4.6">Río Negro — 4.6 h/día</option>
-                <option value="4.3">Chubut — 4.3 h/día</option>
-                <option value="4.0">Santa Cruz — 4.0 h/día</option>
-                <option value="3.2">Tierra del Fuego — 3.2 h/día</option>
-              </optgroup>
-            </select>
+            <label>HSP promedio anual (h/día)</label>
+            <input type="number" id="fv-zona" value="4.7" min="1.0" max="8.0" step="0.1" oninput="calcularFV()">
           </div>
           <div class="calc-field">
             <label>Panel solar</label>
@@ -1001,46 +966,11 @@ window.addEventListener('load', function() {
             Off-Grid usa el HSP del <strong>peor mes</strong> (generalmente julio en Argentina). Si el sistema cubre ese mes, cubre todo el año.
           </div>
           <div class="calc-field">
-            <label>Zona / HSP peor mes</label>
-            <select id="og-zona" onchange="calcularOffGrid()">
-              <optgroup label="── Región Centro ──">
-                <option value="2.8">Buenos Aires / GBA — 2.8 h/día</option>
-                <option value="2.8">AMBA / Cap. Federal — 2.8 h/día</option>
-                <option value="3.2">Córdoba — 3.2 h/día</option>
-                <option value="3.0">Santa Fe / Rosario — 3.0 h/día</option>
-                <option value="2.9">Entre Ríos — 2.9 h/día</option>
-                <option value="3.0">La Pampa — 3.0 h/día</option>
-              </optgroup>
-              <optgroup label="── Cuyo ──">
-                <option value="3.8">Mendoza — 3.8 h/día</option>
-                <option value="4.0">San Juan — 4.0 h/día</option>
-                <option value="3.6">San Luis — 3.6 h/día</option>
-              </optgroup>
-              <optgroup label="── NOA ──">
-                <option value="4.2">Salta — 4.2 h/día</option>
-                <option value="4.2">Jujuy — 4.2 h/día</option>
-                <option value="3.5">Tucumán — 3.5 h/día</option>
-                <option value="4.0">Catamarca — 4.0 h/día</option>
-                <option value="4.0">La Rioja — 4.0 h/día</option>
-                <option value="3.8">Santiago del Estero — 3.8 h/día</option>
-              </optgroup>
-              <optgroup label="── NEA ──">
-                <option value="3.4">Formosa — 3.4 h/día</option>
-                <option value="3.2">Chaco — 3.2 h/día</option>
-                <option value="3.0">Corrientes — 3.0 h/día</option>
-                <option value="2.8">Misiones — 2.8 h/día</option>
-              </optgroup>
-              <optgroup label="── Patagonia ──">
-                <option value="3.2">Neuquén — 3.2 h/día</option>
-                <option value="3.0">Río Negro — 3.0 h/día</option>
-                <option value="2.8">Chubut — 2.8 h/día</option>
-                <option value="2.5">Santa Cruz — 2.5 h/día</option>
-                <option value="1.8">Tierra del Fuego — 1.8 h/día</option>
-              </optgroup>
-            </select>
+            <label>HSP peor mes (h/día)</label>
+            <input type="number" id="og-zona" value="2.8" min="1.0" max="8.0" step="0.1" oninput="document.getElementById('og-hsp-display').textContent=(parseFloat(this.value)||2.8).toFixed(1)+' h/día';calcularOffGrid()">
           </div>
           <div style="background:var(--teal-light);border:1px solid #a0ddd6;border-radius:8px;padding:10px;font-size:12px">
-            HSP seleccionada: <strong id="og-hsp-display">3.2 h/día</strong>
+            HSP ingresada: <strong id="og-hsp-display">2.8 h/día</strong>
           </div>
         </div>
 
@@ -1072,28 +1002,16 @@ window.addEventListener('load', function() {
             </select>
           </div>
           <div class="calc-field">
-            <label>Tensión del banco de baterías</label>
-            <select id="og-tension" onchange="calcularOffGrid()">
-              <option value="12">12 V — pequeños sistemas</option>
-              <option value="24" selected>24 V — mediano</option>
-              <option value="48">48 V — grande / industrial</option>
-            </select>
+            <label>Tensión del banco de baterías (V)</label>
+            <input type="number" id="og-tension" value="24" min="6" max="120" step="1" oninput="calcularOffGrid()">
           </div>
           <div class="calc-field">
-            <label>Tipo de batería (profundidad descarga η)</label>
-            <select id="og-bateria-tipo" onchange="calcularOffGrid()">
-              <option value="0.50">Plomo-ácido sellada — η 50%</option>
-              <option value="0.70" selected>Plomo-ácido tubular — η 70%</option>
-              <option value="0.85">Litio LiFePO4 — η 85%</option>
-            </select>
+            <label>Profundidad de descarga η (0.50 – 0.95)</label>
+            <input type="number" id="og-bateria-tipo" value="0.70" min="0.30" max="0.95" step="0.01" oninput="calcularOffGrid()">
           </div>
           <div class="calc-field">
             <label>Performance Ratio (PR)</label>
-            <select id="og-pr" onchange="calcularOffGrid()">
-              <option value="0.70">0.70 — conservador off-grid</option>
-              <option value="0.75" selected>0.75 — estándar off-grid</option>
-              <option value="0.80">0.80 — óptimo</option>
-            </select>
+            <input type="number" id="og-pr" value="0.75" min="0.50" max="1.00" step="0.01" oninput="calcularOffGrid()">
           </div>
         </div>
       </div>
@@ -1786,6 +1704,19 @@ function showTab(name) {
       ac.addEventListener('input', function() { pqAcSearch(this.value, this); });
       ac.addEventListener('focus', function() { var s=this; setTimeout(function(){ pqAcSearch(s.value,s); },50); });
       ac.addEventListener('blur',  function() { _pqAcBlurTimer = setTimeout(function(){ var d=document.getElementById('pq-ac-dropdown'); if(d) d.style.display='none'; },350); });
+      ac.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          var val = this.value.trim();
+          if (!val) return;
+          var dd = document.getElementById('pq-ac-dropdown');
+          if (dd) dd.style.display = 'none';
+          pqLineasSolar.push({id:pqNextId++, modelo:'', desc:val, precio:0, qty:1});
+          pqRenderSolar();
+          pqRecalc();
+          this.value = '';
+          e.preventDefault();
+        }
+      });
       document.addEventListener('mousedown', function(e) {
         if (!e.target.closest('#pq-ac-dropdown') && e.target.id!=='pq-ac-input') {
           var d=document.getElementById('pq-ac-dropdown'); if(d) d.style.display='none';
@@ -2709,7 +2640,7 @@ function getFVData() {
   const cargados = consumos.filter(x=>x.kwh>0);
   const totalCargado = cargados.reduce((a,b)=>a+b.kwh,0);
   const promedio = cargados.length ? totalCargado / cargados.length : 300;
-  const anual = cargados.length >= 12 ? totalCargado : promedio * 12;
+  const anual = totalCargado || promedio * 12;
   const pico = cargados.length ? Math.max(...cargados.map(x=>x.kwh)) : promedio;
   const consumoBaseMensual = anual / 12;
   const cobertura = (parseFloat(document.getElementById('fv-cobertura').value)||75) / 100;
@@ -3057,9 +2988,9 @@ function construirPropuestaOG() {
   var cliente   = document.getElementById('fv-cliente').value.trim()   || 'Cliente';
   var ubicacion = document.getElementById('fv-ubicacion').value.trim() || 'No especificada';
   var fecha     = new Date().toLocaleDateString('es-AR');
-  var zonaTxt   = document.getElementById('og-zona').options[document.getElementById('og-zona').selectedIndex].text;
+  var zonaTxt   = document.getElementById('og-zona').value + ' h/día';
   var panelTxt  = document.getElementById('og-panel').options[document.getElementById('og-panel').selectedIndex].text;
-  var batTxt    = document.getElementById('og-bateria-tipo').options[document.getElementById('og-bateria-tipo').selectedIndex].text;
+  var batTxt    = (document.getElementById('og-bateria-tipo').value || '0.70') + ' (η)';
   var tension   = parseFloat(document.getElementById('og-tension').value)       || 24;
   var hsp       = parseFloat(document.getElementById('og-zona').value)          || 3.2;
   var eta       = parseFloat(document.getElementById('og-bateria-tipo').value)  || 0.70;
@@ -3166,7 +3097,7 @@ async function guardarDimOG() {
   var vmpEst   = panelW <= 150 ? 18 : panelW <= 250 ? 30 : panelW <= 400 ? 37 : 45;
   var iscEst   = (panelW / vmpEst) * 1.05;
   var iReg     = Math.ceil(nPaneles * iscEst * 1.25);
-  var zonaTxt  = document.getElementById('og-zona').options[document.getElementById('og-zona').selectedIndex].text;
+  var zonaTxt  = document.getElementById('og-zona').value + ' h/día';
   var panelTxt = document.getElementById('og-panel').options[document.getElementById('og-panel').selectedIndex].text;
 
   // Guarda en hes_presupuestos (misma tabla que On-Grid) para aparecer en la lista
@@ -3326,7 +3257,7 @@ function limpiarDimensionOG() {
   if (ubic) ubic.value = '';
   // Zona, panel, tensión, batería, PR → volver a defaults
   var ogZona = document.getElementById('og-zona');
-  if (ogZona) ogZona.selectedIndex = 0;
+  if (ogZona) ogZona.value = '2.8';
   var ogPanel = document.getElementById('og-panel');
   if (ogPanel) ogPanel.value = '400';
   var ogTension = document.getElementById('og-tension');

@@ -2688,7 +2688,7 @@ function construirPropuestaFV() {
   const d = getFVData();
   const cliente = document.getElementById('fv-cliente').value.trim() || 'Cliente';
   const ubicacion = document.getElementById('fv-ubicacion').value.trim() || 'No especificada';
-  const zonaTxt = document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text;
+  const zonaTxt = document.getElementById('fv-zona').value + ' h/día';
   const panelTxt = document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text;
   const fecha = new Date().toLocaleDateString('es-AR');
   const filasConsumo = d.consumos.map(x=>`<tr><td>${x.mes}</td><td>${x.kwh?Math.round(x.kwh).toLocaleString('es-AR'):'—'}</td></tr>`).join('');
@@ -3283,7 +3283,7 @@ function limpiarDimensionFV() {
   const tarifa = document.getElementById('fv-tarifa');
   if (tarifa) tarifa.value = 120;
   document.getElementById('fv-cobertura').value = '75';
-  document.getElementById('fv-zona').selectedIndex = 0;
+  document.getElementById('fv-zona').value = '4.7';
   document.getElementById('fv-panel').value = '430';
   document.getElementById('fv-pr').value = '0.80';
   document.getElementById('fv-sistema').value = 'ongrid';
@@ -3334,7 +3334,7 @@ async function guardarDimFV() {
   const cliente = document.getElementById('fv-cliente').value.trim();
   if (!cliente) { toast('Ingresá el nombre del cliente'); return; }
   const d = getFVData();
-  const zonaTxt = document.getElementById('fv-zona').options[document.getElementById('fv-zona').selectedIndex].text;
+  const zonaTxt = document.getElementById('fv-zona').value + ' h/día';
   const panelTxt = document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text;
   const sistemaTxt = d.sistema === 'offgrid' ? 'Off-Grid' : 'On-Grid';
   const payload = {

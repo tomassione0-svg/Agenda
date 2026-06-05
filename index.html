@@ -895,20 +895,11 @@ window.addEventListener('load', function() {
           </div>
           <div class="calc-field">
             <label>Performance Ratio (PR)</label>
-            <select id="fv-pr" onchange="calcularFV()">
-              <option value="0.75">0.75 — conservador</option>
-              <option value="0.80" selected>0.80 — estándar</option>
-              <option value="0.85">0.85 — óptimo</option>
-            </select>
+            <input type="number" id="fv-pr" value="0.80" min="0.50" max="1.00" step="0.01" oninput="calcularFV()">
           </div>
           <div class="calc-field">
-            <label>Cobertura objetivo</label>
-            <select id="fv-cobertura" onchange="calcularFV()">
-              <option value="0.50">50 %</option>
-              <option value="0.75">75 %</option>
-              <option value="1.00" selected>100 %</option>
-              <option value="1.20">120 % con excedente</option>
-            </select>
+            <label>Cobertura objetivo (%)</label>
+            <input type="number" id="fv-cobertura" value="75" min="1" max="200" step="1" oninput="calcularFV()">
           </div>
           <div class="calc-field">
             <label>Tarifa estimada ($/kWh)</label>
@@ -2721,7 +2712,7 @@ function getFVData() {
   const anual = cargados.length >= 12 ? totalCargado : promedio * 12;
   const pico = cargados.length ? Math.max(...cargados.map(x=>x.kwh)) : promedio;
   const consumoBaseMensual = anual / 12;
-  const cobertura = parseFloat(document.getElementById('fv-cobertura').value)||1;
+  const cobertura = (parseFloat(document.getElementById('fv-cobertura').value)||75) / 100;
   const hsp = parseFloat(document.getElementById('fv-zona').value)||4.2;
   const panelW = parseFloat(document.getElementById('fv-panel').value)||430;
   const pr = parseFloat(document.getElementById('fv-pr').value)||0.80;
@@ -3360,7 +3351,7 @@ function limpiarDimensionFV() {
   if (ubic) ubic.value = '';
   const tarifa = document.getElementById('fv-tarifa');
   if (tarifa) tarifa.value = 120;
-  document.getElementById('fv-cobertura').value = '1.00';
+  document.getElementById('fv-cobertura').value = '75';
   document.getElementById('fv-zona').selectedIndex = 0;
   document.getElementById('fv-panel').value = '430';
   document.getElementById('fv-pr').value = '0.80';

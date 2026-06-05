@@ -845,11 +845,46 @@ window.addEventListener('load', function() {
             <span style="width:22px;height:22px;border-radius:50%;background:var(--azul);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</span>
             <h3 style="margin:0">Recurso solar y parámetros</h3>
           </div>
-          <div class="calc-field">
-            <label>HSP promedio anual (h/día)</label>
-            <input type="number" id="fv-zona" value="4.7" min="1.0" max="8.0" step="0.1" oninput="calcularFV()">
+
+          <!-- Selector modo generación -->
+          <div class="calc-field" style="margin-bottom:10px">
+            <label>Fuente de generación estimada</label>
+            <select id="fv-gen-modo" onchange="fvToggleGenModo();calcularFV()">
+              <option value="formula">Fórmula: HSP × PR × 365</option>
+              <option value="pvgis">Datos mensuales de PVGIS (más preciso)</option>
+            </select>
           </div>
-          <div class="calc-field">
+
+          <!-- Bloque fórmula clásica -->
+          <div id="fv-bloque-formula">
+            <div class="calc-field">
+              <label>HSP promedio anual (h/día)</label>
+              <input type="number" id="fv-zona" value="4.7" min="1.0" max="8.0" step="0.1" oninput="calcularFV()">
+            </div>
+            <div class="calc-field">
+              <label>Performance Ratio (PR)</label>
+              <input type="number" id="fv-pr" value="0.80" min="0.50" max="1.00" step="0.01" oninput="calcularFV()">
+            </div>
+            <div style="background:var(--azul-light);border:1px solid #b8d4f0;border-radius:8px;padding:10px;font-size:11px;line-height:1.6;margin-top:4px">
+              <strong>Fórmula:</strong> P_S = E_C × cobertura / (365 × HSP × PR)
+            </div>
+          </div>
+
+          <!-- Bloque PVGIS mensual -->
+          <div id="fv-bloque-pvgis" style="display:none">
+            <div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:9px 11px;font-size:11px;line-height:1.55;margin-bottom:10px">
+              📡 Ingresá la generación mensual para <strong>1 kWp</strong> que entrega PVGIS
+              (en kWh/mes). La app escala al sistema real.<br>
+              <span style="color:var(--muted)">En PVGIS: E_m = Energía mensual por kWp instalado.</span>
+            </div>
+            <div id="fv-pvgis-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px"></div>
+            <div style="font-size:11px;color:var(--muted);padding:0 2px">
+              Total ingresado: <strong id="fv-pvgis-total">0 kWh/kWp·año</strong>
+            </div>
+          </div>
+
+          <!-- Campos comunes -->
+          <div class="calc-field" style="margin-top:10px">
             <label>Panel solar</label>
             <select id="fv-panel" onchange="calcularFV()">
               <option value="400">400 Wp — estándar</option>
@@ -859,10 +894,6 @@ window.addEventListener('load', function() {
             </select>
           </div>
           <div class="calc-field">
-            <label>Performance Ratio (PR)</label>
-            <input type="number" id="fv-pr" value="0.80" min="0.50" max="1.00" step="0.01" oninput="calcularFV()">
-          </div>
-          <div class="calc-field">
             <label>Cobertura objetivo (%)</label>
             <input type="number" id="fv-cobertura" value="75" min="1" max="200" step="1" oninput="calcularFV()">
           </div>
@@ -870,9 +901,6 @@ window.addEventListener('load', function() {
             <label>Tarifa estimada ($/kWh)</label>
             <input type="number" id="fv-tarifa" value="156" min="0" oninput="calcularFV()">
             <span style="font-size:10px;color:var(--muted)">Para estimar el ahorro económico</span>
-          </div>
-          <div style="background:var(--azul-light);border:1px solid #b8d4f0;border-radius:8px;padding:10px;font-size:11px;line-height:1.6;margin-top:4px">
-            <strong>Fórmula:</strong> P_S = E_C × cobertura / (365 × HSP × PR)
           </div>
         </div>
       </div>
@@ -2649,24 +2677,106 @@ function getFVData() {
   const pr = parseFloat(document.getElementById('fv-pr').value)||0.80;
   const sistema = document.getElementById('fv-sistema').value;
   const tarifa = parseFloat(document.getElementById('fv-tarifa').value)||0;
-  const energiaObjetivoDia = (anual * cobertura) / 365;
-  const kwpNecesario = energiaObjetivoDia / (hsp * pr);
-  const paneles = Math.max(1, Math.ceil(kwpNecesario*1000/panelW));
-  const kwpReal = (paneles*panelW)/1000;
-  const genAnual = kwpReal*hsp*pr*365;
-  const genMes = genAnual/12;
+  // ── Modo de generación: fórmula clásica o datos PVGIS mensuales ──────────
+  const genModo = (document.getElementById('fv-gen-modo')||{value:'formula'}).value;
+  let kwpNecesario, kwpReal, paneles, genAnual, genMes;
+  let pvgisAnual = 0; // kWh/kWp·año desde datos PVGIS
+  let pvgisMeses = []; // kWh/kWp por mes (12 valores)
+
+  if (genModo === 'pvgis') {
+    // Lee los 12 campos PVGIS (kWh por kWp instalado)
+    const nombres = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    pvgisMeses = nombres.map((_,i)=>{
+      const el = document.getElementById('fv-pvgis-'+i);
+      return el ? (parseFloat(el.value)||0) : 0;
+    });
+    pvgisAnual = pvgisMeses.reduce((a,b)=>a+b,0);
+    // Muestra total ingresado
+    const totEl = document.getElementById('fv-pvgis-total');
+    if(totEl) totEl.textContent = Math.round(pvgisAnual)+' kWh/kWp·año';
+
+    if (pvgisAnual <= 0) {
+      // Sin datos PVGIS todavía, usa fórmula clásica como fallback
+      const energiaObjetivoDia = (anual * cobertura) / 365;
+      kwpNecesario = energiaObjetivoDia / (hsp * pr);
+      paneles = Math.max(1, Math.ceil(kwpNecesario*1000/panelW));
+      kwpReal = (paneles*panelW)/1000;
+      genAnual = kwpReal*hsp*pr*365;
+    } else {
+      // kWp necesario = (E_C_anual × cobertura) / (kWh/kWp·año de PVGIS)
+      kwpNecesario = (anual * cobertura) / pvgisAnual;
+      paneles = Math.max(1, Math.ceil(kwpNecesario*1000/panelW));
+      kwpReal = (paneles*panelW)/1000;
+      genAnual = kwpReal * pvgisAnual; // escala los datos PVGIS al sistema real
+    }
+    genMes = genAnual / 12;
+  } else {
+    // ── Modo clásico: fórmula HSP × PR × 365 ───────────────────────────────
+    const energiaObjetivoDia = (anual * cobertura) / 365;
+    kwpNecesario = energiaObjetivoDia / (hsp * pr);
+    paneles = Math.max(1, Math.ceil(kwpNecesario*1000/panelW));
+    kwpReal = (paneles*panelW)/1000;
+    genAnual = kwpReal*hsp*pr*365;
+    genMes = genAnual/12;
+  }
   const inversor = +(kwpReal*0.85).toFixed(1);
   const bateria = sistema==='offgrid' ? Math.ceil((consumoBaseMensual/30)*2) : '—';
   const ahorroMes = Math.min(genMes, consumoBaseMensual)*tarifa;
   const ahorroAnual = ahorroMes*12;
   const co2 = genAnual*0.4;
-  return {meses, consumos, cargados, anual, promedio:consumoBaseMensual, pico, cobertura, hsp, panelW, pr, sistema, tarifa, kwpReal, paneles, genAnual, genMes, inversor, bateria, ahorroMes, ahorroAnual, co2};
+  return {meses, consumos, cargados, anual, promedio:consumoBaseMensual, pico, cobertura, hsp, panelW, pr, sistema, tarifa, kwpReal, paneles, genAnual, genMes, inversor, bateria, ahorroMes, ahorroAnual, co2, genModo, pvgisAnual, pvgisMeses, kwpNecesario};
 }
 
 function moneyARS(n){return '$'+Math.round(n||0).toLocaleString('es-AR');}
 
+// ── PVGIS helpers ─────────────────────────────────────────────────────────────
+function initPVGISGrid(){
+  var grid = document.getElementById('fv-pvgis-grid');
+  if(!grid || grid.children.length > 0) return; // ya inicializado
+  var meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var html = '';
+  meses.forEach(function(m, i){
+    html += '<div style="display:flex;flex-direction:column;gap:2px">' +
+      '<label style="font-size:10px;font-weight:600;color:var(--muted);text-align:center">'+m+'</label>' +
+      '<input type="number" id="fv-pvgis-'+i+'" min="0" step="0.1" placeholder="kWh" ' +
+      'style="width:100%;padding:5px 6px;border:1.5px solid var(--gris-borde);border-radius:6px;font-size:12px;text-align:center;font-family:inherit" ' +
+      'oninput="calcularFV()">' +
+      '</div>';
+  });
+  grid.innerHTML = html;
+}
+
+function fvToggleGenModo(){
+  var modo = (document.getElementById('fv-gen-modo')||{value:'formula'}).value;
+  var bloqF = document.getElementById('fv-bloque-formula');
+  var bloqP = document.getElementById('fv-bloque-pvgis');
+  if(!bloqF||!bloqP) return;
+  if(modo==='pvgis'){
+    bloqF.style.display='none';
+    bloqP.style.display='block';
+  } else {
+    bloqF.style.display='block';
+    bloqP.style.display='none';
+  }
+}
+
+// Valores PVGIS para Bella Vista, Buenos Aires, 4.4 kWp, inclinación 35°, azimut 0°
+// E_m en kWh/kWp instalado (de la tabla PVGIS del informe ExerGrid)
+var PVGIS_BELLA_VISTA = [169.5, 150.0, 156.8, 132.0, 109.8, 93.2, 97.0, 119.3, 132.0, 157.0, 165.9, 175.7];
+
+function fvCargarPVGISBellaVista(){
+  var modos = document.getElementById('fv-gen-modo');
+  if(modos) { modos.value='pvgis'; fvToggleGenModo(); }
+  PVGIS_BELLA_VISTA.forEach(function(val, i){
+    var el = document.getElementById('fv-pvgis-'+i);
+    if(el) el.value = val.toFixed(1);
+  });
+  calcularFV();
+}
+
 function calcularFV() {
   initFVMonths();
+  initPVGISGrid();
   const d = getFVData();
   document.getElementById('fv-consumo-anual').textContent = Math.round(d.anual).toLocaleString('es-AR')+' kWh';
   document.getElementById('fv-promedio-mensual').textContent = Math.round(d.promedio).toLocaleString('es-AR')+' kWh';
@@ -2733,10 +2843,10 @@ function construirPropuestaFV() {
       <table class="pdf-table"><tbody>
         <tr><td>Consumo anual (E_C)</td><td><strong>${Math.round(d.anual).toLocaleString('es-AR')} kWh/año</strong></td></tr>
         <tr><td>Cobertura objetivo</td><td><strong>${Math.round(d.cobertura*100)}%</strong></td></tr>
-        <tr><td>HSP del sitio utilizada</td><td><strong>${d.hsp} h/día</strong></td></tr>
-        <tr><td>Performance Ratio (PR)</td><td><strong>${d.pr}</strong></td></tr>
-        <tr><td>Fórmula aplicada</td><td><strong>P_S = E_C × cobertura / (365 × HSP × PR)</strong></td></tr>
-        <tr><td>kWp calculado</td><td><strong>${(d.anual*d.cobertura/365/d.hsp/d.pr).toFixed(2)} kWp → ${d.kwpReal.toFixed(1)} kWp reales instalados</strong></td></tr>
+        <tr><td>HSP del sitio utilizada</td><td><strong>${d.genModo==='pvgis' ? 'Datos mensuales PVGIS ('+Math.round(d.pvgisAnual)+' kWh/kWp·año)' : d.hsp+' h/día'}</strong></td></tr>
+        <tr><td>Performance Ratio (PR)</td><td><strong>${d.genModo==='pvgis' ? 'Incluido en datos PVGIS' : d.pr}</strong></td></tr>
+        <tr><td>Fórmula aplicada</td><td><strong>${d.genModo==='pvgis' ? 'kWp = E_C × cobertura / E_PVGIS(kWh/kWp·año)' : 'P_S = E_C × cobertura / (365 × HSP × PR)'}</strong></td></tr>
+        <tr><td>kWp calculado</td><td><strong>${(d.kwpNecesario||0).toFixed(2)} kWp → ${d.kwpReal.toFixed(1)} kWp reales instalados</strong></td></tr>
         <tr><td>Configuración de paneles</td><td><strong>${d.paneles} paneles × ${d.panelW} W = ${d.kwpReal.toFixed(1)} kWp</strong></td></tr>
         <tr><td>Inversor sugerido</td><td><strong>${d.inversor} kW (≥ kWp instalados)</strong></td></tr>
         ${d.sistema==='offgrid'?`<tr><td>Sistema / batería estimada</td><td><strong>Off-Grid autónomo · ${d.bateria} kWh almacenamiento</strong></td></tr>`:`<tr><td>Sistema</td><td><strong>On-Grid · excedentes volcados a la red con medidor bidireccional</strong></td></tr>`}

@@ -3699,7 +3699,7 @@ function construirPDFPresupuestoGuardado(p) {
         </div>
         <div class="pdf-date">Dimensionamiento<br><strong>${fecha}</strong></div>
       </div>
-      <div class="pdf-title">Dimensionamiento fotovoltaico ${isOG ? 'Off-Grid' : 'On-Grid'} guardado</div>
+      <div class="pdf-title">Dimensionamiento fotovoltaico ${isOG ? 'Off-Grid' : 'On-Grid'}</div>
       <div class="pdf-client"><strong>Cliente:</strong> ${p.cliente || 'Cliente'}<br><strong>Sistema:</strong> ${fv.sistema}<br><strong>Zona:</strong> ${p.zona || '—'}</div>
       <div class="pdf-kpis">
         <div class="pdf-kpi"><div class="v">${p.area || 0}</div><div class="l">kWp instalados</div></div>
@@ -3729,7 +3729,7 @@ function construirPDFPresupuestoGuardado(p) {
       </div>
       <div class="pdf-date">Dimensionamiento<br><strong>${fecha}</strong></div>
     </div>
-    <div class="pdf-title">Dimensionamiento solar térmico guardado</div>
+    <div class="pdf-title">Dimensionamiento solar térmico</div>
     <div class="pdf-client"><strong>Cliente:</strong> ${p.cliente || 'Cliente'}<br><strong>Zona:</strong> ${p.zona || '—'}<br><strong>Tipo:</strong> ${(p.tipo || '').replace('Térmica | ', '')}</div>
     <div class="pdf-kpis">
       <div class="pdf-kpi"><div class="v">${p.area || 0}</div><div class="l">m² colector</div></div>

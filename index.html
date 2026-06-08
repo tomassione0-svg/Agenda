@@ -2357,14 +2357,14 @@ function renderAdjLista(provId) {
       <div class="photo-grid">${fotos.map(f=>`<div style="position:relative"><img class="photo-thumb" src="${f.url}" alt="${f.titulo||''}" onclick="verFoto('${f.url}')">
         <button onclick="deleteAdj(${f.id})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;padding:1px 5px">✕</button></div>`).join('')}</div></div>`:'') +
     (otros.length?`<div class="attach-list" id="adj-drag-list">${otros.map((a,i)=>`
-      <div draggable="true" data-aidx="${i}" data-aid="${a.id}"
+      <div class="adj-drag-item" draggable="true" data-aidx="${i}" data-aid="${a.id}"
         ondragstart="adjDragStart(event,${i})"
         ondragover="event.preventDefault();this.style.background='var(--verde-light)'"
         ondragleave="this.style.background=''"
         ondragend="document.querySelectorAll('#adj-drag-list [data-aidx]').forEach(el=>{el.style.background='';el.style.opacity='1';})"
         ondrop="adjDragDrop(event,${i})"
         style="display:flex;align-items:center;gap:4px">
-        <span style="cursor:grab;color:#ccc;font-size:15px;flex-shrink:0;user-select:none;padding:0 2px;line-height:1">⠿</span>
+        <span class="adj-handle" style="cursor:grab;color:#bbb;font-size:20px;flex-shrink:0;user-select:none;touch-action:none;padding:8px 10px 8px 4px;line-height:1">⠿</span>
         <a class="attach-item" href="${a.url}" target="_blank" rel="noopener" style="flex:1">
           <span class="attach-icon">${a.tipo==='doc'?'📄':'🔗'}</span>
           <span class="attach-label">${a.titulo||a.url}</span>
@@ -2372,6 +2372,11 @@ function renderAdjLista(provId) {
         <button onclick="editAdj(${a.id})" title="Editar" style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:15px;padding:2px 6px;flex-shrink:0">✎</button>
         <button onclick="deleteAdj(${a.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:2px 4px;flex-shrink:0">✕</button>
       </div>`).join('')}</div>`:'');
+  // Touch drag para móvil
+  document.querySelectorAll('#adj-drag-list .adj-drag-item').forEach(function(row) {
+    var handle = row.querySelector('.adj-handle');
+    if (handle) addTouchDrag(handle, row, 'adj', null, null);
+  });
 }
 
 async function saveAdjunto() {
@@ -2455,16 +2460,22 @@ async function adjDragDrop(e,targetIdx){
   e.preventDefault(); e.currentTarget.style.background='';
   if(adjDragIdx===null||adjDragIdx===targetIdx){adjDragIdx=null;return;}
   const provId=adjDragProvId;
-  const list=adjuntos.filter(a=>a.proveedor_id==provId&&a.tipo!=='foto');
-  const moved=list.splice(adjDragIdx,1)[0]; list.splice(targetIdx,0,moved);
+  await doAdjReorder(adjDragIdx, targetIdx, provId);
+  adjDragIdx=null;
+}
+async function doAdjReorder(srcIdx, tgtIdx, provId) {
+  provId = provId || document.getElementById('adj-prov-id').value;
   const fotos=adjuntos.filter(a=>a.proveedor_id==provId&&a.tipo==='foto');
   const rest=adjuntos.filter(a=>a.proveedor_id!=provId);
-  adjuntos=[...rest,...fotos,...list]; adjDragIdx=null;
+  const list=adjuntos.filter(a=>a.proveedor_id==provId&&a.tipo!=='foto');
+  const moved=list.splice(srcIdx,1)[0]; list.splice(tgtIdx,0,moved);
+  adjuntos=[...rest,...fotos,...list];
   renderAdjLista(provId);
   renderProveedores();
   setSyncState('loading');
   await Promise.all(list.map((a,i)=>db.from('hes_adjuntos').update({orden:i}).eq('id',a.id)));
   setSyncState('ok');
+  toast('Orden guardado ✓');
 }
 
 function verFoto(url) {
@@ -2489,13 +2500,13 @@ function renderPrecioLista(provId) {
       <th style="width:20px;color:#aaa">⠿</th>
       <th>Producto</th><th>Precio</th><th>Unidad</th><th></th>
     </tr></thead><tbody>
-    ${pp.map((r,i)=>`<tr draggable="true" data-pid="${r.id}" data-pidx="${i}"
+    ${pp.map((r,i)=>`<tr class="precio-drag-row" draggable="true" data-pid="${r.id}" data-pidx="${i}"
       ondragstart="precioDragStart(event,${i})"
       ondragover="event.preventDefault();event.currentTarget.classList.add('drag-over')"
       ondragleave="event.currentTarget.classList.remove('drag-over')"
       ondragend="event.currentTarget.classList.remove('dragging','drag-over');document.querySelectorAll('#precio-lista tr').forEach(t=>t.classList.remove('drag-over'))"
       ondrop="precioDragDrop(event,${i})">
-      <td style="cursor:grab;color:#ccc;text-align:center;font-size:16px;user-select:none">⠿</td>
+      <td class="precio-handle" style="cursor:grab;color:#bbb;text-align:center;font-size:20px;user-select:none;touch-action:none;padding:10px 8px">⠿</td>
       <td><strong>${r.producto}</strong>${r.notas?`<br><small style="color:var(--muted)">${r.notas}</small>`:''}</td>
       <td>${fmtPrecio(r.precio, r.moneda)}</td>
       <td>${r.unidad||'—'}</td>
@@ -2507,6 +2518,11 @@ function renderPrecioLista(provId) {
       </td>
     </tr>`).join('')}
     </tbody></table>`;
+  // Touch drag para móvil
+  document.querySelectorAll('#precio-lista .precio-drag-row').forEach(function(row) {
+    var handle = row.querySelector('.precio-handle');
+    if (handle) addTouchDrag(handle, row, 'precio', null, null);
+  });
 }
 
 async function savePrecio() {
@@ -2584,20 +2600,22 @@ async function precioDragDrop(e, targetIdx) {
   e.preventDefault();
   e.currentTarget.classList.remove('drag-over');
   if (precioDragIdx === null || precioDragIdx === targetIdx) { precioDragIdx = null; return; }
-  const provId = precioDragProvId;
+  await doPrecioReorder(precioDragIdx, targetIdx, precioDragProvId);
+  precioDragIdx = null;
+}
+async function doPrecioReorder(srcIdx, tgtIdx, provId) {
+  provId = provId || document.getElementById('precio-prov-id').value;
   const pp = precios.filter(r => r.proveedor_id == provId);
-  const moved = pp.splice(precioDragIdx, 1)[0];
-  pp.splice(targetIdx, 0, moved);
-  // Update orden in local array
+  const moved = pp.splice(srcIdx, 1)[0];
+  pp.splice(tgtIdx, 0, moved);
   const otherPrecios = precios.filter(r => r.proveedor_id != provId);
   precios = [...otherPrecios, ...pp];
-  precioDragIdx = null;
   renderPrecioLista(provId);
   renderProveedores();
   setSyncState('loading');
-  const updates = pp.map((r, i) => db.from('hes_precios').update({ orden: i }).eq('id', r.id));
-  await Promise.all(updates);
+  await Promise.all(pp.map((r, i) => db.from('hes_precios').update({ orden: i }).eq('id', r.id)));
   setSyncState('ok');
+  toast('Orden guardado ✓');
 }
 
 async function deletePrecio(id) {
@@ -4080,11 +4098,11 @@ function addTouchDrag(handle, card, type, id, col) {
     if (touchClone) touchClone.style.display = '';
 
     // Highlight target
-    document.querySelectorAll('.task-card,.prov-card').forEach(c => c.classList.remove('drag-over'));
-    document.querySelectorAll('.doc-card,.cliente-card').forEach(c => { c.style.background=''; });
-    const targetCard = elUnder ? elUnder.closest('.task-card, .prov-card, .doc-card, .cliente-card') : null;
+    document.querySelectorAll('.task-card,.prov-card,.precio-drag-row').forEach(c => c.classList.remove('drag-over'));
+    document.querySelectorAll('.doc-card,.cliente-card,.adj-drag-item').forEach(c => { c.style.background=''; });
+    const targetCard = elUnder ? elUnder.closest('.task-card, .prov-card, .doc-card, .cliente-card, .adj-drag-item, .precio-drag-row') : null;
     if (targetCard && targetCard !== touchDragState.card) {
-      if (targetCard.classList.contains('doc-card') || targetCard.classList.contains('cliente-card')) {
+      if (targetCard.classList.contains('doc-card') || targetCard.classList.contains('cliente-card') || targetCard.classList.contains('adj-drag-item')) {
         targetCard.style.background = 'var(--verde-light)';
       } else {
         targetCard.classList.add('drag-over');
@@ -4099,13 +4117,13 @@ function addTouchDrag(handle, card, type, id, col) {
     const touch = e.changedTouches[0];
     if (touchClone) { touchClone.remove(); touchClone = null; }
     touchDragState.card.classList.remove('dragging');
-    document.querySelectorAll('.task-card,.prov-card').forEach(c => c.classList.remove('drag-over'));
-    document.querySelectorAll('.doc-card,.cliente-card').forEach(c => { c.style.background=''; });
+    document.querySelectorAll('.task-card,.prov-card,.precio-drag-row').forEach(c => c.classList.remove('drag-over'));
+    document.querySelectorAll('.doc-card,.cliente-card,.adj-drag-item').forEach(c => { c.style.background=''; });
 
     // Find drop target
     if (touchClone) touchClone.style.display = 'none';
     const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
-    const targetCard = elUnder ? elUnder.closest('.task-card, .prov-card, .doc-card, .cliente-card') : null;
+    const targetCard = elUnder ? elUnder.closest('.task-card, .prov-card, .doc-card, .cliente-card, .adj-drag-item, .precio-drag-row') : null;
 
     if (targetCard && targetCard !== touchDragState.card) {
       if (touchDragState.type === 'task') {
@@ -4138,6 +4156,22 @@ function addTouchDrag(handle, card, type, id, col) {
         const tgtIdx = parseInt(targetCard.dataset.idx);
         if (!isNaN(tgtIdx) && tgtIdx !== srcIdx) {
           await doCliReorder(srcIdx, tgtIdx);
+        }
+      } else if (touchDragState.type === 'adj') {
+        if (targetCard.classList.contains('adj-drag-item')) {
+          const srcIdx = parseInt(touchDragState.card.dataset.aidx);
+          const tgtIdx = parseInt(targetCard.dataset.aidx);
+          if (!isNaN(tgtIdx) && tgtIdx !== srcIdx) {
+            await doAdjReorder(srcIdx, tgtIdx, null);
+          }
+        }
+      } else if (touchDragState.type === 'precio') {
+        if (targetCard.classList.contains('precio-drag-row')) {
+          const srcIdx = parseInt(touchDragState.card.dataset.pidx);
+          const tgtIdx = parseInt(targetCard.dataset.pidx);
+          if (!isNaN(tgtIdx) && tgtIdx !== srcIdx) {
+            await doPrecioReorder(srcIdx, tgtIdx, null);
+          }
         }
       }
     }

@@ -765,12 +765,10 @@ window.addEventListener('load', function() {
             <option value="0.60">Atmosférico — termosifón, sin bomba</option>
             <option value="0.70">Presurizado — circulación forzada</option>
           </select></div>
-        <div class="calc-field"><label>Cobertura solar</label>
-          <select id="d-cobertura" onchange="calcular()">
-            <option value="0.60">60%</option>
-            <option value="0.70" selected>70%</option>
-            <option value="0.80">80%</option>
-          </select></div>
+        <div class="calc-field"><label>Cobertura solar (%)</label>
+          <input type="number" id="d-cobertura" value="70" min="10" max="100" step="5" oninput="calcular()" placeholder="ej: 70">
+          <span style="font-size:10px;color:var(--muted)">Ingresá el % deseado (ej: 75 para 75%)</span>
+          </div>
       </div>
       <div class="calc-card">
         <h3>Dimensionamiento</h3>
@@ -855,12 +853,14 @@ window.addEventListener('load', function() {
             </select>
           </div>
 
+          <!-- HSP — siempre visible (usado en fórmula; en PVGIS se guarda como referencia) -->
+          <div class="calc-field">
+            <label>HSP del sitio (h/día) <span id="fv-zona-modo-hint" style="font-weight:400;color:var(--muted);font-size:10px">— usado en la fórmula</span></label>
+            <input type="number" id="fv-zona" value="4.7" min="1.0" max="8.0" step="0.1" oninput="calcularFV()">
+          </div>
+
           <!-- Bloque fórmula clásica -->
           <div id="fv-bloque-formula">
-            <div class="calc-field">
-              <label>HSP promedio anual (h/día)</label>
-              <input type="number" id="fv-zona" value="4.7" min="1.0" max="8.0" step="0.1" oninput="calcularFV()">
-            </div>
             <div class="calc-field">
               <label>Performance Ratio (PR)</label>
               <input type="number" id="fv-pr" value="0.80" min="0.50" max="1.00" step="0.01" oninput="calcularFV()">
@@ -878,8 +878,15 @@ window.addEventListener('load', function() {
               <span style="color:var(--muted)">En PVGIS: E_m = Energía mensual por kWp instalado.</span>
             </div>
             <div id="fv-pvgis-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px"></div>
-            <div style="font-size:11px;color:var(--muted);padding:0 2px">
-              Total ingresado: <strong id="fv-pvgis-total">0 kWh/kWp·año</strong>
+            <div style="font-size:11px;color:var(--muted);padding:0 2px;display:flex;flex-wrap:wrap;gap:10px">
+              <span>Total ingresado: <strong id="fv-pvgis-total">0 kWh/kWp·año</strong></span>
+              <span id="fv-pvgis-ref-wrap" style="display:none">· Generación de referencia: <strong id="fv-pvgis-ref-avg" style="color:var(--teal)">— kWh/mes</strong></span>
+            </div>
+            <div class="calc-field" style="margin-top:8px">
+              <label style="font-size:11px;font-weight:600">kWp del sistema simulado en PVGIS</label>
+              <input type="number" id="fv-pvgis-kwp" value="1" min="0.1" step="0.1" oninput="calcularFV()"
+                style="width:100%;padding:6px 8px;border:1.5px solid var(--gris-borde);border-radius:6px;font-size:13px;font-family:inherit">
+              <span style="font-size:10px;color:var(--muted)">Si PVGIS simuló el sistema completo (ej: 4.4 kWp), ingresá 4.4. Los valores mensuales se dividen automáticamente para normalizar a 1 kWp.</span>
             </div>
           </div>
 
@@ -1314,6 +1321,18 @@ window.addEventListener('load', function() {
 </div><!-- /main -->
 
 <!-- ══ MODAL DOCUMENTO ══ -->
+<!-- ══ MODAL MOVER DOC ══ -->
+<div class="modal-overlay" id="modal-doc-mover" style="display:none">
+  <div class="modal" style="max-width:380px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h2 style="margin:0;font-size:15px">📂 Mover a bloque</h2>
+      <button onclick="closeModal('modal-doc-mover')" style="background:none;border:none;font-size:22px;cursor:pointer;color:#999;padding:0">×</button>
+    </div>
+    <input type="hidden" id="doc-mover-id">
+    <div id="doc-mover-opciones" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-doc">
   <div class="modal" style="max-width:480px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -2631,7 +2650,7 @@ function calcular() {
   const tred=parseFloat(document.getElementById('d-tred').value)||15;
   const hsp=parseFloat(document.getElementById('d-zona').value)||4.2;
   const eta=parseFloat(document.getElementById('d-tipo').value)||0.60;
-  const cobertura=parseFloat(document.getElementById('d-cobertura').value)||0.70;
+  const cobertura=(parseFloat(document.getElementById('d-cobertura').value)||70)/100;
   const area=((personas*litros*(tacum-tred)*1.16/1000)*365*cobertura)/(hsp*eta*365);
   const colectores=Math.ceil(area/2);
   const acum=Math.round(area*65);
@@ -2684,16 +2703,27 @@ function getFVData() {
   let pvgisMeses = []; // kWh/kWp por mes (12 valores)
 
   if (genModo === 'pvgis') {
-    // Lee los 12 campos PVGIS (kWh por kWp instalado)
+    // Lee los 12 campos PVGIS y normaliza por kWp simulados (para cuando el usuario copia valores del sistema completo)
+    const pvgisKwp = Math.max(0.1, parseFloat((document.getElementById('fv-pvgis-kwp')||{value:'1'}).value)||1);
     const nombres = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     pvgisMeses = nombres.map((_,i)=>{
       const el = document.getElementById('fv-pvgis-'+i);
-      return el ? (parseFloat(el.value)||0) : 0;
+      return el ? (parseFloat(el.value)||0) / pvgisKwp : 0;
     });
     pvgisAnual = pvgisMeses.reduce((a,b)=>a+b,0);
-    // Muestra total ingresado
+    // Muestra total ingresado (normalizado) y generación de referencia del sistema PVGIS original
     const totEl = document.getElementById('fv-pvgis-total');
     if(totEl) totEl.textContent = Math.round(pvgisAnual)+' kWh/kWp·año';
+    // Generación de referencia = promedio mensual del sistema completo simulado en PVGIS
+    const refWrap = document.getElementById('fv-pvgis-ref-wrap');
+    const refAvg  = document.getElementById('fv-pvgis-ref-avg');
+    if(pvgisAnual > 0 && pvgisKwp > 0) {
+      const refKwhMes = Math.round(pvgisAnual * pvgisKwp / 12);
+      if(refWrap) refWrap.style.display = '';
+      if(refAvg)  refAvg.textContent = refKwhMes.toLocaleString('es-AR') + ' kWh/mes (sistema ref. ' + pvgisKwp.toFixed(1) + ' kWp)';
+    } else {
+      if(refWrap) refWrap.style.display = 'none';
+    }
 
     if (pvgisAnual <= 0) {
       // Sin datos PVGIS todavía, usa fórmula clásica como fallback
@@ -2702,8 +2732,16 @@ function getFVData() {
       paneles = Math.max(1, Math.ceil(kwpNecesario*1000/panelW));
       kwpReal = (paneles*panelW)/1000;
       genAnual = kwpReal*hsp*pr*365;
+    } else if (pvgisKwp > 1.05) {
+      // Usuario ingresó la producción del sistema completo (ej: 4.4 kWp simulado en PVGIS)
+      // → usar ese sistema directamente como resultado sin escalar por consumo
+      kwpNecesario = pvgisKwp;
+      paneles = Math.max(1, Math.ceil(pvgisKwp * 1000 / panelW));
+      kwpReal = parseFloat((paneles * panelW / 1000).toFixed(2));
+      const rawAnual = pvgisAnual * pvgisKwp; // recupera producción total original
+      genAnual = rawAnual;
     } else {
-      // kWp necesario = (E_C_anual × cobertura) / (kWh/kWp·año de PVGIS)
+      // kWp = 1 (valores por kWp): escala según consumo y cobertura objetivo
       kwpNecesario = (anual * cobertura) / pvgisAnual;
       paneles = Math.max(1, Math.ceil(kwpNecesario*1000/panelW));
       kwpReal = (paneles*panelW)/1000;
@@ -2754,9 +2792,13 @@ function fvToggleGenModo(){
   if(modo==='pvgis'){
     bloqF.style.display='none';
     bloqP.style.display='block';
+    var hint = document.getElementById('fv-zona-modo-hint');
+    if(hint) hint.textContent = '— de PVGIS (referencia)';
   } else {
     bloqF.style.display='block';
     bloqP.style.display='none';
+    var hint = document.getElementById('fv-zona-modo-hint');
+    if(hint) hint.textContent = '— usado en la fórmula';
   }
 }
 
@@ -2925,6 +2967,16 @@ function calcularOffGrid() {
 
   if (!totalW && !totalWh) {
     document.getElementById('og-r-resumen').innerHTML = 'Agregá cargas para ver el dimensionamiento.';
+    // Limpiar pasos y tabla al quedar sin cargas
+    ['og-step-inversor','og-step-paneles','og-step-baterias','og-step-regulador'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.textContent = '—';
+    });
+    ['og-tabla-inv-calc','og-tabla-pan-calc','og-tabla-reg-calc','og-tabla-bat-calc'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.textContent = '—';
+    });
+    ['og-modelo-inversor','og-modelo-panel','og-modelo-regulador','og-modelo-bateria'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.value = '';
+    });
     return;
   }
 
@@ -3183,7 +3235,7 @@ function exportarPDFog() {
   if (!cliente) { toast('Ingresá el nombre del cliente antes de exportar'); return; }
   document.getElementById('pdf-propuesta').innerHTML = construirPropuestaOG();
   var t = document.title; document.title = ' ';
-  setTimeout(function() { window.print(); document.title = t; }, 120);
+  setTimeout(function() { window.print(); document.title = t; limpiarDimensionOG(); }, 120);
 }
 
 async function guardarDimOG() {
@@ -3195,11 +3247,18 @@ async function guardarDimOG() {
   var eta     = parseFloat(document.getElementById('og-bateria-tipo').value)   || 0.70;
   var pr      = parseFloat(document.getElementById('og-pr').value)             || 0.75;
   var totalW = 0, totalWh = 0;
+  var cargasArr = [];
   document.querySelectorAll('#og-cargas-tbody tr').forEach(function(tr) {
+    var nombreInput = tr.querySelector('td input[type=text]');
+    var nombre = nombreInput ? (nombreInput.value.trim().replace(/[:;|]/g, '-') || 'Carga') : 'Carga';
     var w = parseFloat(tr.querySelector('.og-w') ? tr.querySelector('.og-w').value : 0) || 0;
     var h = parseFloat(tr.querySelector('.og-h') ? tr.querySelector('.og-h').value : 0) || 0;
     totalW += w; totalWh += w * h;
+    if (w > 0 || h > 0) cargasArr.push(nombre + ':' + w + ':' + h);
   });
+  var cargasStr = cargasArr.length > 0 ? ' | CARGAS=' + cargasArr.join(';') : '';
+  var ogUbic = (document.getElementById('fv-ubicacion').value.trim().replace(/\|/g, '-')) || '';
+  var ubicStr = ogUbic ? ' | UBIC=' + ogUbic : '';
   var ps       = Math.ceil(totalWh / (hsp * pr));
   var nPaneles = Math.ceil(ps / panelW);
   var kwpReal  = parseFloat((nPaneles * panelW / 1000).toFixed(2));
@@ -3217,7 +3276,7 @@ async function guardarDimOG() {
     personas:   0,
     litros_dia: Math.round(totalWh) || 0,
     zona:       zonaTxt,
-    tipo:       'FV | Off-Grid | ' + panelTxt + ' | Inv ≥ ' + totalW + 'W | E_R=' + totalWh + ' Wh/día | ' + capAh + 'Ah·' + tension + 'V',
+    tipo:       'FV | Off-Grid | ' + panelTxt + ' | Inv ≥ ' + totalW + 'W | E_R=' + totalWh + ' Wh/día | ' + capAh + 'Ah·' + tension + 'V' + cargasStr + ' | ETA=' + eta + ' | OPR=' + pr + ubicStr,
     colectores: nPaneles  || 0,
     acumulador: capAh     || 0,
     bomba:      iReg      || 0,
@@ -3225,17 +3284,23 @@ async function guardarDimOG() {
   };
 
   setSyncState('loading');
-  const { error } = await db.from('hes_presupuestos').insert([payload]);
-  if (error) {
-    console.error('Error guardando Off-Grid:', error);
+  var wasEditingOG = !!_dimEditFV;
+  var ogResult = wasEditingOG
+    ? await db.from('hes_presupuestos').update(payload).eq('id', _dimEditFV.id)
+    : await db.from('hes_presupuestos').insert([payload]);
+  if (ogResult.error) {
+    console.error('Error guardando Off-Grid:', ogResult.error);
     setSyncState('error');
-    toast('Error al guardar: ' + (error.message || 'revisar Supabase'));
+    toast('Error al guardar: ' + (ogResult.error.message || 'revisar Supabase'));
     return;
   }
+  _dimEditFV = null;
+  document.getElementById('dim-edit-banner-fv').style.display = 'none';
   await loadPresupuestos();
-  limpiarDimensionOG();
-  toast('✅ Dimensionamiento Off-Grid guardado');
+  toast(wasEditingOG ? '✅ Off-Grid actualizado' : '✅ Dimensionamiento Off-Grid guardado');
   setSyncState('ok');
+  // Limpiar formulario después de que el render de loadPresupuestos se complete
+  setTimeout(function() { limpiarDimensionOG(); }, 50);
 }
 
 
@@ -3247,7 +3312,7 @@ function construirPropuestaTermica() {
   const tred = parseFloat(document.getElementById('d-tred').value) || 15;
   const zona = document.getElementById('d-zona').options[document.getElementById('d-zona').selectedIndex].text;
   const tipo = parseFloat(document.getElementById('d-tipo').value) < 0.65 ? 'Atmosférico' : 'Presurizado';
-  const cobertura = parseFloat(document.getElementById('d-cobertura').value) || 0.70;
+  const cobertura = (parseFloat(document.getElementById('d-cobertura').value)||70)/100;
 
   const area = document.getElementById('r-area').textContent;
   const colectores = document.getElementById('r-colectores').textContent;
@@ -3355,35 +3420,55 @@ function limpiarDimensionTermica() {
   document.getElementById('d-tred').value = 15;
   document.getElementById('d-zona').selectedIndex = 0;
   document.getElementById('d-tipo').selectedIndex = 0;
-  document.getElementById('d-cobertura').value = '0.70';
+  document.getElementById('d-cobertura').value = '70';
   calcular();
 }
 
 function limpiarDimensionOG() {
-  // Limpiar cliente y ubicación (campos compartidos con FV tab)
-  var cli = document.getElementById('fv-cliente');
-  if (cli) cli.value = '';
-  var ubic = document.getElementById('fv-ubicacion');
-  if (ubic) ubic.value = '';
-  // Zona, panel, tensión, batería, PR → volver a defaults
-  var ogZona = document.getElementById('og-zona');
-  if (ogZona) ogZona.value = '2.8';
-  var ogPanel = document.getElementById('og-panel');
-  if (ogPanel) ogPanel.value = '400';
-  var ogTension = document.getElementById('og-tension');
-  if (ogTension) ogTension.value = '24';
-  var ogBat = document.getElementById('og-bateria-tipo');
-  if (ogBat) ogBat.value = '0.70';
-  var ogPR = document.getElementById('og-pr');
-  if (ogPR) ogPR.value = '0.75';
-  // Vaciar tabla de cargas y dejar una fila vacía
-  var tbody = document.getElementById('og-cargas-tbody');
-  if (tbody) { tbody.innerHTML = ''; ogFilaIdx = 0; agregarCargaOG(); }
-  // Limpiar modelos seleccionados
-  ['og-modelo-inversor','og-modelo-panel','og-modelo-regulador','og-modelo-bateria'].forEach(function(id){
-    var el = document.getElementById(id); if (el) el.value = '';
+  // — Limpiar resultados PRIMERO (antes de cualquier recalculo) —
+  ['og-step-inversor','og-step-paneles','og-step-baterias','og-step-regulador'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.textContent = '—';
   });
-  calcularOffGrid();
+  ['og-tabla-inv-calc','og-tabla-pan-calc','og-tabla-reg-calc','og-tabla-bat-calc'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.textContent = '—';
+  });
+  ['og-modelo-inversor','og-modelo-panel','og-modelo-regulador','og-modelo-bateria'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = '';
+  });
+  var totW = document.getElementById('og-total-w');   if(totW)  totW.textContent  = '0 W';
+  var totWh = document.getElementById('og-total-wh'); if(totWh) totWh.textContent = '0 Wh/día';
+  var rPot  = document.getElementById('og-r-potencia'); if(rPot) rPot.textContent = '0';
+  var rEr   = document.getElementById('og-r-er');       if(rEr)  rEr.textContent  = '0';
+  var res   = document.getElementById('og-r-resumen');
+  if(res) res.innerHTML = 'Agregá cargas para ver el dimensionamiento.';
+
+  // — Limpiar campos de entrada —
+  var cli = document.getElementById('fv-cliente');   if(cli)  cli.value = '';
+  var ubic = document.getElementById('fv-ubicacion'); if(ubic) ubic.value = '';
+  var ogZona = document.getElementById('og-zona');   if(ogZona) ogZona.value = '2.8';
+  var ogHsp  = document.getElementById('og-hsp-display'); if(ogHsp) ogHsp.textContent = '2.8 h/día';
+  var ogPanel = document.getElementById('og-panel'); if(ogPanel) ogPanel.value = '400';
+  var ogTen   = document.getElementById('og-tension'); if(ogTen)  ogTen.value  = '24';
+  var ogBat   = document.getElementById('og-bateria-tipo'); if(ogBat) ogBat.value = '0.70';
+  var ogPR    = document.getElementById('og-pr');    if(ogPR)   ogPR.value   = '0.75';
+
+  // — Vaciar tabla de cargas y dejar una fila vacía —
+  var tbody = document.getElementById('og-cargas-tbody');
+  if(tbody) { tbody.innerHTML = ''; ogFilaIdx = 0; }
+  // Agregar fila vacía sin disparar calcularOffGrid todavía
+  if(tbody) {
+    var idx = ogFilaIdx++;
+    var tr = document.createElement('tr');
+    tr.id = 'og-fila-' + idx;
+    tr.style.borderBottom = '1px solid var(--gris-borde)';
+    tr.innerHTML =
+      '<td style="padding:4px 6px"><input type="text" placeholder="Ej: Heladera" value="" style="width:100%;border:1.5px solid var(--gris-borde);border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit"></td>' +
+      '<td style="padding:4px 6px"><input type="number" min="0" placeholder="W" value="" oninput="calcularOffGrid()" style="width:80px;border:1.5px solid var(--gris-borde);border-radius:6px;padding:5px 8px;font-size:12px;text-align:center;font-family:inherit" class="og-w"></td>' +
+      '<td style="padding:4px 6px"><input type="number" min="0" step="0.5" placeholder="h" value="" oninput="calcularOffGrid()" style="width:70px;border:1.5px solid var(--gris-borde);border-radius:6px;padding:5px 8px;font-size:12px;text-align:center;font-family:inherit" class="og-h"></td>' +
+      '<td style="padding:4px 6px;text-align:center;font-weight:700;font-size:13px;color:var(--teal)" class="og-wh">0</td>' +
+      '<td style="padding:4px 2px;text-align:center"><button onclick="eliminarCargaOG(\'og-fila-'+idx+'\')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:4px" title="Eliminar">✕</button></td>';
+    tbody.appendChild(tr);
+  }
 }
 
 function limpiarDimensionFV() {
@@ -3401,6 +3486,19 @@ function limpiarDimensionFV() {
     const el = document.getElementById('fv-mes-' + i);
     if (el) el.value = '';
   }
+  // Volver al modo fórmula y limpiar campos PVGIS
+  const genModoEl = document.getElementById('fv-gen-modo');
+  if (genModoEl) { genModoEl.value = 'formula'; fvToggleGenModo(); }
+  const pvgisKwpEl = document.getElementById('fv-pvgis-kwp');
+  if (pvgisKwpEl) pvgisKwpEl.value = '1';
+  for (let i = 0; i < 12; i++) {
+    const el = document.getElementById('fv-pvgis-' + i);
+    if (el) el.value = '';
+  }
+  const totEl = document.getElementById('fv-pvgis-total');
+  if (totEl) totEl.textContent = '0 kWh/kWp·año';
+  const refWrap = document.getElementById('fv-pvgis-ref-wrap');
+  if (refWrap) refWrap.style.display = 'none';
   calcularFV();
 }
 
@@ -3415,7 +3513,10 @@ async function guardarDim() {
     personas: parseInt(document.getElementById('d-personas').value) || 0,
     litros_dia: parseInt(document.getElementById('d-litros').value) || 0,
     zona: document.getElementById('d-zona').options[document.getElementById('d-zona').selectedIndex].text,
-    tipo: 'Térmica | ' + (parseFloat(document.getElementById('d-tipo').value) < 0.65 ? 'Atmosférico' : 'Presurizado'),
+    tipo: 'Térmica | ' + (parseFloat(document.getElementById('d-tipo').value) < 0.65 ? 'Atmosférico' : 'Presurizado') +
+          ' | TACUM=' + (document.getElementById('d-tacum').value || 55) +
+          ' | TRED='  + (document.getElementById('d-tred').value  || 15) +
+          ' | COB='   + ((parseFloat(document.getElementById('d-cobertura').value)||70)/100),
     colectores: parseInt(document.getElementById('r-colectores').textContent) || 0,
     acumulador: parseInt(document.getElementById('r-acum').textContent) || 0,
     bomba: parseInt(document.getElementById('r-bomba').textContent) || 0,
@@ -3447,12 +3548,17 @@ async function guardarDimFV() {
   const zonaTxt = document.getElementById('fv-zona').value + ' h/día';
   const panelTxt = document.getElementById('fv-panel').options[document.getElementById('fv-panel').selectedIndex].text;
   const sistemaTxt = d.sistema === 'offgrid' ? 'Off-Grid' : 'On-Grid';
+  const mesesStr = d.consumos.map(c=>Math.round(c.kwh)).join(',');
+  const pvgisKwpVal = Math.max(0.1, parseFloat((document.getElementById('fv-pvgis-kwp')||{value:'1'}).value)||1);
+  const pvgisStr = (d.genModo === 'pvgis' && d.pvgisAnual > 0)
+    ? ` | MODO=pvgis | PVG=${d.pvgisMeses.map(v=>(v*pvgisKwpVal).toFixed(1)).join(',')} | KWP=${pvgisKwpVal}`
+    : '';
   const payload = {
     cliente: cliente,
     personas: 0,
     litros_dia: Math.round(d.promedio) || 0,
     zona: zonaTxt,
-    tipo: `FV | ${sistemaTxt} | ${panelTxt} | Inv ${d.inversor} kW | ${Math.round(d.genMes)} kWh/mes | Ahorro ${moneyARS(d.ahorroMes)}/mes`,
+    tipo: `FV | ${sistemaTxt} | ${panelTxt} | Inv ${d.inversor} kW | ${Math.round(d.genMes)} kWh/mes | Ahorro ${moneyARS(d.ahorroMes)}/mes | COB=${Math.round(d.cobertura*100)} | TAR=${d.tarifa} | PR=${d.pr} | MES=${mesesStr}${pvgisStr} | UBIC=${(document.getElementById('fv-ubicacion').value.trim().replace(/\|/g,'-'))||''}`,
     colectores: d.paneles || 0,
     acumulador: d.sistema === 'offgrid' ? (parseInt(d.bateria) || 0) : 0,
     bomba: Math.round(d.ahorroAnual) || 0,
@@ -4008,9 +4114,16 @@ function addTouchDrag(handle, card, type, id, col) {
         }
       } else if (touchDragState.type === 'doc') {
         const srcIdx = parseInt(touchDragState.card.dataset.idx);
-        const tgtIdx = parseInt(targetCard.dataset.idx);
-        if (!isNaN(tgtIdx) && tgtIdx !== srcIdx) {
-          await doDocReorder(srcIdx, tgtIdx);
+        if (targetCard.classList.contains('doc-card')) {
+          const tgtIdx = parseInt(targetCard.dataset.idx);
+          if (!isNaN(tgtIdx) && tgtIdx !== srcIdx) {
+            await doDocReorder(srcIdx, tgtIdx, null);
+          }
+        } else {
+          // Soltado en un attach-list (bloque) directamente
+          const list = elUnder ? elUnder.closest('.attach-list') : null;
+          const targetCat = list ? list.dataset.cat : null;
+          if (targetCat) await doDocReorder(srcIdx, null, targetCat);
         }
       } else if (touchDragState.type === 'cli') {
         const srcIdx = parseInt(touchDragState.card.dataset.idx);
@@ -4025,17 +4138,28 @@ function addTouchDrag(handle, card, type, id, col) {
 }
 
 async function doTaskReorder(srcId, srcCol, tgtId, tgtCol) {
-  const col = srcCol;
-  const colTasks = tasks.filter(t=>t.columna===col);
-  const srcIdx = colTasks.findIndex(t=>String(t.id)===String(srcId));
-  const tgtIdx = colTasks.findIndex(t=>String(t.id)===String(tgtId));
-  if(srcIdx===-1||tgtIdx===-1)return;
-  const moved = colTasks.splice(srcIdx,1)[0];
-  colTasks.splice(tgtIdx,0,moved);
-  const updates = colTasks.map((t,i) => db.from('hes_tareas').update({orden:i}).eq('id',t.id));
+  const srcTask = tasks.find(t=>String(t.id)===String(srcId));
+  const tgtTask = tasks.find(t=>String(t.id)===String(tgtId));
+  if(!srcTask||!tgtTask) return;
+  setSyncState('loading');
+  const updates = [];
+  // Si cambia de sección, actualizar sección primero (permite mover entre bloques en móvil)
+  if(srcTask.seccion !== tgtTask.seccion) {
+    updates.push(db.from('hes_tareas').update({seccion: tgtTask.seccion}).eq('id', srcTask.id));
+    srcTask.seccion = tgtTask.seccion;
+  }
+  // Reordenar dentro de la sección destino
+  const secTasks = tasks.filter(t=>t.columna===srcTask.columna && t.seccion===tgtTask.seccion);
+  const srcIdx = secTasks.findIndex(t=>String(t.id)===String(srcId));
+  const tgtIdx = secTasks.findIndex(t=>String(t.id)===String(tgtId));
+  if(srcIdx!==-1 && tgtIdx!==-1) {
+    const moved = secTasks.splice(srcIdx,1)[0];
+    secTasks.splice(tgtIdx,0,moved);
+    secTasks.forEach((t,i) => updates.push(db.from('hes_tareas').update({orden:i}).eq('id',t.id)));
+  }
   await Promise.all(updates);
   await loadTasks();
-  toast('Orden guardado ✓');
+  toast('Movido ✓');
 }
 
 async function doProvReorder(srcIdx, tgtIdx) {
@@ -4090,6 +4214,107 @@ const DOC_CAT = {
   otro:        '📎 Otro',
 };
 
+var _docSwipeListenerAdded = false;
+function initDocSwipes() {
+  var REVEAL_W = 75;
+  document.querySelectorAll('.doc-swipe-wrap').forEach(function(wrap) {
+    var card = wrap.querySelector('.doc-card');
+    if (!card) return;
+    var startX = 0, startY = 0, startTX = 0, tracking = false, swipeDir = null;
+
+    card.addEventListener('touchstart', function(e) {
+      if (e.target.closest && e.target.closest('.drag-handle')) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      var m = (card.style.transform || '').match(/translateX\((-?[\d.]+)px\)/);
+      startTX = m ? parseFloat(m[1]) : 0;
+      tracking = true; swipeDir = null;
+    }, {passive: true});
+
+    card.addEventListener('touchmove', function(e) {
+      if (!tracking) return;
+      var dx = e.touches[0].clientX - startX;
+      var dy = e.touches[0].clientY - startY;
+      if (swipeDir === null) {
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6) swipeDir = 'h';
+        else if (Math.abs(dy) > 6) { swipeDir = 'v'; tracking = false; return; }
+        else return;
+      }
+      var newX = Math.min(0, Math.max(-REVEAL_W, startTX + dx));
+      card.style.transition = 'none';
+      card.style.transform = 'translateX(' + newX + 'px)';
+    }, {passive: true});
+
+    card.addEventListener('touchend', function(e) {
+      if (!tracking || swipeDir !== 'h') { tracking = false; return; }
+      tracking = false;
+      var dx = e.changedTouches[0].clientX - startX;
+      card.style.transition = 'transform .22s ease';
+      if (startTX < -10) {
+        card.style.transform = dx > REVEAL_W * 0.3 ? 'translateX(0)' : 'translateX(-' + REVEAL_W + 'px)';
+      } else {
+        card.style.transform = dx < -(REVEAL_W * 0.3) ? 'translateX(-' + REVEAL_W + 'px)' : 'translateX(0)';
+      }
+    }, {passive: true});
+  });
+
+  // Cerrar cualquier card abierta al tocar fuera (solo se agrega una vez)
+  if (!_docSwipeListenerAdded) {
+    _docSwipeListenerAdded = true;
+    document.addEventListener('touchstart', function(e) {
+      document.querySelectorAll('.doc-swipe-wrap').forEach(function(wrap) {
+        var card = wrap.querySelector('.doc-card');
+        if (!card) return;
+        var m = (card.style.transform || '').match(/translateX\((-?[\d.]+)px\)/);
+        var tx = m ? parseFloat(m[1]) : 0;
+        if (tx < -5 && !wrap.contains(e.target)) {
+          card.style.transition = 'transform .22s ease';
+          card.style.transform = 'translateX(0)';
+        }
+      });
+    }, {passive: true});
+  }
+}
+
+function moverDocBloque(id) {
+  // Cerrar el swipe del card actual
+  document.querySelectorAll('.doc-swipe-wrap').forEach(function(wrap) {
+    var card = wrap.querySelector('.doc-card');
+    if (card) { card.style.transition = 'transform .22s ease'; card.style.transform = 'translateX(0)'; }
+  });
+  document.getElementById('doc-mover-id').value = id;
+  const d = documentos.find(function(x){ return String(x.id) === String(id); });
+  const catActual = d ? (d.categoria || 'otro') : '';
+  const opcDiv = document.getElementById('doc-mover-opciones');
+  opcDiv.innerHTML = Object.entries(DOC_CAT).map(function(entry) {
+    const k = entry[0], v = entry[1];
+    const esActual = k === catActual;
+    return '<button onclick="confirmarMoverDoc(\'' + k + '\')" style="' +
+      'padding:12px 14px;border-radius:8px;font-size:14px;text-align:left;cursor:pointer;' +
+      'border:2px solid ' + (esActual ? 'var(--verde)' : 'var(--gris-borde)') + ';' +
+      'background:' + (esActual ? 'var(--verde-light)' : 'var(--card-bg)') + ';' +
+      'color:var(--text);font-weight:' + (esActual ? '600' : '400') + ';' +
+      '">' + v + (esActual ? ' <span style="font-size:11px;color:var(--verde)">(actual)</span>' : '') + '</button>';
+  }).join('');
+  openOverlay('modal-doc-mover');
+}
+
+async function confirmarMoverDoc(newCat) {
+  const id = document.getElementById('doc-mover-id').value;
+  if (!id) return;
+  const idx = documentos.findIndex(function(x){ return String(x.id) === String(id); });
+  if (idx === -1) return;
+  const d = documentos[idx];
+  if (d.categoria === newCat) { closeModal('modal-doc-mover'); return; }
+  d.categoria = newCat;
+  closeModal('modal-doc-mover');
+  renderDocs();
+  setSyncState('loading');
+  await db.from('hes_documentos').update({ categoria: newCat }).eq('id', d.id);
+  setSyncState('ok');
+  toast('Documento movido ✓');
+}
+
 async function loadDocs() {
   const { data, error } = await db.from('hes_documentos').select('*').order('orden',{nullsFirst:true}).order('created_at');
   if (error) { console.warn('hes_documentos no existe aún'); documentos = []; return; }
@@ -4110,25 +4335,33 @@ function renderDocs() {
     return `
     <div style="margin-bottom:20px">
       <div class="section-label">${label}</div>
-      <div class="attach-list" id="doc-cat-${cat}" style="margin-top:6px">
+      <div class="attach-list" id="doc-cat-${cat}" data-cat="${cat}" style="margin-top:6px"
+        ondragover="event.preventDefault();this.style.background='var(--verde-light)'"
+        ondragleave="this.style.background=''"
+        ondrop="event.preventDefault();this.style.background='';const srcIdx=docDragIdx;const cat=this.dataset.cat;if(srcIdx!==null){const lastInCat=documentos.reduce((a,d,i)=>(d.categoria||'otro')===cat?i:a,-1);doDocReorder(srcIdx,lastInCat>=0?lastInCat+1:null,cat);docDragIdx=null;}">
         ${docs.map((d,idx)=>{
           const globalIdx = documentos.findIndex(x=>x.id===d.id);
           return `
-        <div class="doc-card" draggable="true" data-idx="${globalIdx}" data-id="${d.id}"
-          style="display:flex;align-items:center;gap:4px;background:var(--gris);border:none;border-radius:7px;padding:2px 4px 2px 0;transition:background .15s;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;"
-          ondragstart="docDragStart(event,${globalIdx})"
-          ondragover="event.preventDefault();event.currentTarget.style.background='var(--verde-light)'"
-          ondragleave="event.currentTarget.style.background='var(--gris)'"
-          ondragend="event.currentTarget.style.background='var(--gris)';document.querySelectorAll('.doc-card').forEach(c=>{c.style.background='var(--gris)';})"
-          ondrop="docDragDrop(event,${globalIdx})">
-          <span class="drag-handle" style="font-size:15px;padding:0 4px;color:var(--muted);user-select:none;touch-action:none;cursor:grab">⠿</span>
-          <a class="attach-item" href="${d.url||'#'}" target="_blank" rel="noopener"
-            style="flex:1;background:transparent;border:none;padding:7px 4px 7px 0">
-            <span class="attach-icon">${d.url?'🔗':'📄'}</span>
-            <span class="attach-label">${d.titulo||'Sin título'}${d.descripcion?`<span style="display:block;font-size:10px;color:var(--muted);font-weight:400;white-space:normal;margin-top:1px">${d.descripcion}</span>`:''}</span>
-          </a>
-          <button onclick="event.stopPropagation();openDocModal('${d.id}')" title="Editar"
-            style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:17px;padding:4px 8px;flex-shrink:0">✎</button>
+        <div class="doc-swipe-wrap" style="position:relative;overflow:hidden;border-radius:7px;margin-bottom:2px">
+          <div style="position:absolute;right:0;top:0;bottom:0;width:75px;background:#2563eb;display:flex;align-items:center;justify-content:center;border-radius:0 7px 7px 0">
+            <button onclick="moverDocBloque('${d.id}')" style="background:none;border:none;color:#fff;font-size:11px;font-weight:700;cursor:pointer;padding:0 6px;line-height:1.5;text-align:center;pointer-events:all">📂<br>Mover</button>
+          </div>
+          <div class="doc-card" draggable="true" data-idx="${globalIdx}" data-id="${d.id}"
+            style="display:flex;align-items:center;gap:4px;background:var(--gris);border:none;border-radius:7px;padding:2px 4px 2px 0;position:relative;z-index:1;transform:translateX(0);will-change:transform;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;"
+            ondragstart="docDragStart(event,${globalIdx})"
+            ondragover="event.preventDefault();event.currentTarget.style.background='var(--verde-light)'"
+            ondragleave="event.currentTarget.style.background='var(--gris)'"
+            ondragend="event.currentTarget.style.background='var(--gris)';document.querySelectorAll('.doc-card').forEach(c=>{c.style.background='var(--gris)';})"
+            ondrop="docDragDrop(event,${globalIdx})">
+            <span class="drag-handle" style="font-size:15px;padding:0 4px;color:var(--muted);user-select:none;touch-action:none;cursor:grab">⠿</span>
+            <a class="attach-item" href="${d.url||'#'}" target="_blank" rel="noopener"
+              style="flex:1;background:transparent;border:none;padding:7px 4px 7px 0">
+              <span class="attach-icon">${d.url?'🔗':'📄'}</span>
+              <span class="attach-label">${d.titulo||'Sin título'}${d.descripcion?`<span style="display:block;font-size:10px;color:var(--muted);font-weight:400;white-space:normal;margin-top:1px">${d.descripcion}</span>`:''}</span>
+            </a>
+            <button onclick="event.stopPropagation();openDocModal('${d.id}')" title="Editar"
+              style="background:none;border:none;color:#ca8a04;cursor:pointer;font-size:17px;padding:4px 8px;flex-shrink:0">✎</button>
+          </div>
         </div>`;
         }).join('')}
       </div>
@@ -4140,6 +4373,8 @@ function renderDocs() {
     const handle = card.querySelector('.drag-handle');
     if (handle) addTouchDrag(handle, card, 'doc', parseInt(card.dataset.id), null);
   });
+  // Attach swipe-left-to-reveal gesture
+  initDocSwipes();
 }
 
 function openDocModal(id=null) {
@@ -4200,6 +4435,7 @@ function docDragStart(e, idx) {
 }
 async function docDragDrop(e, targetIdx) {
   e.preventDefault();
+  e.stopPropagation(); // evita que el evento suba al attach-list y mueva un 2do doc
   e.currentTarget.style.borderColor = '';
   e.currentTarget.style.background = '';
   document.querySelectorAll('.doc-card').forEach(c => { c.style.opacity = ''; });
@@ -4207,12 +4443,29 @@ async function docDragDrop(e, targetIdx) {
   await doDocReorder(docDragIdx, targetIdx);
   docDragIdx = null;
 }
-async function doDocReorder(srcIdx, tgtIdx) {
+async function doDocReorder(srcIdx, tgtIdx, targetCat) {
+  const srcDoc = documentos[srcIdx];
+  const tgtDoc = documentos[tgtIdx];
+  // targetCat se usa al soltar en un bloque vacío (sin tarjeta destino)
+  const newCat = targetCat || (tgtDoc ? tgtDoc.categoria : srcDoc.categoria);
+  const catChanged = srcDoc.categoria !== newCat;
+  if (catChanged) srcDoc.categoria = newCat;
+
   const moved = documentos.splice(srcIdx, 1)[0];
-  documentos.splice(tgtIdx, 0, moved);
+  if (tgtIdx !== null && tgtIdx !== undefined) {
+    const adjustedTgt = tgtIdx > srcIdx ? tgtIdx - 1 : tgtIdx;
+    documentos.splice(adjustedTgt, 0, moved);
+  } else {
+    documentos.push(moved); // Soltar en bloque vacío → al final
+  }
   renderDocs();
   setSyncState('loading');
-  await Promise.all(documentos.map((d, i) => db.from('hes_documentos').update({ orden: i }).eq('id', d.id)));
+  const updates = documentos.map((d, i) => {
+    const payload = { orden: i };
+    if (d.id === moved.id && catChanged) payload.categoria = moved.categoria;
+    return db.from('hes_documentos').update(payload).eq('id', d.id);
+  });
+  await Promise.all(updates);
   setSyncState('ok');
   toast('Orden guardado ✓');
 }
@@ -5508,11 +5761,10 @@ async function pqGuardar() {
     document.getElementById('pq-obs').value     = '';
     document.getElementById('pq-validez').value = '15 días hábiles';
     document.getElementById('pq-fecha').value   = new Date().toISOString().split('T')[0];
-    if (!wasEditing) {
-      const nextNro = await pqGetNextNro();
-      document.getElementById('pq-nro').value = nextNro;
-      document.getElementById('pq-nro-badge').textContent = '#' + nextNro;
-    }
+    // Siempre resetear al siguiente número disponible
+    const nextNro = await pqGetNextNro();
+    document.getElementById('pq-nro').value = nextNro;
+    document.getElementById('pq-nro-badge').textContent = '#' + nextNro;
     toast(wasEditing
       ? '✓ Presupuesto #' + editedNro + ' actualizado'
       : '✓ Presupuesto #' + editedNro + ' guardado');
@@ -5668,11 +5920,10 @@ async function pqDownloadPDF() {
     document.getElementById('pq-validez').value = '15 días hábiles';
     document.getElementById('pq-fecha').value   = new Date().toISOString().split('T')[0];
     pqCloseModal();
-    if (!wasEditing) {
-      const nextNro = await pqGetNextNro();
-      document.getElementById('pq-nro').value = nextNro;
-      document.getElementById('pq-nro-badge').textContent = '#' + nextNro;
-    }
+    // Siempre resetear el número al siguiente disponible (sea edición o nuevo)
+    const nextNro = await pqGetNextNro();
+    document.getElementById('pq-nro').value = nextNro;
+    document.getElementById('pq-nro-badge').textContent = '#' + nextNro;
     toast(wasEditing
       ? '✓ Presupuesto #' + editedNro + ' actualizado'
       : '✓ Presupuesto #' + editedNro + ' guardado');
@@ -5832,6 +6083,16 @@ function pqCancelEdit() {
   });
 }
 
+// ─── EXPORT HISTORIAL PDF ─────────────────────────────────────────────────────
+// Carga el registro en modo edición y abre la vista previa del modal.
+// El usuario puede descargar desde ahí (html2canvas → calidad correcta).
+function pqExportHistorialPDF(id) {
+  var d = _pqHistMap[id];
+  if (!d) { toast('No se encontró el presupuesto'); return; }
+  pqStartEdit(id);
+  setTimeout(function() { pqPreview(); }, 80);
+}
+
 // ─── HISTORIAL ────────────────────────────────────────────────────────────────
 async function pqLoadHistorial() {
   const el = document.getElementById('pq-historial');
@@ -5857,7 +6118,7 @@ async function pqLoadHistorial() {
         '<td class="pq-hist-total">' + totalStr + '</td>' +
         '<td class="pq-hist-actions-cell">' +
           '<div class="pq-hist-actions">' +
-            (d.pdf_path ? '<button class="pq-btn-sm view" onclick="pqViewDoc(\'' + d.pdf_path + '\',\'' + (d.nro || '') + '\')">Ver PDF</button>' : '') +
+            '<button class="pq-btn-sm view" onclick="pqExportHistorialPDF(' + JSON.stringify(d.id) + ')">Ver PDF</button>' +
             '<button class="pq-btn-sm" style="background:var(--amber-light);border-color:#e0a800;color:#7a5800;" onclick="pqStartEdit(' + JSON.stringify(d.id) + ')">✏ Editar</button>' +
             '<button class="pq-btn-sm del" onclick="pqDeleteDoc(\'' + d.id + '\',\'' + (d.nro || '') + '\',\'' + (d.pdf_path || '') + '\')">🗑</button>' +
           '</div>' +
@@ -6274,11 +6535,12 @@ async function afCargarGuardados() {
     var tirPct  = a.tir != null ? (a.tir * 100).toFixed(1) + '%' : '—';
     var inv     = a.inversion_usd ? 'USD ' + Number(a.inversion_usd).toLocaleString('es-AR', {maximumFractionDigits:0}) : '—';
     var van     = a.van_usd != null ? 'USD ' + vanSign + Number(a.van_usd).toLocaleString('es-AR', {maximumFractionDigits:0}) : '—';
+    var sistDisplay = a.sistema ? (a.sistema.split('::')[0]) : '';
     return '<div class="prov-card" style="margin-bottom:8px">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">' +
         '<div>' +
           '<strong style="font-size:14px">' + (a.cliente||'Cliente') + '</strong>' +
-          '<div style="font-size:11px;color:var(--muted)">' + fecha + (a.sistema ? ' · ' + a.sistema : '') + '</div>' +
+          '<div style="font-size:11px;color:var(--muted)">' + fecha + (sistDisplay ? ' · ' + sistDisplay : '') + '</div>' +
         '</div>' +
         (a.inversion_usd ? '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;background:var(--azul-light);color:var(--azul)">' + inv + '</span>' : '') +
       '</div>' +
@@ -6324,6 +6586,36 @@ function afEditarGuardado(id) {
   setVal('af-efectivo',  a.efectivo);
   setVal('af-inflacion', a.inflacion);
   setVal('af-tasa',      a.tasa_descuento);
+  // Restaurar ítems individuales si están guardados en sistema (formato: "On-Grid::desc1|qty1|price1;...#PCT=30")
+  var tbody2 = document.getElementById('af-items-tbody');
+  if (tbody2) tbody2.innerHTML = '';
+  var sistemaStr = a.sistema || '';
+  var dobleColon = sistemaStr.indexOf('::');
+  if (dobleColon !== -1 && sistemaStr.length > dobleColon + 2) {
+    // Restaurar ítems individuales (separar del PCT)
+    var itemsRaw = sistemaStr.substring(dobleColon + 2);
+    var pctSep = itemsRaw.indexOf('#PCT=');
+    var pctVal = 0;
+    if (pctSep !== -1) {
+      pctVal = parseFloat(itemsRaw.substring(pctSep + 5)) || 0;
+      itemsRaw = itemsRaw.substring(0, pctSep);
+    }
+    itemsRaw.split(';').forEach(function(item) {
+      var parts = item.split('|');
+      var desc  = parts[0] || '';
+      var qty   = parseFloat(parts[1]) || 1;
+      var price = parseFloat(parts[2]) || 0;
+      afInsertarFila(desc, qty, price);
+    });
+    var instPct = document.getElementById('af-inst-pct');
+    if (instPct) instPct.value = pctVal;
+  } else if (a.inversion_usd) {
+    // Fallback: una sola fila con el total guardado
+    afInsertarFila('Inversión total (guardada — podés ajustar o reemplazar)', 1, parseFloat(a.inversion_usd));
+    var instPct = document.getElementById('af-inst-pct');
+    if (instPct) instPct.value = 0;
+  }
+  afActualizarTotales();
   var pc = document.getElementById('af-params-card');
   if (pc) pc.style.display = '';
   document.getElementById('af-edit-banner').style.display = 'flex';
@@ -6351,6 +6643,25 @@ function editarDimTermica(id) {
   document.getElementById('d-litros').value   = p.litros_dia || 40;
   var tipoSel = document.getElementById('d-tipo');
   if (/presurizado/i.test(p.tipo || '')) { tipoSel.value = '0.70'; } else { tipoSel.value = '0.60'; }
+  // Restaurar zona: buscar opción cuyo texto coincida, o usar el número extraído
+  var zonaEl = document.getElementById('d-zona');
+  if (zonaEl && p.zona) {
+    var foundZona = false;
+    for (var zi = 0; zi < zonaEl.options.length; zi++) {
+      if (zonaEl.options[zi].text === p.zona) { zonaEl.selectedIndex = zi; foundZona = true; break; }
+    }
+    if (!foundZona) {
+      var zonaMatch = (p.zona || '').match(/(\d+\.\d+)/);
+      if (zonaMatch) zonaEl.value = zonaMatch[1];
+    }
+  }
+  // Restaurar tacum, tred, cobertura (guardados en tipo desde la v2)
+  var tacumM = (p.tipo || '').match(/TACUM=(\d+)/);
+  var tredM  = (p.tipo || '').match(/TRED=(\d+)/);
+  var cobTM  = (p.tipo || '').match(/COB=([\d.]+)/);
+  if (tacumM) document.getElementById('d-tacum').value = tacumM[1];
+  if (tredM)  document.getElementById('d-tred').value  = tredM[1];
+  if (cobTM)  document.getElementById('d-cobertura').value = Math.round(parseFloat(cobTM[1]) * (parseFloat(cobTM[1]) <= 1 ? 100 : 1));
   document.getElementById('dim-edit-banner-termica').style.display = 'flex';
   document.getElementById('dim-edit-banner-termica-cliente').textContent = p.cliente || '';
   showDimTab('termica');
@@ -6373,12 +6684,142 @@ function editarDimFV(id) {
   var p = presupuestos.find(function(x){ return x.id === id; });
   if (!p) { toast('No se encontró el registro'); return; }
   _dimEditFV = { id: p.id, cliente: p.cliente };
+
+  // Cliente compartido en la cabecera del tab FV
   document.getElementById('fv-cliente').value = p.cliente || '';
+
+  var tipoStr = p.tipo || '';
+  var isOffGrid = /Off-Grid/i.test(tipoStr);
+  var partes = tipoStr.split('|').map(function(x){ return x.trim(); });
+
+  if (isOffGrid) {
+    // ── Off-Grid ────────────────────────────────────────────────────────
+    // og-zona: extraer número de "2.8 h/día"
+    var oHsp = parseFloat((p.zona || '').replace(' h/día','')) || 2.8;
+    var ogZonaEl = document.getElementById('og-zona');
+    if (ogZonaEl) {
+      ogZonaEl.value = oHsp;
+      var ogHspDisp = document.getElementById('og-hsp-display');
+      if (ogHspDisp) ogHspDisp.textContent = oHsp.toFixed(1) + ' h/día';
+    }
+    // og-panel: wattage del tipo (parte 2: "400 Wp — estándar")
+    var ogPanelW = parseInt(partes[2]) || 400;
+    var ogPanelEl = document.getElementById('og-panel');
+    if (ogPanelEl) ogPanelEl.value = String(ogPanelW);
+    // og-bateria-tipo (ETA): guardado como "ETA=0.70"
+    var etaM = tipoStr.match(/ETA=([\d.]+)/);
+    var ogBatEl = document.getElementById('og-bateria-tipo');
+    if (ogBatEl && etaM) ogBatEl.value = etaM[1];
+    // og-pr: guardado como "OPR=0.75"
+    var oprM = tipoStr.match(/OPR=([\d.]+)/);
+    var ogPrEl = document.getElementById('og-pr');
+    if (ogPrEl && oprM) ogPrEl.value = oprM[1];
+    // og-tension: extraer de "500Ah·24V"
+    var tensionM = tipoStr.match(/·(\d+)V/);
+    var ogTension = tensionM ? parseInt(tensionM[1]) : 24;
+    var ogTensionEl = document.getElementById('og-tension');
+    if (ogTensionEl) ogTensionEl.value = ogTension;
+    // Cargas: restaurar cargas individuales si están guardadas (CARGAS=), sino usar total
+    var tbody = document.getElementById('og-cargas-tbody');
+    if (tbody) {
+      tbody.innerHTML = '';
+      ogFilaIdx = 0;
+      var cargasM = tipoStr.match(/CARGAS=([^|]+)/);
+      if (cargasM) {
+        // Restaurar cada fila individual
+        cargasM[1].trim().split(';').forEach(function(item) {
+          var parts = item.split(':');
+          var nombre = parts[0] || '';
+          var w = parseFloat(parts[1]) || 0;
+          var h = parseFloat(parts[2]) || 0;
+          agregarCargaOG(nombre, w, h);
+        });
+      } else {
+        // Fallback: una sola fila con el total
+        var totalWh = p.litros_dia || 0;
+        if (totalWh > 0) {
+          agregarCargaOG('Carga total del sistema', totalWh, 1);
+        } else {
+          agregarCargaOG();
+        }
+      }
+    }
+    showFVTab('offgrid');
+
+  } else {
+    // ── On-Grid ─────────────────────────────────────────────────────────
+    // Siempre volver al modo Fórmula al editar
+    var genModoEl = document.getElementById('fv-gen-modo');
+    if (genModoEl) { genModoEl.value = 'formula'; fvToggleGenModo(); }
+    // fv-zona: extraer número de "4.7 h/día"
+    var fvHsp = parseFloat((p.zona || '').replace(' h/día','')) || 4.7;
+    var fvZonaEl = document.getElementById('fv-zona');
+    if (fvZonaEl) fvZonaEl.value = fvHsp;
+    // fv-panel: wattage de la parte 2 del tipo ("430 Wp — N-Type TOPCon")
+    var fvPanelW = parseInt(partes[2]) || 430;
+    var fvPanelEl = document.getElementById('fv-panel');
+    if (fvPanelEl) fvPanelEl.value = String(fvPanelW);
+    // fv-cobertura: guardada en tipo como "COB=75", si no, default 75
+    var cobM = tipoStr.match(/COB=(\d+)/);
+    var fvCobEl = document.getElementById('fv-cobertura');
+    if (fvCobEl) fvCobEl.value = cobM ? cobM[1] : 75;
+    // fv-tarifa: guardada en tipo como "TAR=156", si no, default 156
+    var tarM = tipoStr.match(/TAR=([\d.]+)/);
+    var fvTarEl = document.getElementById('fv-tarifa');
+    if (fvTarEl) fvTarEl.value = tarM ? tarM[1] : 156;
+    // fv-pr: guardada en tipo como "PR=0.80", si no, default 0.80
+    var prM = tipoStr.match(/PR=([\d.]+)/);
+    var fvPrEl = document.getElementById('fv-pr');
+    if (fvPrEl) fvPrEl.value = prM ? prM[1] : 0.80;
+    // Consumo mensual: restaurar los 12 meses reales si están guardados en tipo (MES=...)
+    var mesM = tipoStr.match(/MES=([\d,]+)/);
+    initFVMonths();
+    if (mesM) {
+      var mesesArr = mesM[1].split(',');
+      for (var mi = 0; mi < 12; mi++) {
+        var mesEl = document.getElementById('fv-mes-' + mi);
+        if (mesEl) mesEl.value = mesesArr[mi] ? parseInt(mesesArr[mi]) || 0 : 0;
+      }
+    } else {
+      // Fallback: promedio en todos los meses
+      var avgMes = p.litros_dia || 0;
+      for (var mi = 0; mi < 12; mi++) {
+        var mesEl = document.getElementById('fv-mes-' + mi);
+        if (mesEl) mesEl.value = avgMes || 0;
+      }
+    }
+    // Modo PVGIS: restaurar si fue guardado con PVGIS
+    var modoM = tipoStr.match(/MODO=(pvgis)/);
+    if (modoM) {
+      var genModoEl2 = document.getElementById('fv-gen-modo');
+      if (genModoEl2) { genModoEl2.value = 'pvgis'; fvToggleGenModo(); }
+      initPVGISGrid();
+      var pvgM = tipoStr.match(/PVG=([\d.,]+)/);
+      if (pvgM) {
+        var pvgArr = pvgM[1].split(',');
+        pvgArr.forEach(function(val, i) {
+          var el = document.getElementById('fv-pvgis-' + i);
+          if (el) el.value = parseFloat(val) || 0;
+        });
+      }
+      var kwpM2 = tipoStr.match(/KWP=([\d.]+)/);
+      var kwpEl2 = document.getElementById('fv-pvgis-kwp');
+      if (kwpEl2 && kwpM2) kwpEl2.value = kwpM2[1];
+    }
+    showFVTab('ongrid');
+    calcularFV();
+  }
+
+  // Restaurar ubicación (compartida entre On-Grid y Off-Grid)
+  var ubicM = tipoStr.match(/UBIC=([^|]+)/);
+  var fvUbicEl = document.getElementById('fv-ubicacion');
+  if (fvUbicEl) fvUbicEl.value = (ubicM ? ubicM[1].trim() : '');
+
   document.getElementById('dim-edit-banner-fv').style.display = 'flex';
   document.getElementById('dim-edit-banner-fv-cliente').textContent = p.cliente || '';
   showDimTab('fv');
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  toast('✏️ Cliente cargado — ajustá los parámetros FV y guardá');
+  toast('✏️ Datos cargados — modificá los parámetros y guardá');
 }
 
 function cancelarEditDimFV() {
@@ -6386,6 +6827,7 @@ function cancelarEditDimFV() {
   _dimEditFV = null;
   document.getElementById('dim-edit-banner-fv').style.display = 'none';
   limpiarDimensionFV();
+  limpiarDimensionOG();
 }
 
 var _afRowId = 0;
@@ -6399,7 +6841,7 @@ function afVerDetalleGuardado(id) {
   var body =
     '<div style="font-size:13px;line-height:2">' +
     '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px">Análisis financiero</div>' +
-    '<strong>' + (a.cliente||'—') + '</strong> · ' + fecha + (a.sistema?' · '+a.sistema:'') + '<br><br>' +
+    '<strong>' + (a.cliente||'—') + '</strong> · ' + fecha + (a.sistema?' · '+(a.sistema.split('::')[0]):'') + '<br><br>' +
     '<b>Inversión total:</b> USD ' + (a.inversion_usd ? Number(a.inversion_usd).toLocaleString('es-AR',{maximumFractionDigits:0}) : '—') + '<br>' +
     '<b>Generación anual:</b> ' + (a.gen_anual_kwh ? Number(a.gen_anual_kwh).toLocaleString('es-AR') + ' kWh/año' : '—') + '<br>' +
     '<b>Tarifa equivalente:</b> $' + (a.tarifa_ars||'—') + '/kWh · TC: $' + (a.tipo_cambio||'—') + '/USD<br>' +
@@ -6469,7 +6911,7 @@ function afExportarPDFGuardado(id) {
 
   var fecha  = a.created_at ? new Date(a.created_at).toLocaleDateString('es-AR') : new Date().toLocaleDateString('es-AR');
   var cliente= a.cliente||'Cliente';
-  var sistema= a.sistema||'Sistema solar';
+  var sistema= (a.sistema||'Sistema solar').split('::')[0];
 
   var proyRows = flujos.map(function(f){
     var cA = f.acum>=0    ? 'color:#1B6B2F;font-weight:700':'color:#c0392b';
@@ -6524,7 +6966,7 @@ function afFmt(v) {
   return Number(v).toLocaleString('es-AR', {minimumFractionDigits:0, maximumFractionDigits:0});
 }
 
-function afInsertarFila(desc, qty) {
+function afInsertarFila(desc, qty, price) {
   _afRowId++;
   var id    = 'afrow-' + _afRowId;
   var tbody = document.getElementById('af-items-tbody');
@@ -6545,7 +6987,7 @@ function afInsertarFila(desc, qty) {
       'oninput="afActualizarTotales()">' +
     '</td>' +
     '<td style="padding:5px 6px;text-align:right">' +
-      '<input type="number" min="0" step="0.01" placeholder="0" ' +
+      '<input type="number" min="0" step="0.01" placeholder="0" value="' + (price != null ? price : '') + '" ' +
       'style="width:100px;text-align:right;border:1.5px solid #185FA5;border-radius:5px;padding:4px 7px;font-size:12px;font-family:inherit;color:#185FA5;font-weight:600" ' +
       'oninput="afActualizarTotales()">' +
     '</td>' +
@@ -6925,10 +7367,23 @@ async function afGuardar() {
     }
   }
 
+  // Guardar ítems individuales del desglose en sistema como "On-Grid::desc1|qty1|price1;desc2|qty2|price2#PCT=30"
+  var afItemsArr = [];
+  document.querySelectorAll('#af-items-tbody tr:not(#af-items-empty)').forEach(function(tr) {
+    var inputs = tr.querySelectorAll('input');
+    if (inputs.length < 3) return;
+    var desc  = (inputs[0].value || '').replace(/[;|#]/g, '-').trim();
+    var qty   = parseFloat(inputs[1].value) || 1;
+    var price = parseFloat(inputs[2].value) || 0;
+    if (desc || price) afItemsArr.push(desc + '|' + qty + '|' + price);
+  });
+  var afPct = parseFloat((document.getElementById('af-inst-pct')||{value:'30'}).value) || 0;
+  var sistemaConItems = (sistema || 'FV') + (afItemsArr.length ? '::' + afItemsArr.join(';') + '#PCT=' + afPct : '');
+
   var payload = {
     cliente:         cliente || 'Análisis financiero',
     dim_id:          dimId ? parseInt(dimId) : null,
-    sistema:         sistema || null,
+    sistema:         sistemaConItems || null,
     inversion_usd:   inv,
     gen_anual_kwh:   genAnual,
     tarifa_ars:      tarifa,

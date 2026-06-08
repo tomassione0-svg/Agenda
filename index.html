@@ -921,7 +921,7 @@ window.addEventListener('load', function() {
         <div class="result-grid">
           <div class="result-box"><div class="result-val" id="fv-r-kwp">0</div><div class="result-label">kWp instalados</div></div>
           <div class="result-box"><div class="result-val" id="fv-r-paneles">0</div><div class="result-label" id="fv-r-wpanel">paneles 430 Wp</div></div>
-          <div class="result-box accent"><div class="result-val" id="fv-r-inversor">0</div><div class="result-label">kW inversor mín.</div></div>
+          <div class="result-box accent"><div class="result-val" id="fv-r-inversor">0</div><div class="result-label">kW inversor estándar</div><div id="fv-r-inversor-calc" style="font-size:10px;color:var(--muted);margin-top:2px"></div></div>
           <div class="result-box"><div class="result-val" id="fv-r-gen-mes">0</div><div class="result-label">kWh/mes estimados</div></div>
           <div class="result-box"><div class="result-val" id="fv-r-ahorro-mes">$0</div><div class="result-label">ahorro mensual est.</div></div>
           <div class="result-box accent"><div class="result-val" id="fv-r-ahorro-anual">$0</div><div class="result-label">ahorro anual est.</div></div>
@@ -2785,6 +2785,15 @@ function getFVData() {
 
 function moneyARS(n){return '$'+Math.round(n||0).toLocaleString('es-AR');}
 
+// Devuelve el tamaño estándar comercial de inversor inmediatamente >= al kW calculado
+function inversorEstandar(kw) {
+  var estandares = [1.5, 2, 2.5, 3, 3.68, 4, 5, 6, 8, 10, 12.5, 15, 20, 25, 30];
+  for (var i = 0; i < estandares.length; i++) {
+    if (estandares[i] >= kw - 0.001) return estandares[i]; // 0.001 solo para flotantes exactos
+  }
+  return Math.ceil(kw);
+}
+
 // ── PVGIS helpers ─────────────────────────────────────────────────────────────
 function initPVGISGrid(){
   var grid = document.getElementById('fv-pvgis-grid');
@@ -2844,14 +2853,16 @@ function calcularFV() {
   document.getElementById('fv-r-kwp').textContent=d.kwpReal.toFixed(1);
   document.getElementById('fv-r-paneles').textContent=d.paneles;
   document.getElementById('fv-r-wpanel').textContent=`paneles ${d.panelW}W`;
-  document.getElementById('fv-r-inversor').textContent=d.inversor;
+  var invStd = inversorEstandar(d.inversor);
+  document.getElementById('fv-r-inversor').textContent = invStd;
+  document.getElementById('fv-r-inversor-calc').textContent = '(calc. ' + d.inversor + ' kW)';
   document.getElementById('fv-r-bateria').textContent=d.bateria;
   document.getElementById('fv-r-bat-note').textContent=d.sistema==='offgrid'?'kWh batería':'solo Off-Grid';
   document.getElementById('fv-r-gen-mes').textContent=Math.round(d.genMes).toLocaleString('es-AR');
   document.getElementById('fv-r-ahorro-mes').textContent=moneyARS(d.ahorroMes);
   document.getElementById('fv-r-ahorro-anual').textContent=moneyARS(d.ahorroAnual);
   document.getElementById('fv-r-co2').textContent=Math.round(d.co2).toLocaleString('es-AR');
-  document.getElementById('fv-r-resumen').innerHTML=`<b>${d.paneles} paneles</b> de ${d.panelW}W = <b>${d.kwpReal.toFixed(1)} kWp</b> · Generación estimada: <b>${Math.round(d.genMes)} kWh/mes</b> · Inversor: <b>${d.inversor} kW</b> · ${d.sistema==='offgrid'?`Batería sugerida: <b>${d.bateria} kWh</b>`:'On-Grid con medidor bidireccional'} · Ahorro estimado: <b>${moneyARS(d.ahorroMes)}/mes</b>`;
+  document.getElementById('fv-r-resumen').innerHTML=`<b>${d.paneles} paneles</b> de ${d.panelW}W = <b>${d.kwpReal.toFixed(1)} kWp</b> · Generación estimada: <b>${Math.round(d.genMes)} kWh/mes</b> · Inversor: <b>${inversorEstandar(d.inversor)} kW</b> estándar <span style="color:var(--muted)">(calc. ${d.inversor} kW)</span> · ${d.sistema==='offgrid'?`Batería sugerida: <b>${d.bateria} kWh</b>`:'On-Grid con medidor bidireccional'} · Ahorro estimado: <b>${moneyARS(d.ahorroMes)}/mes</b>`;
 }
 
 function construirPropuestaFV() {
@@ -2876,7 +2887,7 @@ function construirPropuestaFV() {
     <div class="pdf-kpis">
       <div class="pdf-kpi"><div class="v">${d.kwpReal.toFixed(1)}</div><div class="l">kWp instalados</div></div>
       <div class="pdf-kpi"><div class="v">${d.paneles}</div><div class="l">paneles de ${d.panelW}W</div></div>
-      <div class="pdf-kpi"><div class="v">${d.inversor}</div><div class="l">kW inversor sugerido</div></div>
+      <div class="pdf-kpi"><div class="v">${inversorEstandar(d.inversor)}</div><div class="l">kW inversor estándar</div></div>
       <div class="pdf-kpi"><div class="v">${Math.round(d.genMes)}</div><div class="l">kWh/mes estimados</div></div>
     </div>
     <div class="pdf-section"><h3>Resumen energético</h3>
@@ -3628,7 +3639,7 @@ function detallePresupuestoHTML(p) {
         </div>
         <div class="prov-rows" style="margin-top:12px">
           <div class="prov-row"><strong>Panel:</strong> ${fv.panel}</div>
-          <div class="prov-row"><strong>${fv.inversor}</strong></div>
+          <div class="prov-row"><strong>Inversor: ${(function(){ var m=(fv.inversor||'').match(/[\d.]+/); return m ? inversorEstandar(parseFloat(m[0]))+' kW estándar <span style="color:var(--muted);font-weight:400">(calc. '+m[0]+' kW)</span>' : fv.inversor; })()} </strong></div>
           <div class="prov-row"><strong>${fv.generacion}</strong></div>
           <div class="prov-row"><strong>${fv.ahorro}</strong></div>
           <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
@@ -3678,7 +3689,8 @@ function construirPDFPresupuestoGuardado(p) {
   // ─────────── On-Grid FV ───────────────────────
   if (esPresupuestoFV(p) && !tipo.includes('Off-Grid')) {
     var panel = partes[2] || 'Panel';
-    var invStr = (partes[3]||'').replace(/^Inv\s*/i,'').replace(/\s*kW$/i,'').trim();
+    var invCalcStr = (partes[3]||'').replace(/^Inv\s*/i,'').replace(/\s*kW$/i,'').trim();
+    var invStr = invCalcStr ? String(inversorEstandar(parseFloat(invCalcStr))) : '—';
     var genMesTxt = parseInt(partes[4])||0;
     var ahorroMesStr = (partes[5]||'').replace(/^Ahorro\s*/i,'').replace(/\/mes$/i,'').trim();
     var cobM = tipo.match(/COB=(\d+)/); var cob = cobM ? parseInt(cobM[1]) : 75;
@@ -3714,7 +3726,7 @@ function construirPDFPresupuestoGuardado(p) {
       '<div class="pdf-kpis">'+
         '<div class="pdf-kpi"><div class="v">'+kwpReal.toFixed(1)+'</div><div class="l">kWp instalados</div></div>'+
         '<div class="pdf-kpi"><div class="v">'+nPaneles+'</div><div class="l">paneles de '+panelWp+'W</div></div>'+
-        '<div class="pdf-kpi"><div class="v">'+invStr+'</div><div class="l">kW inversor sugerido</div></div>'+
+        '<div class="pdf-kpi"><div class="v">'+invStr+'</div><div class="l">kW inversor estándar</div></div>'+
         '<div class="pdf-kpi"><div class="v">'+genMesTxt+'</div><div class="l">kWh/mes estimados</div></div>'+
       '</div>'+
       '<div class="pdf-section"><h3>Resumen energético</h3>'+
@@ -4120,7 +4132,9 @@ async function loadPresupuestos() {
     } else if (isOG) {
       // Off-Grid desde tab FV: "Inv X.XX kW", "Y kWh/mes", "Ahorro $..."
       invLabel  = 'Inversor';
-      invVal    = fv.inversor.replace(/^Inv\s*/i,'').trim();
+      var _invRawOG = fv.inversor.replace(/^Inv\s*/i,'').trim();
+      var _mOG = _invRawOG.match(/[\d.]+/);
+      invVal    = _mOG ? inversorEstandar(parseFloat(_mOG[0]))+' kW estándar' : _invRawOG;
       genLabel  = 'Generación';
       genVal    = fv.generacion;
       extra3Label = 'Batería';
@@ -4128,7 +4142,9 @@ async function loadPresupuestos() {
     } else {
       // On-Grid desde tab FV
       invLabel  = 'Inversor';
-      invVal    = fv.inversor.replace(/^Inv\s*/i,'').trim();
+      var _invRawON = fv.inversor.replace(/^Inv\s*/i,'').trim();
+      var _mON = _invRawON.match(/[\d.]+/);
+      invVal    = _mON ? inversorEstandar(parseFloat(_mON[0]))+' kW estándar' : _invRawON;
       genLabel  = 'Generación';
       genVal    = fv.generacion;
       extra3Label = 'Ahorro estimado';

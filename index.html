@@ -2777,8 +2777,29 @@ function getFVData() {
   }
   const inversor = +(kwpReal*0.85).toFixed(1);
   const bateria = sistema==='offgrid' ? Math.ceil((consumoBaseMensual/30)*2) : '—';
-  const ahorroMes = Math.min(genMes, consumoBaseMensual)*tarifa;
-  const ahorroAnual = ahorroMes*12;
+
+  // ── Ahorro mes a mes (lógica correcta) ──────────────────────────────────────
+  // Si hay datos PVGIS mensuales Y consumos mensuales reales → cálculo exacto mes a mes
+  // Sino → fallback al promedio (comportamiento anterior)
+  let ahorroMes, ahorroAnual;
+  const genMesesReales = (pvgisMeses.length === 12 && pvgisMeses.some(v => v > 0))
+    ? pvgisMeses.map(v => v * kwpReal)   // producción mensual real del sistema
+    : null;
+
+  if (genMesesReales && cargados.length >= 6) {
+    // Cálculo mes a mes: ahorro = Σ min(gen_mes, consumo_mes) × tarifa
+    const ahorroAnualExacto = genMesesReales.reduce((sum, gen, i) => {
+      const consumoMes = (consumos[i] && consumos[i].kwh > 0) ? consumos[i].kwh : consumoBaseMensual;
+      return sum + Math.min(gen, consumoMes) * tarifa;
+    }, 0);
+    ahorroAnual = ahorroAnualExacto;
+    ahorroMes = ahorroAnual / 12;
+  } else {
+    // Fallback: promedio mensual (modo fórmula o sin suficientes datos)
+    ahorroMes = Math.min(genMes, consumoBaseMensual) * tarifa;
+    ahorroAnual = ahorroMes * 12;
+  }
+
   const co2 = genAnual*0.4;
   return {meses, consumos, cargados, anual, promedio:consumoBaseMensual, pico, cobertura, hsp, panelW, pr, sistema, tarifa, kwpReal, paneles, genAnual, genMes, inversor, bateria, ahorroMes, ahorroAnual, co2, genModo, pvgisAnual, pvgisMeses, kwpNecesario};
 }

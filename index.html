@@ -2783,11 +2783,10 @@ function getFVData() {
   // Sino → fallback al promedio (comportamiento anterior)
   let ahorroMes, ahorroAnual;
   const genMesesReales = (pvgisMeses.length === 12 && pvgisMeses.some(v => v > 0))
-    ? pvgisMeses.map(v => v * kwpReal)   // producción mensual real del sistema
+    ? pvgisMeses.map(v => v * kwpReal)
     : null;
 
   if (genMesesReales && cargados.length >= 6) {
-    // Cálculo mes a mes: ahorro = Σ min(gen_mes, consumo_mes) × tarifa
     const ahorroAnualExacto = genMesesReales.reduce((sum, gen, i) => {
       const consumoMes = (consumos[i] && consumos[i].kwh > 0) ? consumos[i].kwh : consumoBaseMensual;
       return sum + Math.min(gen, consumoMes) * tarifa;
@@ -2795,7 +2794,6 @@ function getFVData() {
     ahorroAnual = ahorroAnualExacto;
     ahorroMes = ahorroAnual / 12;
   } else {
-    // Fallback: promedio mensual (modo fórmula o sin suficientes datos)
     ahorroMes = Math.min(genMes, consumoBaseMensual) * tarifa;
     ahorroAnual = ahorroMes * 12;
   }
@@ -3591,7 +3589,7 @@ async function guardarDimFV() {
     personas: 0,
     litros_dia: Math.round(d.promedio) || 0,
     zona: zonaTxt,
-    tipo: `FV | ${sistemaTxt} | ${panelTxt} | Inv ${d.inversor} kW | ${Math.round(d.genMes)} kWh/mes | Ahorro ${moneyARS(d.ahorroMes)}/mes | COB=${Math.round(d.cobertura*100)} | TAR=${d.tarifa} | PR=${d.pr} | HSP=${d.hsp} | MES=${mesesStr}${pvgisStr} | UBIC=${(document.getElementById('fv-ubicacion').value.trim().replace(/\|/g,'-'))||''}`,
+    tipo: `FV | ${sistemaTxt} | ${panelTxt} | Inv ${inversorEstandar(d.inversor)} kW | ${Math.round(d.genMes)} kWh/mes | Ahorro ${moneyARS(d.ahorroMes)}/mes | COB=${Math.round(d.cobertura*100)} | TAR=${d.tarifa} | PR=${d.pr} | HSP=${d.hsp} | MES=${mesesStr}${pvgisStr} | UBIC=${(document.getElementById('fv-ubicacion').value.trim().replace(/\|/g,'-'))||''}`,
     colectores: d.paneles || 0,
     acumulador: d.sistema === 'offgrid' ? (parseInt(d.bateria) || 0) : 0,
     bomba: Math.round(d.ahorroAnual) || 0,
@@ -3984,10 +3982,8 @@ function _cargarFVEnForma(p) {
     modoEl.value = 'pvgis';
     if (typeof fvToggleGenModo === 'function') fvToggleGenModo();
     if (typeof initPVGISGrid === 'function') initPVGISGrid();
-    // Restaurar KWP siempre que esté guardado
     var kwpEl = document.getElementById('fv-pvgis-kwp');
     if (kwpEl && kwpM) kwpEl.value = kwpM[1];
-    // Restaurar valores mensuales PVGIS si existen
     if (pvgM) {
       var pvgVals = pvgM[1].split(',');
       for (var pi = 0; pi < 12; pi++) {
@@ -7438,7 +7434,10 @@ function afCargarDim() {
     var sistema   = partes[1]||'FV';
     var esOG      = sistema.toLowerCase().includes('off');
     var panelInfo = partes[2]||'';
-    var invInfo   = partes[3]||'';
+    var invInfo   = (function(raw){
+      var m = (raw||'').match(/[\d.]+/);
+      return m ? 'Inv ' + inversorEstandar(parseFloat(m[0])) + ' kW' : (raw||'');
+    })(partes[3]);
     var kWp       = parseFloat(p.area)||0;
     var nPaneles  = parseInt(p.colectores)||0;
 

@@ -298,6 +298,8 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   .pdf-table{width:100%;border-collapse:collapse;margin:5px 0;font-size:9.5px;}
   .pdf-table th{background:#1B6B2F;color:#fff;text-align:left;padding:4px 6px;}
   .pdf-table td{border-bottom:1px solid #ddd;padding:4px 6px;}
+  .pdf-table td:last-child{text-align:right;}
+  .pdf-table th:last-child{text-align:right;}
   .pdf-section{margin-top:9px;}
   .pdf-section h3{font-size:11px;color:#1B6B2F;margin-bottom:3px;border-bottom:1px solid #ddd;padding-bottom:3px;}
   .pdf-note{font-size:8.5px;color:#666;line-height:1.4;margin-top:8px;border-top:1px solid #ddd;padding-top:6px;}
@@ -2935,7 +2937,9 @@ function construirPropuestaFV() {
       </tbody></table>
     </div>
     <div class="pdf-section"><h3>Consumos cargados desde facturas</h3>
-      <table class="pdf-table"><thead><tr><th>Mes</th><th>Consumo kWh</th></tr></thead><tbody>${filasConsumo}</tbody></table>
+      <table class="pdf-table"><thead><tr><th>Mes</th><th>Consumo kWh</th><th>Generación estimada kWh</th></tr></thead><tbody>
+        ${d.consumos.map((x,i)=>{const gen=d.pvgisMeses&&d.pvgisMeses[i]>0?Math.round(d.pvgisMeses[i]*d.kwpReal).toLocaleString('es-AR'):'—';return`<tr><td>${x.mes}</td><td>${x.kwh?Math.round(x.kwh).toLocaleString('es-AR'):'—'}</td><td>${gen}</td></tr>`;}).join('')}
+      </tbody></table>
     </div>
   </div>`;
 }
@@ -3777,7 +3781,15 @@ function construirPDFPresupuestoGuardado(p) {
           '<tr><td>Emisiones evitadas</td><td><strong>'+_fmt(co2)+' kg CO₂/año</strong></td></tr>'+
         '</tbody></table></div>'+
       '<div class="pdf-section"><h3>Consumos cargados desde facturas</h3>'+
-        '<table class="pdf-table"><thead><tr><th>Mes</th><th>Consumo kWh</th></tr></thead><tbody>'+filasConsumo+'</tbody></table></div>'+
+        '<table class="pdf-table"><thead><tr><th>Mes</th><th>Consumo kWh</th><th>Generación estimada kWh</th></tr></thead><tbody>'+(function(){
+          var mNom=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+          var pvgVals2=(pvgM&&kwpPvgM)?pvgM[1].split(',').map(parseFloat):null;
+          var kwpRef2=pvgVals2&&kwpPvgM?parseFloat(kwpPvgM[1]):1;
+          return meses.map(function(v,i){
+            var gen=pvgVals2&&pvgVals2[i]>0?_fmt(Math.round(pvgVals2[i]/kwpRef2*kwpReal)):'—';
+            return '<tr><td>'+mNom[i]+'</td><td>'+(v>0?_fmt(v):'—')+'</td><td>'+gen+'</td></tr>';
+          }).join('');
+        })()+'</tbody></table></div>'+
     '</div>';
   }
 

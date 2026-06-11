@@ -298,8 +298,10 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   .pdf-table{width:100%;border-collapse:collapse;margin:5px 0;font-size:9.5px;}
   .pdf-table th{background:#1B6B2F;color:#fff;text-align:left;padding:4px 6px;}
   .pdf-table td{border-bottom:1px solid #ddd;padding:4px 6px;}
-  .pdf-table td:last-child{text-align:right;}
-  .pdf-table th:last-child{text-align:right;}
+  .pdf-table td:last-child{text-align:center;}
+  .pdf-table th:last-child{text-align:center;}
+  .pdf-table td:nth-child(2){text-align:center;}
+  .pdf-table th:nth-child(2){text-align:center;}
   .pdf-section{margin-top:9px;}
   .pdf-section h3{font-size:11px;color:#1B6B2F;margin-bottom:3px;border-bottom:1px solid #ddd;padding-bottom:3px;}
   .pdf-note{font-size:8.5px;color:#666;line-height:1.4;margin-top:8px;border-top:1px solid #ddd;padding-top:6px;}
@@ -2928,17 +2930,19 @@ function construirPropuestaFV() {
         <tr><td>Panel considerado</td><td><strong>${panelTxt}</strong></td></tr>
       </tbody></table>
     </div>
+    <div class="pdf-section"><h3>Generación estimada del sistema</h3>
+      <table class="pdf-table">
+        <thead><tr><th>Mes</th><th>Consumo kWh</th><th>Generación kWh</th></tr></thead>
+        <tbody>
+          ${d.consumos.map((x,i)=>{const gen=d.pvgisMeses&&d.pvgisMeses[i]>0?Math.round(d.pvgisMeses[i]*d.kwpReal).toLocaleString('es-AR'):'—';return`<tr><td>${x.mes}</td><td>${x.kwh?Math.round(x.kwh).toLocaleString('es-AR'):'—'}</td><td>${gen}</td></tr>`;}).join('')}
+          <tr style="background:#EAF5EC;font-weight:700"><td>Total anual</td><td>${Math.round(d.anual).toLocaleString('es-AR')} kWh</td><td>${Math.round(d.genAnual).toLocaleString('es-AR')} kWh</td></tr>
+        </tbody>
+      </table>
+    </div>
     <div class="pdf-section"><h3>Impacto económico y ambiental</h3>
       <table class="pdf-table"><tbody>
-        <tr><td>Ahorro mensual estimado</td><td><strong>${moneyARS(d.ahorroMes)}</strong></td></tr>
         <tr><td>Ahorro anual estimado</td><td><strong>${moneyARS(d.ahorroAnual)}</strong></td></tr>
-        <tr><td>Generación anual estimada</td><td><strong>${Math.round(d.genAnual).toLocaleString('es-AR')} kWh/año</strong></td></tr>
         <tr><td>Emisiones evitadas</td><td><strong>${Math.round(d.co2).toLocaleString('es-AR')} kg CO₂/año</strong></td></tr>
-      </tbody></table>
-    </div>
-    <div class="pdf-section"><h3>Consumos cargados desde facturas</h3>
-      <table class="pdf-table"><thead><tr><th>Mes</th><th>Consumo kWh</th><th>Generación estimada kWh</th></tr></thead><tbody>
-        ${d.consumos.map((x,i)=>{const gen=d.pvgisMeses&&d.pvgisMeses[i]>0?Math.round(d.pvgisMeses[i]*d.kwpReal).toLocaleString('es-AR'):'—';return`<tr><td>${x.mes}</td><td>${x.kwh?Math.round(x.kwh).toLocaleString('es-AR'):'—'}</td><td>${gen}</td></tr>`;}).join('')}
       </tbody></table>
     </div>
   </div>`;
@@ -3773,23 +3777,24 @@ function construirPDFPresupuestoGuardado(p) {
           '<tr><td>Zona solar considerada</td><td><strong>'+(p.zona||'—')+'</strong></td></tr>'+
           '<tr><td>Panel considerado</td><td><strong>'+panel+'</strong></td></tr>'+
         '</tbody></table></div>'+
-      '<div class="pdf-section"><h3>Impacto económico y ambiental</h3>'+
-        '<table class="pdf-table"><tbody>'+
-          '<tr><td>Ahorro mensual estimado</td><td><strong>'+ahorroMesStr+'</strong></td></tr>'+
-          '<tr><td>Ahorro anual estimado</td><td><strong>$'+_fmt(ahorroAnual)+'</strong></td></tr>'+
-          '<tr><td>Generación anual estimada</td><td><strong>'+_fmt(Math.round(genAnual))+' kWh/año</strong></td></tr>'+
-          '<tr><td>Emisiones evitadas</td><td><strong>'+_fmt(co2)+' kg CO₂/año</strong></td></tr>'+
-        '</tbody></table></div>'+
-      '<div class="pdf-section"><h3>Consumos cargados desde facturas</h3>'+
-        '<table class="pdf-table"><thead><tr><th>Mes</th><th>Consumo kWh</th><th>Generación estimada kWh</th></tr></thead><tbody>'+(function(){
+      '<div class="pdf-section"><h3>Generación estimada del sistema</h3>'+
+        '<table class="pdf-table"><thead><tr><th>Mes</th><th>Consumo kWh</th><th>Generación kWh</th></tr></thead><tbody>'+(function(){
           var mNom=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
           var pvgVals2=(pvgM&&kwpPvgM)?pvgM[1].split(',').map(parseFloat):null;
           var kwpRef2=pvgVals2&&kwpPvgM?parseFloat(kwpPvgM[1]):1;
-          return meses.map(function(v,i){
+          var rows=meses.map(function(v,i){
             var gen=pvgVals2&&pvgVals2[i]>0?_fmt(Math.round(pvgVals2[i]/kwpRef2*kwpReal)):'—';
             return '<tr><td>'+mNom[i]+'</td><td>'+(v>0?_fmt(v):'—')+'</td><td>'+gen+'</td></tr>';
           }).join('');
+          var totalCon=_fmt(Math.round(meses.reduce(function(a,b){return a+b;},0)));
+          var totalGen=pvgVals2?_fmt(Math.round(pvgVals2.reduce(function(a,b){return a+b;},0)/kwpRef2*kwpReal)):'—';
+          return rows+'<tr style="background:#EAF5EC;font-weight:700"><td>Total anual</td><td>'+totalCon+' kWh</td><td>'+totalGen+' kWh</td></tr>';
         })()+'</tbody></table></div>'+
+      '<div class="pdf-section"><h3>Impacto económico y ambiental</h3>'+
+        '<table class="pdf-table"><tbody>'+
+          '<tr><td>Ahorro anual estimado</td><td><strong>$'+_fmt(ahorroAnual)+'</strong></td></tr>'+
+          '<tr><td>Emisiones evitadas</td><td><strong>'+_fmt(co2)+' kg CO₂/año</strong></td></tr>'+
+        '</tbody></table></div>'+
     '</div>';
   }
 

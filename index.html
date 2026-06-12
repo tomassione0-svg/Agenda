@@ -626,6 +626,13 @@ window.addEventListener('load', function() {
   <!-- Líneas del presupuesto: Paneles / Electrónica -->
   <div class="pq-card">
     <div class="pq-card-head">☀ Equipos / Materiales</div>
+    <div class="pq-field" style="margin-bottom:10px">
+      <label>Importar desde dimensionamiento</label>
+      <select id="pq-dim-select" onchange="pqImportarDim()" style="width:100%;padding:9px 12px;border:1.5px solid var(--gris-borde);border-radius:8px;font-size:13px;font-family:inherit">
+        <option value="">— Sin dimensionamiento —</option>
+      </select>
+      <div id="pq-dim-info" style="display:none;font-size:11px;color:var(--muted);margin-top:4px;padding:6px 8px;background:var(--verde-light);border-radius:6px;border:1px solid var(--verde-badge)"></div>
+    </div>
     <div class="pq-lineas" id="pq-lineas-solar">
       <div class="pq-linea-head">
         <span>Descripción</span>
@@ -943,7 +950,7 @@ window.addEventListener('load', function() {
         <div class="result-grid">
           <div class="result-box"><div class="result-val" id="fv-r-kwp">0</div><div class="result-label">kWp instalados</div></div>
           <div class="result-box"><div class="result-val" id="fv-r-paneles">0</div><div class="result-label" id="fv-r-wpanel">paneles 430 Wp</div></div>
-          <div class="result-box accent"><div class="result-val" id="fv-r-inversor">0</div><div class="result-label">kW inversor estándar</div><div id="fv-r-inversor-calc" style="font-size:10px;color:var(--muted);margin-top:2px"></div></div>
+          <div class="result-box accent"><div class="result-val" id="fv-r-inversor">0</div><div class="result-label" id="fv-r-inversor-label">kW inversor estándar</div><div id="fv-r-inversor-calc" style="font-size:10px;color:var(--muted);margin-top:2px"></div></div>
           <div class="result-box"><div class="result-val" id="fv-r-gen-mes">0</div><div class="result-label">kWh/mes estimados</div></div>
           <div class="result-box"><div class="result-val" id="fv-r-ahorro-mes">$0</div><div class="result-label">ahorro mensual est.</div></div>
           <div class="result-box accent"><div class="result-val" id="fv-r-ahorro-anual">$0</div><div class="result-label">ahorro anual est.</div></div>
@@ -1806,6 +1813,7 @@ function showTab(name) {
     }
     pqLoadHistorial();
     pqUpdateClientesCount();
+    pqInitDimSelect();
   }
 }
 
@@ -2916,8 +2924,14 @@ function calcularFV() {
   document.getElementById('fv-r-wpanel').textContent=`paneles ${d.panelW}W`;
   var fvTri = getRedTipo('fv-red-tipo');
   var invStd = inversorEstandar(d.inversor, fvTri);
-  document.getElementById('fv-r-inversor').textContent = invStd;
-  document.getElementById('fv-r-inversor-calc').textContent = '(calc. ' + d.inversor + ' kW)';
+  var tarTipoLive = (document.getElementById('fv-tar-tipo')||{value:''}).value;
+  var invMostrarLive = (tarTipoLive === 'T1' && invStd >= 5 && invStd <= 9) ? 10 : invStd;
+  document.getElementById('fv-r-inversor').textContent = invMostrarLive;
+  var calcTxt = invMostrarLive !== invStd
+    ? '(calc. ' + d.inversor + ' kW) · ' + invStd + ' kW estándar · T1→10 kW'
+    : '(calc. ' + d.inversor + ' kW)';
+  document.getElementById('fv-r-inversor-calc').textContent = calcTxt;
+  document.getElementById('fv-r-inversor-label').textContent = 'kW inversor ' + (fvTri ? 'trifásico' : 'estándar');
   document.getElementById('fv-r-bateria').textContent=d.bateria;
   document.getElementById('fv-r-bat-note').textContent=d.sistema==='offgrid'?'kWh batería':'solo Off-Grid';
   document.getElementById('fv-r-gen-mes').textContent=Math.round(d.genMes).toLocaleString('es-AR');
@@ -6941,6 +6955,82 @@ function poblarSelectsOG() {
 // ─────────────────────────────────────────────────────────────────────────────
 // ANÁLISIS FINANCIERO — funciones JS
 // ─────────────────────────────────────────────────────────────────────────────
+
+function pqInitDimSelect() {
+  var sel = document.getElementById('pq-dim-select');
+  if (!sel) return;
+  var curVal = sel.value;
+  sel.innerHTML = '<option value="">— Sin dimensionamiento —</option>';
+  (presupuestos || []).forEach(function(p) {
+    var fecha   = p.created_at ? new Date(p.created_at).toLocaleDateString('es-AR') : '—';
+    var tipo    = p.tipo || '';
+    var sistema = tipo.toLowerCase().startsWith('fv |') ? (tipo.split('|')[1]||'FV').trim() : 'Solar Térmica';
+    var opt = document.createElement('option');
+    opt.value       = p.id;
+    opt.textContent = (p.cliente||'Cliente') + ' — ' + sistema + ' — ' + fecha;
+    sel.appendChild(opt);
+  });
+  if (curVal) sel.value = curVal;
+}
+
+function pqImportarDim() {
+  var sel    = document.getElementById('pq-dim-select');
+  var infoEl = document.getElementById('pq-dim-info');
+  var id     = sel ? sel.value : '';
+  if (!id) {
+    infoEl.style.display = 'none';
+    pqLineasSolar = pqLineasSolar.filter(function(r){ return !r._fromDim; });
+    pqRenderSolar(); pqRecalc(); return;
+  }
+
+  var p = (presupuestos||[]).find(function(x){ return String(x.id)===String(id); });
+  if (!p) return;
+
+  var tipo   = p.tipo || '';
+  var partes = tipo.split('|').map(function(x){ return x.trim(); });
+  var nPaneles = parseInt(p.colectores)||0;
+  var kWp      = parseFloat(p.area)||0;
+  var panelInfo = partes[2]||'';
+  var panelWp   = nPaneles > 0 ? Math.round(kWp*1000/nPaneles) : 0;
+
+  // Limpiar líneas solar existentes que vengan de dim anterior
+  pqLineasSolar = pqLineasSolar.filter(function(r){ return !r._fromDim; });
+
+  if (tipo.toLowerCase().startsWith('fv |')) {
+    var redM   = tipo.match(/RED=(tri|mono)/); var esTri = redM && redM[1]==='tri';
+    var tarTipoM = tipo.match(/TAR_TIPO=(T\d)/); var tarTipo = tarTipoM ? tarTipoM[1] : '';
+    var invCalcStr = (partes[3]||'').replace(/^Inv\s*/i,'').replace(/\s*kW$/i,'').trim();
+    var invStd = invCalcStr ? inversorEstandar(parseFloat(invCalcStr), esTri) : 0;
+    var invMostrar = (tarTipo==='T1' && invStd>=5 && invStd<=9) ? 10 : invStd;
+    var invTipo = esTri ? 'Trifásico' : 'Estándar';
+
+    // Panel
+    if (nPaneles > 0 && panelWp > 0) {
+      pqLineasSolar.push({ id: pqNextId++, modelo: '', desc: 'Panel solar ' + panelWp + ' Wp — ' + panelInfo.replace(/^\d+\s*Wp\s*—?\s*/i,''), precio: 0, qty: nPaneles, _fromDim: true });
+    }
+    // Inversor
+    if (invMostrar > 0) {
+      pqLineasSolar.push({ id: pqNextId++, modelo: '', desc: 'Inversor On-Grid ' + invMostrar + ' kW ' + invTipo, precio: 0, qty: 1, _fromDim: true });
+    }
+    infoEl.innerHTML = '<strong>' + (p.cliente||'—') + '</strong> · ' + (partes[1]||'FV') + ' · ' + (p.created_at ? new Date(p.created_at).toLocaleDateString('es-AR') : '—') +
+      '<br>' + nPaneles + ' paneles × ' + panelWp + 'W = ' + kWp.toFixed(1) + ' kWp · Inversor ' + invMostrar + ' kW';
+  } else {
+    // Solar Térmica
+    var acum = parseInt(p.acumulador)||0;
+    var tubosPorAcum = {150:15,200:20,300:24,500:40,750:60,1000:80};
+    var tubos = tubosPorAcum[acum] || Math.round(acum/10);
+    if (acum > 0) {
+      pqLineasSolar.push({ id: pqNextId++, modelo: '', desc: 'Acumulador solar ' + acum + ' L', precio: 0, qty: 1, _fromDim: true });
+      pqLineasSolar.push({ id: pqNextId++, modelo: '', desc: 'Colector tubos al vacío (' + tubos + ' tubos)', precio: 0, qty: 1, _fromDim: true });
+    }
+    infoEl.innerHTML = '<strong>' + (p.cliente||'—') + '</strong> · Solar Térmica · ' + (p.created_at ? new Date(p.created_at).toLocaleDateString('es-AR') : '—') +
+      '<br>Acumulador ' + acum + ' L · ' + tubos + ' tubos al vacío';
+  }
+
+  infoEl.style.display = 'block';
+  pqRenderSolar();
+  pqRecalc();
+}
 
 function initFinanzas() {
   var sel = document.getElementById('af-dim-select');

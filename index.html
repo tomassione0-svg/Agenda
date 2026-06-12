@@ -918,6 +918,15 @@ window.addEventListener('load', function() {
             </select>
           </div>
           <div class="calc-field">
+            <label>Categoría tarifaria</label>
+            <select id="fv-tar-tipo" onchange="calcularFV()">
+              <option value="">— Sin especificar —</option>
+              <option value="T1">T1 — Pequeña demanda (hasta 10 kW)</option>
+              <option value="T2">T2 — Mediana demanda (10–50 kW)</option>
+              <option value="T3">T3 — Gran demanda (>50 kW)</option>
+            </select>
+          </div>
+          <div class="calc-field">
             <label>Tarifa estimada ($/kWh)</label>
             <input type="number" id="fv-tarifa" value="156" min="0" oninput="calcularFV()">
             <span style="font-size:10px;color:var(--muted)">Para estimar el ahorro económico</span>
@@ -2922,6 +2931,13 @@ function calcularFV() {
 function construirPropuestaFV() {
   const d = getFVData();
   const fvTri = getRedTipo('fv-red-tipo');
+  const tarTipoEl = document.getElementById('fv-tar-tipo');
+  const tarTipo = tarTipoEl ? tarTipoEl.value : '';
+  const invCalc = inversorEstandar(d.inversor, fvTri);
+  const invMostrar = (tarTipo === 'T1' && invCalc >= 5 && invCalc <= 9) ? 10 : invCalc;
+  const invNota = (invMostrar !== invCalc)
+    ? `<div style="font-size:9px;color:#555;margin-top:6px;line-height:1.4">Dimensionado: ${invCalc} kW · Recomendado 10 kW por ser T1 (maximiza inyección a red)</div>`
+    : '';
   const cliente = document.getElementById('fv-cliente').value.trim() || 'Cliente';
   const ubicacion = document.getElementById('fv-ubicacion').value.trim() || 'No especificada';
   const zonaTxt = document.getElementById('fv-zona').value + ' h/día';
@@ -2942,7 +2958,7 @@ function construirPropuestaFV() {
     <div class="pdf-kpis">
       <div class="pdf-kpi"><div class="v">${d.kwpReal.toFixed(1)}</div><div class="l">kWp instalados</div></div>
       <div class="pdf-kpi"><div class="v">${d.paneles}</div><div class="l">paneles de ${d.panelW}W</div></div>
-      <div class="pdf-kpi"><div class="v">${inversorEstandar(d.inversor, fvTri)}</div><div class="l">kW inversor ${fvTri?'trifásico':'estándar'}</div></div>
+      <div class="pdf-kpi"><div class="v">${invMostrar}</div><div class="l">kW inversor ${fvTri?'trifásico':'estándar'}</div></div>
       <div class="pdf-kpi"><div class="v">${Math.round(d.genMes)}</div><div class="l">kWh/mes estimados</div></div>
     </div>
     <div class="pdf-section"><h3>Resumen energético</h3>
@@ -3634,7 +3650,7 @@ async function guardarDimFV() {
     personas: 0,
     litros_dia: Math.round(d.promedio) || 0,
     zona: zonaTxt,
-    tipo: `FV | ${sistemaTxt} | ${panelTxt} | Inv ${inversorEstandar(d.inversor, getRedTipo('fv-red-tipo'))} kW | ${Math.round(d.genMes)} kWh/mes | Ahorro ${moneyARS(d.ahorroMes)}/mes | COB=${Math.round(d.cobertura*100)} | TAR=${d.tarifa} | PR=${d.pr} | HSP=${d.hsp} | MES=${mesesStr}${pvgisStr} | UBIC=${(document.getElementById('fv-ubicacion').value.trim().replace(/\|/g,'-'))||''} | RED=${getRedTipo('fv-red-tipo')?'tri':'mono'}`,
+    tipo: `FV | ${sistemaTxt} | ${panelTxt} | Inv ${inversorEstandar(d.inversor, getRedTipo('fv-red-tipo'))} kW | ${Math.round(d.genMes)} kWh/mes | Ahorro ${moneyARS(d.ahorroMes)}/mes | COB=${Math.round(d.cobertura*100)} | TAR=${d.tarifa} | PR=${d.pr} | HSP=${d.hsp} | MES=${mesesStr}${pvgisStr} | UBIC=${(document.getElementById('fv-ubicacion').value.trim().replace(/\|/g,'-'))||''} | RED=${getRedTipo('fv-red-tipo')?'tri':'mono'} | TAR_TIPO=${(document.getElementById('fv-tar-tipo')||{value:''}).value||''}`,
     colectores: d.paneles || 0,
     acumulador: d.sistema === 'offgrid' ? (parseInt(d.bateria) || 0) : 0,
     bomba: Math.round(d.ahorroAnual) || 0,
@@ -3703,7 +3719,7 @@ function detallePresupuestoHTML(p) {
         </div>
         <div class="prov-rows" style="margin-top:12px">
           <div class="prov-row"><strong>Panel:</strong> ${fv.panel}</div>
-          <div class="prov-row"><strong>Inversor: ${(function(){ var m=(fv.inversor||'').match(/[\d.]+/); var redM2=(p.tipo||'').match(/RED=(tri|mono)/); var tri2=redM2&&redM2[1]==='tri'; return m ? inversorEstandar(parseFloat(m[0]),tri2)+' kW '+(tri2?'trifásico':'estándar')+' <span style="color:var(--muted);font-weight:400">(calc. '+m[0]+' kW)</span>' : fv.inversor; })()} </strong></div>
+          <div class="prov-row"><strong>Inversor: ${(function(){ var m=(fv.inversor||'').match(/[\d.]+/); var redM2=(p.tipo||'').match(/RED=(tri|mono)/); var tri2=redM2&&redM2[1]==='tri'; var calc=m?parseFloat(m[0]):0; var std=m?inversorEstandar(calc,tri2):0; var tarTipoM=(p.tipo||'').match(/TAR_TIPO=(T\d)/); var tarTipo=tarTipoM?tarTipoM[1]:''; var mostrar=std; if(tarTipo==='T1'&&std>=5&&std<=9){mostrar=10;} return m ? mostrar+' kW '+(tri2?'trifásico':'estándar')+(mostrar!==std?'<br><span style="color:var(--muted);font-size:11px;font-weight:400">Dimensionado para '+std+' kW · Se recomienda 10 kW por ser T1 (inyección a red)</span>':'<span style="color:var(--muted);font-weight:400"> (calc. '+calc+' kW)</span>') : fv.inversor; })()} </strong></div>
           <div class="prov-row"><strong>${fv.generacion}</strong></div>
           <div class="prov-row"><strong>${fv.ahorro}</strong></div>
           <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
@@ -3757,6 +3773,13 @@ function construirPDFPresupuestoGuardado(p) {
     var redM = tipo.match(/RED=(tri|mono)/); var esTri = redM && redM[1]==='tri';
     var invStr = invCalcStr ? String(inversorEstandar(parseFloat(invCalcStr), esTri)) : '—';
     var invLabel = esTri ? 'trifásico' : 'estándar';
+    var tarTipoM2 = tipo.match(/TAR_TIPO=(T\d)/); var tarTipo2 = tarTipoM2 ? tarTipoM2[1] : '';
+    var invStrNum = parseFloat(invStr)||0;
+    var invMostrar2 = (tarTipo2 === 'T1' && invStrNum >= 5 && invStrNum <= 9) ? 10 : invStrNum;
+    var invNota2 = (invMostrar2 !== invStrNum)
+      ? '<div style="font-size:9px;color:#555;margin-top:6px;line-height:1.4">Dimensionado: '+invStr+' kW · Recomendado 10 kW por ser T1 (maximiza inyección a red)</div>'
+      : '';
+    invStr = String(invMostrar2);
     var genMesTxt = parseInt(partes[4])||0;
     var ahorroMesStr = (partes[5]||'').replace(/^Ahorro\s*/i,'').replace(/\/mes$/i,'').trim();
     var cobM = tipo.match(/COB=(\d+)/); var cob = cobM ? parseInt(cobM[1]) : 75;
@@ -4230,7 +4253,11 @@ async function loadPresupuestos() {
       var _invRawON = fv.inversor.replace(/^Inv\s*/i,'').trim();
       var _mON = _invRawON.match(/[\d.]+/);
       var _redON = (p.tipo||'').match(/RED=(tri|mono)/); var _triON = _redON&&_redON[1]==='tri';
-      invVal    = _mON ? inversorEstandar(parseFloat(_mON[0]),_triON)+' kW '+(_triON?'trifásico':'estándar') : _invRawON;
+      var _tarTipoON = ((p.tipo||'').match(/TAR_TIPO=(T\d)/)||[])[1]||'';
+      var _stdON = _mON ? inversorEstandar(parseFloat(_mON[0]),_triON) : 0;
+      var _mostrarON = (_tarTipoON==='T1'&&_stdON>=5&&_stdON<=9) ? 10 : _stdON;
+      var _notaON = (_mostrarON!==_stdON) ? '<br><span style="font-size:10px;color:var(--muted);font-weight:400">Dimensionado: '+_stdON+' kW · Recomendado 10 kW (T1)</span>' : '';
+      invVal    = _mON ? _mostrarON+' kW '+(_triON?'trifásico':'estándar')+_notaON : _invRawON;
       genLabel  = 'Generación';
       genVal    = fv.generacion;
       extra3Label = 'Ahorro estimado';
@@ -7232,6 +7259,14 @@ function editarDimFV(id) {
       var kwpEl2 = document.getElementById('fv-pvgis-kwp');
       if (kwpEl2 && kwpM2) kwpEl2.value = kwpM2[1];
     }
+    // fv-red-tipo: restaurar mono/tri
+    var redM2 = tipoStr.match(/RED=(tri|mono)/);
+    var fvRedEl = document.getElementById('fv-red-tipo');
+    if (fvRedEl && redM2) fvRedEl.value = redM2[1];
+    // fv-tar-tipo: restaurar T1/T2/T3
+    var tarTipoM3 = tipoStr.match(/TAR_TIPO=(T\d)/);
+    var fvTarTipoEl = document.getElementById('fv-tar-tipo');
+    if (fvTarTipoEl) fvTarTipoEl.value = tarTipoM3 ? tarTipoM3[1] : '';
     showFVTab('ongrid');
     calcularFV();
   }

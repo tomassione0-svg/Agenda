@@ -4349,6 +4349,15 @@ function setSelectValuePreservingOption(selectEl, value, notas = '') {
 function tipoClienteDisplay(c) {
   return normalizarTipoCliente(c.tipo, c.notas) || 'Sin especificar';
 }
+function leadFuenteTag(c) {
+  var notas = (c.notas || '').toLowerCase();
+  if (notas.includes('lead desde whatsapp') || notas.includes('botón whatsapp') || notas.includes('boton whatsapp')) {
+    return '<span style="font-size:10px;background:#25d36620;color:#128c7e;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead WhatsApp</span>';
+  } else if (notas.includes('lead desde mail') || notas.includes('página web') || notas.includes('pagina web') || notas.includes('consulta recibida desde')) {
+    return '<span style="font-size:10px;background:#e8f0fe;color:#1a73e8;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead Mail</span>';
+  }
+  return '';
+}
 
 // ── CLIENTES ───────────────────────────────────────────────────────────────
 async function loadClientes() {
@@ -4379,6 +4388,7 @@ function renderClientes() {
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
         <span class="cliente-status-pill ${cls}">${lbl}</span>
+        ${leadFuenteTag(c)}
         <button class="edit-btn" onclick="openClienteModal('${c.id}')">✎</button>
       </div>
     </div>`;

@@ -670,9 +670,9 @@ window.addEventListener('load', function() {
     </div>
   </div>
 
-  <div style="margin-bottom:10px;padding:10px;background:var(--gris);border-radius:8px;display:flex;gap:8px">
-    <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nombre</label><input id="firma-pq-nombre" class="calc-input" type="text" placeholder="Nombre" oninput="saveFirma('pq','nombre',this.value)"></div>
-    <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Posición</label><input id="firma-pq-posicion" class="calc-input" type="text" placeholder="Cargo / posición" oninput="saveFirma('pq','posicion',this.value)"></div>
+  <div style="margin-bottom:10px;padding:14px 16px;background:var(--gris);border-radius:8px;display:flex;gap:12px">
+    <div class="calc-field" style="flex:1;margin-bottom:0"><label>Nombre</label><input id="firma-pq-nombre" type="text" placeholder="Nombre" oninput="saveFirma('pq','nombre',this.value)"></div>
+          <div class="calc-field" style="flex:1;margin-bottom:0"><label>Posición</label><input id="firma-pq-posicion" type="text" placeholder="Cargo / posición" oninput="saveFirma('pq','posicion',this.value)"></div>
   </div>
   <div style="display:flex;gap:10px;margin-bottom:24px;padding:0 2px">
     <button class="btn btn-secondary" style="flex:1" onclick="pqGuardar()">Guardar</button>
@@ -797,9 +797,9 @@ window.addEventListener('load', function() {
           <div class="result-box accent"><div class="result-val" id="r-acum">0</div><div class="result-label">litros acumulador</div></div>
         </div>
         <div style="margin-top:12px;background:var(--gris);border-radius:8px;padding:10px;font-size:12px;line-height:1.8" id="r-resumen">—</div>
-        <div style="margin-top:12px;padding:10px;background:var(--gris);border-radius:8px;display:flex;gap:8px">
-          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nombre</label><input id="firma-termica-nombre" class="calc-input" type="text" placeholder="Nombre" oninput="saveFirma('termica','nombre',this.value)"></div>
-          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Posición</label><input id="firma-termica-posicion" class="calc-input" type="text" placeholder="Cargo / posición" oninput="saveFirma('termica','posicion',this.value)"></div>
+        <div style="margin-top:12px;padding:14px 16px;background:var(--gris);border-radius:8px;display:flex;gap:12px">
+          <div class="calc-field" style="flex:1;margin-bottom:0"><label>Nombre</label><input id="firma-termica-nombre" type="text" placeholder="Nombre" oninput="saveFirma('termica','nombre',this.value)"></div>
+          <div class="calc-field" style="flex:1;margin-bottom:0"><label>Posición</label><input id="firma-termica-posicion" type="text" placeholder="Cargo / posición" oninput="saveFirma('termica','posicion',this.value)"></div>
         </div>
         <div style="display:flex;gap:8px;margin-top:12px">
           <button class="btn btn-primary" style="flex:1" onclick="guardarDim()">Guardar</button>
@@ -966,9 +966,9 @@ window.addEventListener('load', function() {
           <div class="result-box accent"><div class="result-val" id="fv-r-bateria">—</div><div class="result-label" id="fv-r-bat-note">solo Off-Grid</div></div>
         </div>
         <div style="margin-top:12px;background:var(--gris);border-radius:8px;padding:10px;font-size:12px;line-height:1.8" id="fv-r-resumen">—</div>
-        <div style="margin-top:12px;padding:10px;background:var(--gris);border-radius:8px;display:flex;gap:8px">
-          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nombre</label><input id="firma-fv-nombre" class="calc-input" type="text" placeholder="Nombre" oninput="saveFirma('fv','nombre',this.value)"></div>
-          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Posición</label><input id="firma-fv-posicion" class="calc-input" type="text" placeholder="Cargo / posición" oninput="saveFirma('fv','posicion',this.value)"></div>
+        <div style="margin-top:12px;padding:14px 16px;background:var(--gris);border-radius:8px;display:flex;gap:12px">
+          <div class="calc-field" style="flex:1;margin-bottom:0"><label>Nombre</label><input id="firma-fv-nombre" type="text" placeholder="Nombre" oninput="saveFirma('fv','nombre',this.value)"></div>
+          <div class="calc-field" style="flex:1;margin-bottom:0"><label>Posición</label><input id="firma-fv-posicion" type="text" placeholder="Cargo / posición" oninput="saveFirma('fv','posicion',this.value)"></div>
         </div>
         <div class="pdf-actions">
           <button class="btn btn-azul" onclick="guardarDimFV()">Guardar</button>
@@ -1163,9 +1163,9 @@ window.addEventListener('load', function() {
           </table>
         </div>
 
-        <div style="margin-top:12px;padding:10px;background:var(--gris);border-radius:8px;display:flex;gap:8px">
-          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nombre</label><input id="firma-og-nombre" class="calc-input" type="text" placeholder="Nombre" oninput="saveFirma('og','nombre',this.value)"></div>
-          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Posición</label><input id="firma-og-posicion" class="calc-input" type="text" placeholder="Cargo / posición" oninput="saveFirma('og','posicion',this.value)"></div>
+        <div style="margin-top:12px;padding:14px 16px;background:var(--gris);border-radius:8px;display:flex;gap:12px">
+          <div class="calc-field" style="flex:1;margin-bottom:0"><label>Nombre</label><input id="firma-og-nombre" type="text" placeholder="Nombre" oninput="saveFirma('og','nombre',this.value)"></div>
+          <div class="calc-field" style="flex:1;margin-bottom:0"><label>Posición</label><input id="firma-og-posicion" type="text" placeholder="Cargo / posición" oninput="saveFirma('og','posicion',this.value)"></div>
         </div>
         <div class="pdf-actions">
           <button class="btn btn-azul" style="background:var(--teal);border-color:var(--teal)" onclick="guardarDimOG()">Guardar</button>
@@ -1332,9 +1332,9 @@ window.addEventListener('load', function() {
             <tbody id="af-tabla-20-body"></tbody>
           </table>
         </div>
-        <div style="margin-top:12px;padding:10px;background:var(--gris);border-radius:8px;display:flex;gap:8px">
-          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nombre</label><input id="firma-af-nombre" class="calc-input" type="text" placeholder="Nombre" oninput="saveFirma('af','nombre',this.value)"></div>
-          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Posición</label><input id="firma-af-posicion" class="calc-input" type="text" placeholder="Cargo / posición" oninput="saveFirma('af','posicion',this.value)"></div>
+        <div style="margin-top:12px;padding:14px 16px;background:var(--gris);border-radius:8px;display:flex;gap:12px">
+          <div class="calc-field" style="flex:1;margin-bottom:0"><label>Nombre</label><input id="firma-af-nombre" type="text" placeholder="Nombre" oninput="saveFirma('af','nombre',this.value)"></div>
+          <div class="calc-field" style="flex:1;margin-bottom:0"><label>Posición</label><input id="firma-af-posicion" type="text" placeholder="Cargo / posición" oninput="saveFirma('af','posicion',this.value)"></div>
         </div>
         <div class="pdf-actions">
           <button class="btn btn-secondary" onclick="afGuardar()">Guardar</button>

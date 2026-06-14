@@ -670,6 +670,10 @@ window.addEventListener('load', function() {
     </div>
   </div>
 
+  <div style="margin-bottom:10px;padding:10px;background:var(--gris);border-radius:8px;display:flex;gap:8px">
+    <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nombre</label><input id="firma-pq-nombre" class="calc-input" type="text" placeholder="Nombre" oninput="saveFirma('pq','nombre',this.value)"></div>
+    <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Posición</label><input id="firma-pq-posicion" class="calc-input" type="text" placeholder="Cargo / posición" oninput="saveFirma('pq','posicion',this.value)"></div>
+  </div>
   <div style="display:flex;gap:10px;margin-bottom:24px;padding:0 2px">
     <button class="btn btn-secondary" style="flex:1" onclick="pqGuardar()">Guardar</button>
     <button class="btn btn-primary" style="flex:2" id="pq-btn-preview" onclick="pqPreview()">Exportar PDF</button>
@@ -793,6 +797,10 @@ window.addEventListener('load', function() {
           <div class="result-box accent"><div class="result-val" id="r-acum">0</div><div class="result-label">litros acumulador</div></div>
         </div>
         <div style="margin-top:12px;background:var(--gris);border-radius:8px;padding:10px;font-size:12px;line-height:1.8" id="r-resumen">—</div>
+        <div style="margin-top:12px;padding:10px;background:var(--gris);border-radius:8px;display:flex;gap:8px">
+          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nombre</label><input id="firma-termica-nombre" class="calc-input" type="text" placeholder="Nombre" oninput="saveFirma('termica','nombre',this.value)"></div>
+          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Posición</label><input id="firma-termica-posicion" class="calc-input" type="text" placeholder="Cargo / posición" oninput="saveFirma('termica','posicion',this.value)"></div>
+        </div>
         <div style="display:flex;gap:8px;margin-top:12px">
           <button class="btn btn-primary" style="flex:1" onclick="guardarDim()">Guardar</button>
           <button class="btn btn-secondary" style="flex:1" onclick="exportarPDFTermica()">Exportar PDF</button>
@@ -958,6 +966,10 @@ window.addEventListener('load', function() {
           <div class="result-box accent"><div class="result-val" id="fv-r-bateria">—</div><div class="result-label" id="fv-r-bat-note">solo Off-Grid</div></div>
         </div>
         <div style="margin-top:12px;background:var(--gris);border-radius:8px;padding:10px;font-size:12px;line-height:1.8" id="fv-r-resumen">—</div>
+        <div style="margin-top:12px;padding:10px;background:var(--gris);border-radius:8px;display:flex;gap:8px">
+          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nombre</label><input id="firma-fv-nombre" class="calc-input" type="text" placeholder="Nombre" oninput="saveFirma('fv','nombre',this.value)"></div>
+          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Posición</label><input id="firma-fv-posicion" class="calc-input" type="text" placeholder="Cargo / posición" oninput="saveFirma('fv','posicion',this.value)"></div>
+        </div>
         <div class="pdf-actions">
           <button class="btn btn-azul" onclick="guardarDimFV()">Guardar</button>
           <button class="btn btn-outline" onclick="exportarPDFfv()">Exportar PDF</button>
@@ -1151,6 +1163,10 @@ window.addEventListener('load', function() {
           </table>
         </div>
 
+        <div style="margin-top:12px;padding:10px;background:var(--gris);border-radius:8px;display:flex;gap:8px">
+          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nombre</label><input id="firma-og-nombre" class="calc-input" type="text" placeholder="Nombre" oninput="saveFirma('og','nombre',this.value)"></div>
+          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Posición</label><input id="firma-og-posicion" class="calc-input" type="text" placeholder="Cargo / posición" oninput="saveFirma('og','posicion',this.value)"></div>
+        </div>
         <div class="pdf-actions">
           <button class="btn btn-azul" style="background:var(--teal);border-color:var(--teal)" onclick="guardarDimOG()">Guardar</button>
           <button class="btn btn-outline" onclick="exportarPDFog()">Exportar PDF</button>
@@ -1315,6 +1331,10 @@ window.addEventListener('load', function() {
             </thead>
             <tbody id="af-tabla-20-body"></tbody>
           </table>
+        </div>
+        <div style="margin-top:12px;padding:10px;background:var(--gris);border-radius:8px;display:flex;gap:8px">
+          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nombre</label><input id="firma-af-nombre" class="calc-input" type="text" placeholder="Nombre" oninput="saveFirma('af','nombre',this.value)"></div>
+          <div style="flex:1"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Posición</label><input id="firma-af-posicion" class="calc-input" type="text" placeholder="Cargo / posición" oninput="saveFirma('af','posicion',this.value)"></div>
         </div>
         <div class="pdf-actions">
           <button class="btn btn-secondary" onclick="afGuardar()">Guardar</button>
@@ -2925,7 +2945,7 @@ function calcularFV() {
   var fvTri = getRedTipo('fv-red-tipo');
   var invStd = inversorEstandar(d.inversor, fvTri);
   var tarTipoLive = (document.getElementById('fv-tar-tipo')||{value:''}).value;
-  var invMostrarLive = (tarTipoLive === 'T1' && invStd >= 5 && invStd <= 9) ? 10 : invStd;
+  var invMostrarLive = (tarTipoLive === 'T1' && invStd >= 6 && invStd <= 9) ? 10 : invStd;
   document.getElementById('fv-r-inversor').textContent = invMostrarLive;
   var calcTxt = invMostrarLive !== invStd
     ? '(calc. ' + d.inversor + ' kW) · ' + invStd + ' kW estándar · T1→10 kW'
@@ -2948,7 +2968,7 @@ function construirPropuestaFV() {
   const tarTipoEl = document.getElementById('fv-tar-tipo');
   const tarTipo = tarTipoEl ? tarTipoEl.value : '';
   const invCalc = inversorEstandar(d.inversor, fvTri);
-  const invMostrar = (tarTipo === 'T1' && invCalc >= 5 && invCalc <= 9) ? 10 : invCalc;
+  const invMostrar = (tarTipo === 'T1' && invCalc >= 6 && invCalc <= 9) ? 10 : invCalc;
   const invNota = (invMostrar !== invCalc)
     ? `<div style="font-size:9px;color:#555;margin-top:6px;line-height:1.4">Dimensionado: ${invCalc} kW · Recomendado 10 kW por ser T1 (maximiza inyección a red)</div>`
     : '';
@@ -2984,9 +3004,9 @@ function construirPropuestaFV() {
         <tr><td>Panel considerado</td><td><strong>${panelTxt}</strong></td></tr>
       </tbody></table>
     </div>
-    <div class="pdf-section"><h3>Generación estimada del sistema</h3>
+    <div class="pdf-section"><h3>Producción estimada</h3>
       <table class="pdf-table">
-        <thead><tr><th>Mes</th><th>Consumo kWh</th><th>Generación kWh</th></tr></thead>
+        <thead><tr><th>Mes</th><th>Consumo kWh</th><th>Producción kWh</th></tr></thead>
         <tbody>
           ${d.consumos.map((x,i)=>{const gen=d.pvgisMeses&&d.pvgisMeses[i]>0?Math.round(d.pvgisMeses[i]*d.kwpReal).toLocaleString('es-AR'):'—';return`<tr><td>${x.mes}</td><td>${x.kwh?Math.round(x.kwh).toLocaleString('es-AR'):'—'}</td><td>${gen}</td></tr>`;}).join('')}
           <tr style="background:#EAF5EC;font-weight:700"><td>Total anual</td><td>${Math.round(d.anual).toLocaleString('es-AR')} kWh</td><td>${Math.round(d.genAnual).toLocaleString('es-AR')} kWh</td></tr>
@@ -2999,6 +3019,7 @@ function construirPropuestaFV() {
         <tr><td>Emisiones evitadas</td><td><strong>${Math.round(d.co2).toLocaleString('es-AR')} kg CO₂/año</strong></td></tr>
       </tbody></table>
     </div>
+    ${getFirmaBlockById('_', (document.getElementById('firma-fv-nombre')||{value:''}).value.trim(), (document.getElementById('firma-fv-posicion')||{value:''}).value.trim())}
   </div>`;
 }
 
@@ -3322,6 +3343,7 @@ function construirPropuestaOG() {
           '<tr><td><strong>Banco de baterías</strong></td><td><strong>'+modBat+'</strong></td></tr>' +
         '</tbody>' +
       '</table></div>' +
+    getFirmaBlockById('_', (document.getElementById('firma-og-nombre')||{value:''}).value.trim(), (document.getElementById('firma-og-posicion')||{value:''}).value.trim()) +
   '</div>';
 }
 
@@ -3380,7 +3402,7 @@ async function guardarDimOG() {
     personas:   0,
     litros_dia: Math.round(totalWh) || 0,
     zona:       zonaTxt,
-    tipo:       'FV | Off-Grid | ' + panelTxt + ' | Inv ≥ ' + totalW + 'W | E_R=' + totalWh + ' Wh/día | ' + capAh + 'Ah·' + tension + 'V' + cargasStr + ' | ETA=' + eta + ' | OPR=' + pr + modStr + ubicStr,
+    tipo:       'FV | Off-Grid | ' + panelTxt + ' | Inv ≥ ' + totalW + 'W | E_R=' + totalWh + ' Wh/día | ' + capAh + 'Ah·' + tension + 'V' + cargasStr + ' | ETA=' + eta + ' | OPR=' + pr + modStr + ubicStr + ' | FIRMA_N=' + ((document.getElementById('firma-og-nombre')||{value:''}).value.trim().replace(/\|/g,'-')) + ' | FIRMA_P=' + ((document.getElementById('firma-og-posicion')||{value:''}).value.trim().replace(/\|/g,'-')),
     colectores: nPaneles  || 0,
     acumulador: capAh     || 0,
     bomba:      iReg      || 0,
@@ -3503,7 +3525,7 @@ function construirPropuestaTermica() {
         </tbody>
       </table>
     </div>
-
+    ${getFirmaBlockById('_', (document.getElementById('firma-termica-nombre')||{value:''}).value.trim(), (document.getElementById('firma-termica-posicion')||{value:''}).value.trim())}
   </div>`;
 }
 
@@ -3519,6 +3541,8 @@ function exportarPDFTermica() {
 
 
 function limpiarDimensionTermica() {
+  var fn=document.getElementById('firma-termica-nombre'); if(fn) fn.value='';
+  var fp=document.getElementById('firma-termica-posicion'); if(fp) fp.value='';
   document.getElementById('d-cliente').value = '';
   document.getElementById('d-personas').value = 4;
   document.getElementById('d-litros').value = 40;
@@ -3531,6 +3555,8 @@ function limpiarDimensionTermica() {
 }
 
 function limpiarDimensionOG() {
+  var fn=document.getElementById('firma-og-nombre'); if(fn) fn.value='';
+  var fp=document.getElementById('firma-og-posicion'); if(fp) fp.value='';
   // — Limpiar resultados PRIMERO (antes de cualquier recalculo) —
   ['og-step-inversor','og-step-paneles','og-step-baterias','og-step-regulador'].forEach(function(id){
     var el = document.getElementById(id); if(el) el.textContent = '—';
@@ -3578,6 +3604,8 @@ function limpiarDimensionOG() {
 }
 
 function limpiarDimensionFV() {
+  var fn=document.getElementById('firma-fv-nombre'); if(fn) fn.value='';
+  var fp=document.getElementById('firma-fv-posicion'); if(fp) fp.value='';
   document.getElementById('fv-cliente').value = '';
   const ubic = document.getElementById('fv-ubicacion');
   if (ubic) ubic.value = '';
@@ -3622,7 +3650,9 @@ async function guardarDim() {
     tipo: 'Térmica | ' + (parseFloat(document.getElementById('d-tipo').value) < 0.65 ? 'Atmosférico' : 'Presurizado') +
           ' | TACUM=' + (document.getElementById('d-tacum').value || 55) +
           ' | TRED='  + (document.getElementById('d-tred').value  || 15) +
-          ' | COB='   + ((parseFloat(document.getElementById('d-cobertura').value)||70)/100),
+          ' | COB='   + ((parseFloat(document.getElementById('d-cobertura').value)||70)/100) +
+          ' | FIRMA_N=' + ((document.getElementById('firma-termica-nombre')||{value:''}).value.trim().replace(/\|/g,'-')) +
+          ' | FIRMA_P=' + ((document.getElementById('firma-termica-posicion')||{value:''}).value.trim().replace(/\|/g,'-')),
     colectores: parseInt(document.getElementById('r-colectores').textContent) || 0,
     acumulador: parseInt(document.getElementById('r-acum').textContent) || 0,
     bomba: parseInt(document.getElementById('r-bomba').textContent) || 0,
@@ -3664,7 +3694,7 @@ async function guardarDimFV() {
     personas: 0,
     litros_dia: Math.round(d.promedio) || 0,
     zona: zonaTxt,
-    tipo: `FV | ${sistemaTxt} | ${panelTxt} | Inv ${inversorEstandar(d.inversor, getRedTipo('fv-red-tipo'))} kW | ${Math.round(d.genMes)} kWh/mes | Ahorro ${moneyARS(d.ahorroMes)}/mes | COB=${Math.round(d.cobertura*100)} | TAR=${d.tarifa} | PR=${d.pr} | HSP=${d.hsp} | MES=${mesesStr}${pvgisStr} | UBIC=${(document.getElementById('fv-ubicacion').value.trim().replace(/\|/g,'-'))||''} | RED=${getRedTipo('fv-red-tipo')?'tri':'mono'} | TAR_TIPO=${(document.getElementById('fv-tar-tipo')||{value:''}).value||''}`,
+    tipo: `FV | ${sistemaTxt} | ${panelTxt} | Inv ${inversorEstandar(d.inversor, getRedTipo('fv-red-tipo'))} kW | ${Math.round(d.genMes)} kWh/mes | Ahorro ${moneyARS(d.ahorroMes)}/mes | COB=${Math.round(d.cobertura*100)} | TAR=${d.tarifa} | PR=${d.pr} | HSP=${d.hsp} | MES=${mesesStr}${pvgisStr} | UBIC=${(document.getElementById('fv-ubicacion').value.trim().replace(/\|/g,'-'))||''} | RED=${getRedTipo('fv-red-tipo')?'tri':'mono'} | TAR_TIPO=${(document.getElementById('fv-tar-tipo')||{value:''}).value||''} | FIRMA_N=${((document.getElementById('firma-fv-nombre')||{value:''}).value.trim().replace(/\|/g,'-'))} | FIRMA_P=${((document.getElementById('firma-fv-posicion')||{value:''}).value.trim().replace(/\|/g,'-'))}`,
     colectores: d.paneles || 0,
     acumulador: d.sistema === 'offgrid' ? (parseInt(d.bateria) || 0) : 0,
     bomba: Math.round(d.ahorroAnual) || 0,
@@ -3733,7 +3763,7 @@ function detallePresupuestoHTML(p) {
         </div>
         <div class="prov-rows" style="margin-top:12px">
           <div class="prov-row"><strong>Panel:</strong> ${fv.panel}</div>
-          <div class="prov-row"><strong>Inversor: ${(function(){ var m=(fv.inversor||'').match(/[\d.]+/); var redM2=(p.tipo||'').match(/RED=(tri|mono)/); var tri2=redM2&&redM2[1]==='tri'; var calc=m?parseFloat(m[0]):0; var std=m?inversorEstandar(calc,tri2):0; var tarTipoM=(p.tipo||'').match(/TAR_TIPO=(T\d)/); var tarTipo=tarTipoM?tarTipoM[1]:''; var mostrar=std; if(tarTipo==='T1'&&std>=5&&std<=9){mostrar=10;} return m ? mostrar+' kW '+(tri2?'trifásico':'estándar')+(mostrar!==std?'<br><span style="color:var(--muted);font-size:11px;font-weight:400">Dimensionado para '+std+' kW · Se recomienda 10 kW por ser T1 (inyección a red)</span>':'<span style="color:var(--muted);font-weight:400"> (calc. '+calc+' kW)</span>') : fv.inversor; })()} </strong></div>
+          <div class="prov-row"><strong>Inversor: ${(function(){ var m=(fv.inversor||'').match(/[\d.]+/); var redM2=(p.tipo||'').match(/RED=(tri|mono)/); var tri2=redM2&&redM2[1]==='tri'; var calc=m?parseFloat(m[0]):0; var std=m?inversorEstandar(calc,tri2):0; var tarTipoM=(p.tipo||'').match(/TAR_TIPO=(T\d)/); var tarTipo=tarTipoM?tarTipoM[1]:''; var mostrar=std; if(tarTipo==='T1'&&std>=6&&std<=9){mostrar=10;} return m ? mostrar+' kW '+(tri2?'trifásico':'estándar')+(mostrar!==std?'<br><span style="color:var(--muted);font-size:11px;font-weight:400">Dimensionado para '+std+' kW · Se recomienda 10 kW por ser T1 (inyección a red)</span>':'<span style="color:var(--muted);font-weight:400"> (calc. '+calc+' kW)</span>') : fv.inversor; })()} </strong></div>
           <div class="prov-row"><strong>${fv.generacion}</strong></div>
           <div class="prov-row"><strong>${fv.ahorro}</strong></div>
           <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
@@ -3789,7 +3819,7 @@ function construirPDFPresupuestoGuardado(p) {
     var invLabel = esTri ? 'trifásico' : 'estándar';
     var tarTipoM2 = tipo.match(/TAR_TIPO=(T\d)/); var tarTipo2 = tarTipoM2 ? tarTipoM2[1] : '';
     var invStrNum = parseFloat(invStr)||0;
-    var invMostrar2 = (tarTipo2 === 'T1' && invStrNum >= 5 && invStrNum <= 9) ? 10 : invStrNum;
+    var invMostrar2 = (tarTipo2 === 'T1' && invStrNum >= 6 && invStrNum <= 9) ? 10 : invStrNum;
     var invNota2 = (invMostrar2 !== invStrNum)
       ? '<div style="font-size:9px;color:#555;margin-top:6px;line-height:1.4">Dimensionado: '+invStr+' kW · Recomendado 10 kW por ser T1 (maximiza inyección a red)</div>'
       : '';
@@ -3840,8 +3870,8 @@ function construirPDFPresupuestoGuardado(p) {
           '<tr><td>Zona solar considerada</td><td><strong>'+(p.zona||'—')+'</strong></td></tr>'+
           '<tr><td>Panel considerado</td><td><strong>'+panel+'</strong></td></tr>'+
         '</tbody></table></div>'+
-      '<div class="pdf-section"><h3>Generación estimada del sistema</h3>'+
-        '<table class="pdf-table"><thead><tr><th>Mes</th><th>Consumo kWh</th><th>Generación kWh</th></tr></thead><tbody>'+(function(){
+      '<div class="pdf-section"><h3>Producción estimada</h3>'+
+        '<table class="pdf-table"><thead><tr><th>Mes</th><th>Consumo kWh</th><th>Producción kWh</th></tr></thead><tbody>'+(function(){
           var mNom=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
           var pvgVals2=(pvgM&&kwpPvgM)?pvgM[1].split(',').map(parseFloat):null;
           var kwpRef2=pvgVals2&&kwpPvgM?parseFloat(kwpPvgM[1]):1;
@@ -3858,6 +3888,7 @@ function construirPDFPresupuestoGuardado(p) {
           '<tr><td>Ahorro anual estimado</td><td><strong>$'+_fmt(ahorroAnual)+'</strong></td></tr>'+
           '<tr><td>Emisiones evitadas</td><td><strong>'+_fmt(co2)+' kg CO₂/año</strong></td></tr>'+
         '</tbody></table></div>'+
+    (function(){ var nm=tipo.match(/FIRMA_N=([^|]*)/); var pm=tipo.match(/FIRMA_P=([^|]*)/); return getFirmaBlockById('_', nm?nm[1].trim():'', pm?pm[1].trim():''); })()+
     '</div>';
   }
 
@@ -3925,6 +3956,7 @@ function construirPDFPresupuestoGuardado(p) {
                    '<tr><td><strong>Banco de baterías</strong></td><td><strong>'+mb+'</strong></td></tr>';
           })()+'</tbody>'+
         '</table></div>'+
+    (function(){ var nm=tipo.match(/FIRMA_N=([^|]*)/); var pm=tipo.match(/FIRMA_P=([^|]*)/); return getFirmaBlockById('_', nm?nm[1].trim():'', pm?pm[1].trim():''); })()+
     '</div>';
   }
 
@@ -3988,6 +4020,7 @@ function construirPDFPresupuestoGuardado(p) {
         '<tr><td>Circulación</td><td>Bomba y controlador diferencial a definir según instalación final.</td></tr>'+
         '<tr><td>Integración</td><td>Compatible con sistema de respaldo existente, sujeto a relevamiento técnico.</td></tr>'+
       '</tbody></table></div>'+
+    (function(){ var nm=tipo.match(/FIRMA_N=([^|]*)/); var pm=tipo.match(/FIRMA_P=([^|]*)/); return getFirmaBlockById('_', nm?nm[1].trim():'', pm?pm[1].trim():''); })()+
   '</div>';
 }
 
@@ -4269,7 +4302,7 @@ async function loadPresupuestos() {
       var _redON = (p.tipo||'').match(/RED=(tri|mono)/); var _triON = _redON&&_redON[1]==='tri';
       var _tarTipoON = ((p.tipo||'').match(/TAR_TIPO=(T\d)/)||[])[1]||'';
       var _stdON = _mON ? inversorEstandar(parseFloat(_mON[0]),_triON) : 0;
-      var _mostrarON = (_tarTipoON==='T1'&&_stdON>=5&&_stdON<=9) ? 10 : _stdON;
+      var _mostrarON = (_tarTipoON==='T1'&&_stdON>=6&&_stdON<=9) ? 10 : _stdON;
       var _notaON = (_mostrarON!==_stdON) ? '<br><span style="font-size:10px;color:var(--muted);font-weight:400">Dimensionado: '+_stdON+' kW · Recomendado 10 kW (T1)</span>' : '';
       invVal    = _mON ? _mostrarON+' kW '+(_triON?'trifásico':'estándar')+_notaON : _invRawON;
       genLabel  = 'Generación';
@@ -4650,6 +4683,32 @@ async function doProvReorder(srcIdx, tgtIdx) {
   toast('Orden guardado ✓');
 }
 
+// ── Firma del documento ──────────────────────────────────────────────────
+function saveFirma(seccion, campo, val) {
+  localStorage.setItem('firma_' + seccion + '_' + campo, val);
+}
+function loadFirma() {
+  ['termica','fv','og','af','pq'].forEach(function(sec) {
+    var n = localStorage.getItem('firma_' + sec + '_nombre') || '';
+    var p = localStorage.getItem('firma_' + sec + '_posicion') || '';
+    var ni = document.getElementById('firma-' + sec + '-nombre');
+    var pi = document.getElementById('firma-' + sec + '-posicion');
+    if (ni) ni.value = n;
+    if (pi) pi.value = p;
+  });
+}
+function getFirmaBlockById(seccion, overrideN, overrideP) {
+  var nombre   = (overrideN !== undefined ? overrideN : (localStorage.getItem('firma_' + seccion + '_nombre')   || '')).trim();
+  var posicion = (overrideP !== undefined ? overrideP : (localStorage.getItem('firma_' + seccion + '_posicion') || '')).trim();
+  if (!nombre && !posicion) return '';
+  return '<div style="margin-top:32px;display:flex;justify-content:flex-end">' +
+    '<div style="text-align:right;min-width:160px;border-top:2.5px solid #2d9448;padding-top:10px">' +
+    '<div style="font-size:13px;color:#111;letter-spacing:0.01em">' + nombre + '</div>' +
+    (posicion ? '<div style="font-weight:700;font-size:11px;color:#2d9448;margin-top:3px;text-transform:uppercase;letter-spacing:0.05em">' + posicion + '</div>' : '') +
+    '</div></div>';
+}
+// ────────────────────────────────────────────────────────────────────────
+
 async function init() {
   calcular(); calcularFV();
   try {
@@ -4657,6 +4716,7 @@ async function init() {
     await Promise.all([loadTasks(), loadProveedores(), loadPresupuestos(), loadClientes(), loadDocs()]);
     setSyncState('ok');
   } catch(e){ setSyncState('error'); }
+  loadFirma();
 
   // ── REALTIME: escucha inserts en hes_clientes ──────────────────────────
   try {
@@ -6195,7 +6255,8 @@ function pqBuildPDFHTML() {
     '<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e0e0e0;display:flex;justify-content:space-between;">' +
       '<span style="font-size:10px;color:#bbb;">info@exergrid.com.ar  ·  +54 1166110831</span>' +
       '<span style="font-size:10px;color:#bbb;">Validez: ' + validez + ' · N° ' + nro + '</span>' +
-    '</div>'
+    '</div>' +
+    getFirmaBlockById('_', (document.getElementById('firma-pq-nombre')||{value:''}).value.trim(), (document.getElementById('firma-pq-posicion')||{value:''}).value.trim())
   );
 }
 // ─── PREVIEW MODAL ────────────────────────────────────────────────────────────
@@ -6225,6 +6286,12 @@ async function pqGuardar() {
     }
     const wasEditing = !!_pqEditRecord;
     const editedNro  = wasEditing ? _pqEditRecord.nro : nro;
+    const pqFN = (document.getElementById('firma-pq-nombre')||{value:''}).value.trim();
+    const pqFP = (document.getElementById('firma-pq-posicion')||{value:''}).value.trim();
+    localStorage.setItem('pq_firma_' + nro + '_nombre',   pqFN);
+    localStorage.setItem('pq_firma_' + nro + '_posicion', pqFP);
+    const fpqN = document.getElementById('firma-pq-nombre');   if(fpqN) fpqN.value='';
+    const fpqP = document.getElementById('firma-pq-posicion'); if(fpqP) fpqP.value='';
     _pqEditRecord = null;
     document.getElementById('pq-edit-banner').style.display = 'none';
     document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
@@ -6526,6 +6593,11 @@ function pqStartEdit(id) {
   pqRenderManual();
   pqRecalc();
   document.getElementById('pq-ac-input').value = '';
+
+  var pqFnEl = document.getElementById('firma-pq-nombre');
+  var pqFpEl = document.getElementById('firma-pq-posicion');
+  if (pqFnEl) pqFnEl.value = localStorage.getItem('pq_firma_' + d.nro + '_nombre')   || '';
+  if (pqFpEl) pqFpEl.value = localStorage.getItem('pq_firma_' + d.nro + '_posicion') || '';
 
   // Show banner and change button
   var banner = document.getElementById('pq-edit-banner');
@@ -7011,7 +7083,7 @@ function pqImportarDim() {
     var tarTipoM = tipo.match(/TAR_TIPO=(T\d)/); var tarTipo = tarTipoM ? tarTipoM[1] : '';
     var invCalcStr = (partes[3]||'').replace(/^Inv\s*/i,'').replace(/\s*kW$/i,'').trim();
     var invStd = invCalcStr ? inversorEstandar(parseFloat(invCalcStr), esTri) : 0;
-    var invMostrar = (tarTipo==='T1' && invStd>=5 && invStd<=9) ? 10 : invStd;
+    var invMostrar = (tarTipo==='T1' && invStd>=6 && invStd<=9) ? 10 : invStd;
     var invTipo = esTri ? 'Trifásico' : 'Estándar';
 
     // Panel
@@ -7168,6 +7240,9 @@ function afEditarGuardado(id) {
     var instPct = document.getElementById('af-inst-pct');
     if (instPct) instPct.value = 0;
   }
+  var afFNM = sistemaStr.match(/#FIRMA_N=([^#]*)/); var afFPM = sistemaStr.match(/#FIRMA_P=([^#]*)/);
+  var fnAF = document.getElementById('firma-af-nombre'); if(fnAF) fnAF.value = afFNM ? afFNM[1].trim() : '';
+  var fpAF = document.getElementById('firma-af-posicion'); if(fpAF) fpAF.value = afFPM ? afFPM[1].trim() : '';
   afActualizarTotales();
   var pc = document.getElementById('af-params-card');
   if (pc) pc.style.display = '';
@@ -7215,6 +7290,9 @@ function editarDimTermica(id) {
   if (tacumM) document.getElementById('d-tacum').value = tacumM[1];
   if (tredM)  document.getElementById('d-tred').value  = tredM[1];
   if (cobTM)  document.getElementById('d-cobertura').value = Math.round(parseFloat(cobTM[1]) * (parseFloat(cobTM[1]) <= 1 ? 100 : 1));
+  var firmaNM = (p.tipo||'').match(/FIRMA_N=([^|]*)/); var firmaPM = (p.tipo||'').match(/FIRMA_P=([^|]*)/);
+  var fn=document.getElementById('firma-termica-nombre'); if(fn) fn.value = firmaNM ? firmaNM[1].trim() : '';
+  var fp=document.getElementById('firma-termica-posicion'); if(fp) fp.value = firmaPM ? firmaPM[1].trim() : '';
   document.getElementById('dim-edit-banner-termica').style.display = 'flex';
   document.getElementById('dim-edit-banner-termica-cliente').textContent = p.cliente || '';
   showDimTab('termica');
@@ -7376,6 +7454,14 @@ function editarDimFV(id) {
   var fvUbicEl = document.getElementById('fv-ubicacion');
   if (fvUbicEl) fvUbicEl.value = (ubicM ? ubicM[1].trim() : '');
 
+  // Restaurar firma según sección
+  var firmaNM2 = tipoStr.match(/FIRMA_N=([^|]*)/); var firmaPM2 = tipoStr.match(/FIRMA_P=([^|]*)/);
+  var firmaSeccion = isOffGrid ? 'og' : 'fv';
+  var fnEl = document.getElementById('firma-' + firmaSeccion + '-nombre');
+  var fpEl = document.getElementById('firma-' + firmaSeccion + '-posicion');
+  if (fnEl) fnEl.value = firmaNM2 ? firmaNM2[1].trim() : '';
+  if (fpEl) fpEl.value = firmaPM2 ? firmaPM2[1].trim() : '';
+
   document.getElementById('dim-edit-banner-fv').style.display = 'flex';
   document.getElementById('dim-edit-banner-fv-cliente').textContent = p.cliente || '';
   showDimTab('fv');
@@ -7514,6 +7600,7 @@ function afExportarPDFGuardado(id) {
       '</table>'+
     '</div>'+
     '<div class="pdf-note">Análisis generado por Exergrid · '+fecha+' · Los valores son estimativos y pueden variar según condiciones reales de instalación, evolución de tarifas y tipo de cambio.</div>'+
+    (function(){ var s=a.sistema||''; var nm=s.match(/#FIRMA_N=([^#]*)/); var pm=s.match(/#FIRMA_P=([^#]*)/); return getFirmaBlockById('_', nm?nm[1].trim():'', pm?pm[1].trim():''); })()+
   '</div>';
 
   var el = document.getElementById('pdf-propuesta');
@@ -7889,6 +7976,7 @@ function afExportarPDF() {
       '</table>'+
     '</div>'+
     '<div class="pdf-note">Análisis generado por Exergrid · '+fecha+' · Los valores son estimativos y pueden variar según condiciones reales de instalación, evolución de tarifas y tipo de cambio.</div>'+
+    getFirmaBlockById('_', (document.getElementById('firma-af-nombre')||{value:''}).value.trim(), (document.getElementById('firma-af-posicion')||{value:''}).value.trim())+
   '</div>';
 
   // Reutilizar el div permanente #pdf-propuesta (igual que los otros exportadores)
@@ -7942,7 +8030,9 @@ async function afGuardar() {
     if (desc || price) afItemsArr.push(desc + '|' + qty + '|' + price);
   });
   var afPct = parseFloat((document.getElementById('af-inst-pct')||{value:'30'}).value) || 0;
-  var sistemaConItems = (sistema || 'FV') + (afItemsArr.length ? '::' + afItemsArr.join(';') + '#PCT=' + afPct : '');
+  var afFirmaN = ((document.getElementById('firma-af-nombre')||{value:''}).value.trim().replace(/[#|]/g,'-'));
+  var afFirmaP = ((document.getElementById('firma-af-posicion')||{value:''}).value.trim().replace(/[#|]/g,'-'));
+  var sistemaConItems = (sistema || 'FV') + (afItemsArr.length ? '::' + afItemsArr.join(';') + '#PCT=' + afPct : '') + (afFirmaN||afFirmaP ? '#FIRMA_N=' + afFirmaN + '#FIRMA_P=' + afFirmaP : '');
 
   var payload = {
     cliente:         cliente || 'Análisis financiero',
@@ -7986,6 +8076,8 @@ async function afGuardar() {
 }
 
 function afReset() {
+  var fn=document.getElementById('firma-af-nombre'); if(fn) fn.value='';
+  var fp=document.getElementById('firma-af-posicion'); if(fp) fp.value='';
   // Limpiar selector y tabla
   var sel = document.getElementById('af-dim-select');
   if (sel) sel.value = '';

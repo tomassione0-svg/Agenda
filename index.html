@@ -1404,7 +1404,7 @@ window.addEventListener('load', function() {
               <td colspan="3" style="padding:7px 10px;display:flex;align-items:center;gap:8px;font-size:12px">
                 <span>Instalación / ingeniería</span>
                 <span style="font-size:12px;color:var(--muted)">$</span>
-                <input type="number" id="af-inst-pct" min="0" value="0" oninput="afRecalcular()"
+                <input type="number" id="af-inst-pct" min="0" value="" oninput="afRecalcular()"
                   style="width:100px;border:1px solid var(--gris-borde);border-radius:6px;padding:3px 7px;font-size:12px;font-family:inherit;text-align:center" placeholder="0">
               </td>
               <td style="padding:7px 10px;text-align:right;font-size:12px" id="af-subtotal-inst">—</td>
@@ -1441,6 +1441,17 @@ window.addEventListener('load', function() {
           <label>Tipo de cambio ARS/USD</label>
           <input type="number" id="af-tc" value="1470" min="1" oninput="afCalcularROI()">
         </div>
+        <div class="calc-field">
+          <label>Ahorro año 1 (USD) — opcional</label>
+          <input type="number" id="af-ahorro-usd" min="0" placeholder="ej: 860 — reemplaza cálculo automático" oninput="afCalcularROI()" style="border-color:var(--verde)">
+          <span style="font-size:10px;color:var(--muted)">Si ingresás este valor, reemplaza el cálculo gen × tarifa × TC</span>
+        </div>
+        <div class="calc-field">
+          <label>Reposición de equipos</label>
+          <div id="af-rep-lineas" style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px"></div>
+          <button type="button" onclick="afRepAgregarLinea()" style="font-size:11px;padding:4px 12px;border:1.5px dashed var(--gris-borde);border-radius:6px;background:#fff;cursor:pointer;color:var(--muted)">+ Agregar reposición</button>
+          <span style="font-size:10px;color:var(--muted);display:block;margin-top:4px">Se descuenta del flujo en el año indicado</span>
+        </div>
         <!-- af-efectivo: se auto-detecta del dimensionamiento (Off-Grid=100%, On-Grid=87%) -->
         <select id="af-efectivo" onchange="afCalcularROI()" style="display:none">
           <option value="1.00">100% — Off-Grid total</option>
@@ -1449,12 +1460,17 @@ window.addEventListener('load', function() {
         </select>
         <div class="calc-field">
           <label>Inflación electricidad/año</label>
-          <select id="af-inflacion" onchange="afCalcularROI()">
-            <option value="0.03">3%</option>
-            <option value="0.05" selected>5%</option>
-            <option value="0.08">8%</option>
-            <option value="0.10">10%</option>
-          </select>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="af-inflacion" onchange="afInflacionSync('sel')" style="flex:1">
+              <option value="">Manual</option>
+              <option value="0.03">3%</option>
+              <option value="0.05" selected>5%</option>
+              <option value="0.08">8%</option>
+              <option value="0.10">10%</option>
+            </select>
+            <input type="number" id="af-inflacion-manual" min="0" max="200" step="0.1" placeholder="%" oninput="afInflacionSync('inp')" style="width:70px;border:1px solid var(--gris-borde);border-radius:6px;padding:4px 7px;font-size:13px;text-align:center" value="5">
+            <span style="font-size:12px;color:var(--muted)">%</span>
+          </div>
         </div>
         <div class="calc-field">
           <label>Tasa de descuento anual</label>
@@ -1481,7 +1497,7 @@ window.addEventListener('load', function() {
           <div class="result-box accent"><div class="result-val" id="af-ahorro-anual">—</div><div class="result-label">Ahorro anual prom. USD</div></div>
           <div class="result-box"><div class="result-val" id="af-usd-kwp">—</div><div class="result-label">USD/kWp instalado</div></div>
         </div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">Proyección a 20 años</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px">Proyección a 25 años</div>
         <div style="overflow-x:auto;border:1.5px solid var(--gris-borde);border-radius:8px;margin-bottom:12px">
           <table style="width:100%;border-collapse:collapse;font-size:11px">
             <thead>
@@ -1489,7 +1505,7 @@ window.addEventListener('load', function() {
                 <th style="padding:6px 8px;text-align:center">Año</th>
                 <th style="padding:6px 8px;text-align:right">Gen. kWh</th>
                 <th style="padding:6px 8px;text-align:right">$/kWh USD</th>
-                <th style="padding:6px 8px;text-align:right">Mant. USD</th>
+                <th style="padding:6px 8px;text-align:right">Repos. USD</th>
                 <th style="padding:6px 8px;text-align:right">Flujo USD</th>
                 <th style="padding:6px 8px;text-align:right">Flujo acum.</th>
                 <th style="padding:6px 8px;text-align:right">Valor actual</th>
@@ -4806,11 +4822,11 @@ async function loadPresupuestos() {
         <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
         <div class="prov-row"><strong>Personas:</strong> ${p.personas||0} · <strong>${p.litros_dia||0} L/día</strong> por persona</div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-top:10px">
-        <button onclick="verPresupuesto(${p.id})" class="btn btn-secondary" style="font-size:11px;padding:7px 4px">Ver detalle</button>
-        <button onclick="exportarPresupuestoPDF(${p.id})" class="btn btn-primary" style="font-size:11px;padding:7px 4px">Exportar PDF</button>
-        <button onclick="editarDimTermica(${p.id})" class="btn btn-azul" style="font-size:11px;padding:7px 4px">✏️ Editar</button>
-        <button onclick="deleteDim(${p.id})" class="btn btn-delete" style="font-size:11px;padding:7px 4px">Eliminar</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
+        <button onclick="verPresupuesto(${p.id})" class="btn btn-secondary" style="font-size:11px;padding:8px 4px">Ver detalle</button>
+        <button onclick="exportarPresupuestoPDF(${p.id})" class="btn btn-primary" style="font-size:11px;padding:8px 4px">Exportar PDF</button>
+        <button onclick="editarDimTermica(${p.id})" class="btn btn-azul" style="font-size:11px;padding:8px 4px">✏️ Editar</button>
+        <button onclick="deleteDim(${p.id})" class="btn btn-delete" style="font-size:11px;padding:8px 4px">Eliminar</button>
       </div>
     </div>`;
   }).join('');
@@ -4897,11 +4913,11 @@ async function loadPresupuestos() {
         <div class="prov-row"><strong>${extra3Label}:</strong> ${extra3Val}</div>
         <div class="prov-row"><strong>Zona:</strong> ${p.zona || '—'}</div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-top:10px">
-        <button onclick="verPresupuesto(${p.id})" class="btn btn-secondary" style="font-size:11px;padding:7px 4px">Ver detalle</button>
-        <button onclick="exportarPresupuestoPDF(${p.id})" class="btn btn-primary" style="font-size:11px;padding:7px 4px">Exportar PDF</button>
-        <button onclick="editarDimFV(${p.id})" class="btn btn-azul" style="font-size:11px;padding:7px 4px">✏️ Editar</button>
-        <button onclick="deleteDim(${p.id})" class="btn btn-delete" style="font-size:11px;padding:7px 4px">Eliminar</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
+        <button onclick="verPresupuesto(${p.id})" class="btn btn-secondary" style="font-size:11px;padding:8px 4px">Ver detalle</button>
+        <button onclick="exportarPresupuestoPDF(${p.id})" class="btn btn-primary" style="font-size:11px;padding:8px 4px">Exportar PDF</button>
+        <button onclick="editarDimFV(${p.id})" class="btn btn-azul" style="font-size:11px;padding:8px 4px">✏️ Editar</button>
+        <button onclick="deleteDim(${p.id})" class="btn btn-delete" style="font-size:11px;padding:8px 4px">Eliminar</button>
       </div>
     </div>`}).join('');
 }
@@ -5256,10 +5272,12 @@ async function doProvReorder(srcIdx, tgtIdx) {
 
 // ── Firma del documento ──────────────────────────────────────────────────
 function saveFirma(seccion, campo, val) {
+  if (seccion === 'af') return; // firma AF no se persiste — siempre arranca vacía
   localStorage.setItem('firma_' + seccion + '_' + campo, val);
 }
 function loadFirma() {
-  ['termica','fv','og','af','pq'].forEach(function(sec) {
+  // 'af' excluido: el campo de firma del análisis financiero siempre empieza vacío
+  ['termica','fv','og','pq'].forEach(function(sec) {
     var n = localStorage.getItem('firma_' + sec + '_nombre') || '';
     var p = localStorage.getItem('firma_' + sec + '_posicion') || '';
     var ni = document.getElementById('firma-' + sec + '-nombre');
@@ -6720,6 +6738,8 @@ async function pqReset() {
   pqRenderManual();
   pqRecalc();
   document.getElementById('pq-ac-input').value = '';
+  var pqDimSel = document.getElementById('pq-dim-select'); if (pqDimSel) pqDimSel.value = '';
+  var pqDimInfo = document.getElementById('pq-dim-info'); if (pqDimInfo) { pqDimInfo.style.display='none'; pqDimInfo.textContent=''; }
   document.getElementById('pq-cliente').value = '';
   if(document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value = '';
   if(document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
@@ -6869,6 +6889,8 @@ async function pqGuardar() {
     pqLineasSolar = []; pqLineasManual = [];
     pqRenderSolar(); pqRenderManual(); pqRecalc();
     document.getElementById('pq-ac-input').value = '';
+    var _pds = document.getElementById('pq-dim-select'); if (_pds) _pds.value = '';
+    var _pdi = document.getElementById('pq-dim-info'); if (_pdi) { _pdi.style.display='none'; _pdi.textContent=''; }
     document.getElementById('pq-cliente').value  = '';
     if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = '';
     if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
@@ -6901,6 +6923,7 @@ function pqPreview() {
 
 function pqCloseModal() {
   document.getElementById('pq-modal-ovl').classList.remove('open');
+  _pqViewOnlyId = null;
 }
 
 // ─── DOWNLOAD PDF ─────────────────────────────────────────────────────────────
@@ -6996,6 +7019,27 @@ async function pqDownloadPDF() {
       console.warn('Storage upload error:', e.message);
     }
 
+    // Si estamos en modo solo-lectura (Ver PDF del historial), no guardar nada
+    if (_pqViewOnlyId) {
+      _pqViewOnlyId = null;
+      pqCloseModal();
+      // Solo descargar
+      const isIOS = /iP(ad|hone|od)/.test(navigator.userAgent) ||
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      if (isIOS) {
+        const dataUri = doc.output('datauristring');
+        const a = document.createElement('a'); a.href = dataUri; a.target = '_blank'; a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      } else {
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a'); a.href = url; a.download = 'Presupuesto_' + nro + '.pdf';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      }
+      dlBtn.textContent = '⬇ Descargar PDF'; dlBtn.disabled = false;
+      return;
+    }
+
     // Save or Update to Supabase
     if (_pqEditRecord) {
       await pqUpdateToSupa(_pqEditRecord.id, nro, pdfPath || _pqEditRecord.pdf_path);
@@ -7027,6 +7071,8 @@ async function pqDownloadPDF() {
     pqLineasSolar = []; pqLineasManual = [];
     pqRenderSolar(); pqRenderManual(); pqRecalc();
     document.getElementById('pq-ac-input').value = '';
+    var _pds = document.getElementById('pq-dim-select'); if (_pds) _pds.value = '';
+    var _pdi = document.getElementById('pq-dim-info'); if (_pdi) { _pdi.style.display='none'; _pdi.textContent=''; }
     document.getElementById('pq-cliente').value  = '';
     if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = '';
     if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
@@ -7139,6 +7185,7 @@ async function pqUpdateToSupa(id, nro, pdfPath) {
 
 // ─── EDIT MODE ────────────────────────────────────────────────────────────────
 var _pqHistMap = {}; // id -> full record, populated in pqLoadHistorial
+var _pqViewOnlyId = null; // when set, Descargar PDF re-descarga sin guardar
 
 function pqStartEdit(id) {
   var d = _pqHistMap[id];
@@ -7190,6 +7237,8 @@ function pqCancelEdit() {
   pqAcActiveRow = null;
   pqRenderSolar(); pqRenderManual(); pqRecalc();
   document.getElementById('pq-ac-input').value = '';
+  var _ds = document.getElementById('pq-dim-select'); if (_ds) _ds.value = '';
+  var _di = document.getElementById('pq-dim-info'); if (_di) { _di.style.display='none'; _di.textContent=''; }
   document.getElementById('pq-cliente').value  = '';
   if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = '';
   if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
@@ -7209,8 +7258,49 @@ function pqCancelEdit() {
 function pqExportHistorialPDF(id) {
   var d = _pqHistMap[id];
   if (!d) { toast('No se encontró el presupuesto'); return; }
-  pqStartEdit(id);
-  setTimeout(function() { pqPreview(); }, 80);
+
+  // Guardar estado actual del form para restaurar después
+  var prevEdit    = _pqEditRecord;
+  var prevSolar   = pqLineasSolar.slice();
+  var prevManual  = pqLineasManual.slice();
+  var prevNro     = document.getElementById('pq-nro').value;
+  var prevFecha   = document.getElementById('pq-fecha').value;
+  var prevValidez = document.getElementById('pq-validez').value;
+  var prevCliente = document.getElementById('pq-cliente').value;
+  var prevCuit    = (document.getElementById('pq-cuit')     || {}).value || '';
+  var prevCont    = (document.getElementById('pq-contacto') || {}).value || '';
+  var prevDir     = document.getElementById('pq-dir').value;
+  var prevObs     = document.getElementById('pq-obs').value;
+
+  // Cargar datos del registro guardado en el form temporalmente
+  document.getElementById('pq-nro').value     = d.nro      || '';
+  document.getElementById('pq-fecha').value   = d.fecha    || new Date().toISOString().split('T')[0];
+  document.getElementById('pq-validez').value = d.validez  || '15 días hábiles';
+  document.getElementById('pq-cliente').value = d.cliente  || '';
+  if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = d.cuit          || '';
+  if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = d.contacto      || '';
+  document.getElementById('pq-dir').value     = d.direccion    || '';
+  document.getElementById('pq-obs').value     = d.observaciones || '';
+  try { pqLineasSolar  = d.lineas_solar  ? JSON.parse(d.lineas_solar)  : []; } catch(e) { pqLineasSolar  = []; }
+  try { pqLineasManual = d.lineas_manual ? JSON.parse(d.lineas_manual) : []; } catch(e) { pqLineasManual = []; }
+
+  // Construir y mostrar PDF sin activar modo edición
+  _pqViewOnlyId = id; // marcar modo solo-lectura para que Descargar no guarde nada
+  document.getElementById('pq-pdf-canvas').innerHTML = pqBuildPDFHTML();
+  document.getElementById('pq-modal-ovl').classList.add('open');
+
+  // Restaurar estado previo del form
+  _pqEditRecord = prevEdit;
+  pqLineasSolar  = prevSolar;
+  pqLineasManual = prevManual;
+  document.getElementById('pq-nro').value     = prevNro;
+  document.getElementById('pq-fecha').value   = prevFecha;
+  document.getElementById('pq-validez').value = prevValidez;
+  document.getElementById('pq-cliente').value = prevCliente;
+  if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = prevCuit;
+  if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = prevCont;
+  document.getElementById('pq-dir').value = prevDir;
+  document.getElementById('pq-obs').value = prevObs;
 }
 
 // ─── HISTORIAL ────────────────────────────────────────────────────────────────
@@ -7814,6 +7904,16 @@ function afEditarGuardado(id) {
   var afFNM = sistemaStr.match(/#FIRMA_N=([^#]*)/); var afFPM = sistemaStr.match(/#FIRMA_P=([^#]*)/);
   var fnAF = document.getElementById('firma-af-nombre'); if(fnAF) fnAF.value = afFNM ? afFNM[1].trim() : '';
   var fpAF = document.getElementById('firma-af-posicion'); if(fpAF) fpAF.value = afFPM ? afFPM[1].trim() : '';
+  // Restaurar reposición múltiple
+  afRepLimpiar();
+  var repRestM = sistemaStr.match(/#REP=([^#]+)/);
+  if (repRestM) { repRestM[1].split(',').forEach(function(s){ var p=s.split(':'); afRepAgregarLinea(parseInt(p[0])||12, parseFloat(p[1])||0); }); }
+  // Restaurar ahorro base
+  var ahorroRestM = sistemaStr.match(/#AHORRO=([\d.]+)/);
+  var auEl = document.getElementById('af-ahorro-usd'); if (auEl) auEl.value = ahorroRestM ? ahorroRestM[1] : '';
+  // Restaurar inflación manual
+  var inflRestM = sistemaStr.match(/#INFL=([\d.]+)/);
+  var imEl = document.getElementById('af-inflacion-manual'); if (imEl) imEl.value = inflRestM ? inflRestM[1] : (parseFloat(a.inflacion||0.05)*100).toFixed(0);
   afActualizarTotales();
   var pc = document.getElementById('af-params-card');
   if (pc) pc.style.display = '';
@@ -8190,31 +8290,39 @@ function afExportarPDFGuardado(id) {
   var inflacion= parseFloat(a.inflacion)       || 0.05;
   var tasa     = parseFloat(a.tasa_descuento)  || 0.05;
 
-  var ANOS=20, DEGR=0.004, MANT=0.01;
+  // Parsear repLineas y ahorroBase del campo sistema guardado
+  var sistStr = a.sistema || '';
+  var repM = sistStr.match(/#REP=([^#]+)/);
+  var repLineas = repM ? repM[1].split(',').map(function(s){ var p=s.split(':'); return {ano:parseInt(p[0])||0,costo:parseFloat(p[1])||0}; }).filter(function(r){return r.ano>0&&r.costo>0;}) : [];
+  var ahorroM = sistStr.match(/#AHORRO=([\d.]+)/);
+  var ahorroBase = ahorroM ? parseFloat(ahorroM[1]) : 0;
+  var inflM = sistStr.match(/#INFL=([\d.]+)/);
+  if (inflM) inflacion = parseFloat(inflM[1])/100 || inflacion;
+
+  var ANOS=25, DEGR=0.004;
   var flujos=[], sumaAcum=-inv, vanAcum=-inv, pbS=null, pbD=null, totalGen=0;
   for (var y=1; y<=ANOS; y++) {
     var gen_y    = genAnual * Math.pow(1-DEGR, y-1);
     var tarUSD_y = (tarifa * Math.pow(1+inflacion, y-1)) / tc;
-    var ahorro_y = gen_y * tarUSD_y * efectivo;
-    var mant_y   = y>=3 ? inv*MANT : 0;
-    var flujo_y  = ahorro_y - mant_y;
+    var ahorro_y = ahorroBase>0 ? ahorroBase*Math.pow(1-DEGR,y-1) : gen_y * tarUSD_y * efectivo;
+    var rep_y    = repLineas.filter(function(r){return r.ano===y;}).reduce(function(s,r){return s+r.costo;},0);
+    var flujo_y  = ahorro_y - rep_y;
     var va_y     = flujo_y / Math.pow(1+tasa, y);
     sumaAcum    += flujo_y;
     vanAcum     += va_y;
     totalGen    += gen_y;
     if (pbS===null && sumaAcum>=0) pbS = (y-1) + Math.abs(sumaAcum-flujo_y)/flujo_y;
     if (pbD===null && vanAcum >=0) pbD = (y-1) + Math.abs(vanAcum -va_y)   /va_y;
-    flujos.push({y:y,gen_y:gen_y,tarUSD_y:tarUSD_y,mant_y:mant_y,flujo_y:flujo_y,acum:sumaAcum,va_y:va_y,van_acum:vanAcum});
+    flujos.push({y:y,gen_y:gen_y,tarUSD_y:tarUSD_y,rep_y:rep_y,flujo_y:flujo_y,acum:sumaAcum,va_y:va_y,van_acum:vanAcum});
   }
   function npv(r){ var s=-inv; flujos.forEach(function(f,i){s+=f.flujo_y/Math.pow(1+r,i+1);}); return s; }
   var tirVal=null;
   if (npv(0)>0){ var lo=0,hi=5,mid=0; for(var i=0;i<64;i++){mid=(lo+hi)/2; npv(mid)>0?lo=mid:hi=mid;} tirVal=mid; }
 
-  var pbSLbl = pbS!==null ? pbS.toFixed(1)+' años' : '> 20 años';
-  var pbDLbl = pbD!==null ? pbD.toFixed(1)+' años' : '> 20 años';
+  var pbSLbl = pbS!==null ? pbS.toFixed(1)+' años' : '> 25 años';
+  var pbDLbl = pbD!==null ? pbD.toFixed(1)+' años' : '> 25 años';
   var lcoeRed   = (tarifa/tc)*1000;
-  var mantNPV   = 0; for(var y2=3;y2<=ANOS;y2++) mantNPV+=(inv*MANT)/Math.pow(1+tasa,y2);
-  var lcoeSolar = totalGen>0 ? (inv+mantNPV)/totalGen*1000 : 0;
+  var lcoeSolar = totalGen>0 ? inv/totalGen*1000 : 0;
   var ahorroPromUSD = flujos.reduce(function(s,f){return s+f.flujo_y;},0)/ANOS;
 
   var fecha  = a.created_at ? new Date(a.created_at).toLocaleDateString('es-AR') : new Date().toLocaleDateString('es-AR');
@@ -8223,10 +8331,11 @@ function afExportarPDFGuardado(id) {
 
   var proyRows = flujos.map(function(f){
     var cA = f.acum>=0    ? 'color:#1B6B2F;font-weight:700':'color:#c0392b';
-    return '<tr><td style="text-align:center">'+f.y+'</td><td style="text-align:right">'+Math.round(f.gen_y).toLocaleString('es-AR')+'</td><td style="text-align:right">'+f.tarUSD_y.toFixed(4)+'</td><td style="text-align:right">'+(f.mant_y>0?'- '+afFmt(f.mant_y):'—')+'</td><td style="text-align:right">'+afFmt(f.flujo_y)+'</td><td style="text-align:right;'+cA+'">'+afFmt(f.acum)+'</td></tr>';
+    return '<tr><td style="text-align:center">'+f.y+'</td><td style="text-align:right">'+Math.round(f.gen_y).toLocaleString('es-AR')+'</td><td style="text-align:right">'+f.tarUSD_y.toFixed(4)+'</td><td style="text-align:right">'+(f.rep_y>0?'- '+afFmt(f.rep_y):'—')+'</td><td style="text-align:right">'+afFmt(f.flujo_y)+'</td><td style="text-align:right;'+cA+'">'+afFmt(f.acum)+'</td></tr>';
   }).join('');
 
-  var params = 'Tarifa '+tarifa+' $/kWh · TC '+tc+' ARS/USD · Inf. elec. '+(inflacion*100).toFixed(0)+'%/año · Descuento '+(tasa*100).toFixed(0)+'% · Degr. 0.4%/año · Mant. 1% desde año 3';
+  var repStr = repLineas.length>0 ? ' · Reposición equipos: '+repLineas.map(function(r){return 'año '+r.ano+' USD '+afFmt(r.costo);}).join(', ') : '';
+  var params = 'Tarifa '+tarifa+' $/kWh · TC '+tc+' ARS/USD · Inf. elec. '+(inflacion*100).toFixed(1)+'%/año · Descuento '+(tasa*100).toFixed(0)+'% · Degr. 0.4%/año'+repStr;
 
   var htmlContent =
   '<div class="pdf-page">'+
@@ -8254,9 +8363,9 @@ function afExportarPDFGuardado(id) {
       '</div>'+
       '<div style="font-size:8px;color:#666;margin-top:3px">'+params+'</div>'+
     '</div>'+
-    '<div class="pdf-section"><h3>Proyección a 20 años (USD)</h3>'+
+    '<div class="pdf-section"><h3>Proyección a 25 años (USD)</h3>'+
       '<table class="pdf-fin-table">'+
-        '<thead><tr><th style="text-align:center">Año</th><th style="text-align:right">Gen. kWh</th><th style="text-align:right">$/kWh USD</th><th style="text-align:right">Mant.</th><th style="text-align:right">Flujo USD</th><th style="text-align:right">Flujo acum.</th></tr></thead>'+
+        '<thead><tr><th style="text-align:center">Año</th><th style="text-align:right">Gen. kWh</th><th style="text-align:right">$/kWh USD</th><th style="text-align:right">Repos.</th><th style="text-align:right">Flujo USD</th><th style="text-align:right">Flujo acum.</th></tr></thead>'+
         '<tbody>'+proyRows+'</tbody>'+
       '</table>'+
     '</div>'+
@@ -8478,34 +8587,91 @@ function afCargarDim() {
   afActualizarTotales();
 }
 
+// ── REPOSICIÓN MÚLTIPLE ────────────────────────────────────────────────────────
+var _afRepLineas = []; // [{id, ano, costo, desc}]
+
+function afGetRepLineas() {
+  return _afRepLineas.map(function(r){
+    var anoEl   = document.getElementById('af-rep-ano-'   + r.id);
+    var costoEl = document.getElementById('af-rep-costo-' + r.id);
+    return { ano: parseInt(anoEl ? anoEl.value : r.ano)||0, costo: parseFloat(costoEl ? costoEl.value : r.costo)||0 };
+  }).filter(function(r){ return r.ano>0 && r.costo>0; });
+}
+
+function afRepAgregarLinea(ano, costo) {
+  var id = Date.now();
+  _afRepLineas.push({ id: id, ano: ano||12, costo: costo||0 });
+  var cont = document.getElementById('af-rep-lineas');
+  if (!cont) return;
+  var div = document.createElement('div');
+  div.id = 'af-rep-fila-' + id;
+  div.style.cssText = 'display:flex;gap:6px;align-items:center;flex-wrap:wrap';
+  div.innerHTML =
+    '<span style="font-size:12px;color:var(--muted)">Año</span>' +
+    '<input type="number" id="af-rep-ano-'+id+'" value="'+(ano||'')+'" min="1" max="25" placeholder="año" oninput="afCalcularROI()" style="width:55px;border:1px solid var(--gris-borde);border-radius:6px;padding:3px 7px;font-size:12px;text-align:center">' +
+    '<span style="font-size:12px;color:var(--muted)">USD</span>' +
+    '<input type="number" id="af-rep-costo-'+id+'" value="'+(costo||'')+'" min="0" placeholder="monto" oninput="afCalcularROI()" style="width:85px;border:1px solid var(--gris-borde);border-radius:6px;padding:3px 7px;font-size:12px;text-align:center">' +
+    '<button type="button" onclick="afRepEliminarLinea('+id+')" style="background:none;border:none;color:#c00;cursor:pointer;font-size:15px;padding:0 4px">×</button>';
+  cont.appendChild(div);
+  afCalcularROI();
+}
+
+function afRepEliminarLinea(id) {
+  _afRepLineas = _afRepLineas.filter(function(r){ return r.id !== id; });
+  var el = document.getElementById('af-rep-fila-' + id);
+  if (el) el.remove();
+  afCalcularROI();
+}
+
+function afRepLimpiar() {
+  _afRepLineas = [];
+  var cont = document.getElementById('af-rep-lineas');
+  if (cont) cont.innerHTML = '';
+}
+
+// ── INFLACIÓN SYNC ─────────────────────────────────────────────────────────────
+function afInflacionSync(source) {
+  var sel = document.getElementById('af-inflacion');
+  var inp = document.getElementById('af-inflacion-manual');
+  if (!sel || !inp) return;
+  if (source === 'sel' && sel.value) {
+    inp.value = (parseFloat(sel.value)*100).toFixed(0);
+  } else if (source === 'inp') {
+    sel.value = ''; // switch to Manual
+  }
+  afCalcularROI();
+}
+
 function afCalcularROI() {
   var inv      = window._af_inv||0;
   var genAnual = parseFloat((document.getElementById('af-gen-anual')||{}).value)||0;
   var tarifa   = parseFloat((document.getElementById('af-tarifa')||{}).value)||0;
   var tc       = parseFloat((document.getElementById('af-tc')||{}).value)||1;
   var efectivo = parseFloat((document.getElementById('af-efectivo')||{}).value)||0.87;
-  var inflacion= parseFloat((document.getElementById('af-inflacion')||{}).value)||0.05;
+  var _imEl=document.getElementById('af-inflacion-manual'); var inflacion= (_imEl&&_imEl.value!==''&&_imEl.value!==null) ? parseFloat(_imEl.value)/100 : (parseFloat((document.getElementById('af-inflacion')||{}).value)||0.05);
   var tasa     = parseFloat((document.getElementById('af-tasa')||{}).value)||0.05;
   var resDiv   = document.getElementById('af-resultados');
 
   if (inv<=0||genAnual<=0||tarifa<=0||tc<=0) { resDiv.style.display='none'; return; }
 
-  var ANOS=20, DEGR=0.004, MANT=0.01;
+  var ANOS=25, DEGR=0.004;
+  var ahorroBase = parseFloat((document.getElementById('af-ahorro-usd')||{}).value)||0;
+  var repLineas  = afGetRepLineas();
   var flujos=[], sumaAcum=-inv, vanAcum=-inv, pbS=null, pbD=null, totalGen=0;
 
   for (var y=1; y<=ANOS; y++) {
     var gen_y    = genAnual * Math.pow(1-DEGR, y-1);
     var tarUSD_y = (tarifa * Math.pow(1+inflacion, y-1)) / tc;
-    var ahorro_y = gen_y * tarUSD_y * efectivo;
-    var mant_y   = y>=3 ? inv*MANT : 0;
-    var flujo_y  = ahorro_y - mant_y;
+    var ahorro_y = ahorroBase>0 ? ahorroBase*Math.pow(1-DEGR,y-1) : gen_y * tarUSD_y * efectivo;
+    var rep_y    = repLineas.filter(function(r){return r.ano===y;}).reduce(function(s,r){return s+r.costo;},0);
+    var flujo_y  = ahorro_y - rep_y;
     var va_y     = flujo_y / Math.pow(1+tasa, y);
     sumaAcum    += flujo_y;
     vanAcum     += va_y;
     totalGen    += gen_y;
     if (pbS===null && sumaAcum>=0) pbS = (y-1) + Math.abs(sumaAcum-flujo_y)/flujo_y;
     if (pbD===null && vanAcum >=0) pbD = (y-1) + Math.abs(vanAcum -va_y)   /va_y;
-    flujos.push({y:y,gen_y:gen_y,tarUSD_y:tarUSD_y,mant_y:mant_y,flujo_y:flujo_y,acum:sumaAcum,va_y:va_y,van_acum:vanAcum});
+    flujos.push({y:y,gen_y:gen_y,tarUSD_y:tarUSD_y,rep_y:rep_y,flujo_y:flujo_y,acum:sumaAcum,va_y:va_y,van_acum:vanAcum});
   }
 
   // TIR — bisección
@@ -8513,11 +8679,10 @@ function afCalcularROI() {
   var tirVal=null;
   if (npv(0)>0){ var lo=0,hi=5,mid=0; for(var i=0;i<64;i++){mid=(lo+hi)/2; npv(mid)>0?lo=mid:hi=mid;} tirVal=mid; }
 
-  var pbSLbl = pbS!==null ? pbS.toFixed(1)+' años' : '> 20 años';
-  var pbDLbl = pbD!==null ? pbD.toFixed(1)+' años' : '> 20 años';
+  var pbSLbl = pbS!==null ? pbS.toFixed(1)+' años' : '> 25 años';
+  var pbDLbl = pbD!==null ? pbD.toFixed(1)+' años' : '> 25 años';
   var lcoeRed   = (tarifa/tc)*1000;
-  var mantNPV   = 0; for(var y2=3;y2<=ANOS;y2++) mantNPV+=(inv*MANT)/Math.pow(1+tasa,y2);
-  var lcoeSolar = totalGen>0 ? (inv+mantNPV)/totalGen*1000 : 0;
+  var lcoeSolar = totalGen>0 ? inv/totalGen*1000 : 0;
   var ahorroPromUSD = flujos.reduce(function(s,f){return s+f.flujo_y;},0)/ANOS;
 
   var selVal = document.getElementById('af-dim-select').value;
@@ -8590,10 +8755,10 @@ function afExportarPDF() {
   }).join('');
 
   var proyRows=(roi.flujos||[]).map(function(f){
-    return '<tr><td style="text-align:center">'+f.y+'</td><td style="text-align:right">'+Math.round(f.gen_y).toLocaleString('es-AR')+'</td><td style="text-align:right">'+f.tarUSD_y.toFixed(4)+'</td><td style="text-align:right">'+(f.mant_y>0?'- '+afFmt(f.mant_y):'—')+'</td><td style="text-align:right">'+afFmt(f.flujo_y)+'</td><td style="text-align:right">'+afFmt(f.acum)+'</td></tr>';
+    return '<tr><td style="text-align:center">'+f.y+'</td><td style="text-align:right">'+Math.round(f.gen_y).toLocaleString('es-AR')+'</td><td style="text-align:right">'+f.tarUSD_y.toFixed(4)+'</td><td style="text-align:right">'+(f.rep_y>0?'- '+afFmt(f.rep_y):'—')+'</td><td style="text-align:right">'+afFmt(f.flujo_y)+'</td><td style="text-align:right">'+afFmt(f.acum)+'</td></tr>';
   }).join('');
 
-  var params='Tarifa '+roi.tarifa+' $/kWh · TC '+roi.tc+' ARS/USD · Inf. elec. '+(roi.inflacion*100).toFixed(0)+'%/año · Descuento '+(roi.tasa*100).toFixed(0)+'% · Degr. 0.4%/año · Mant. 1% desde año 3';
+  var params='Tarifa '+roi.tarifa+' $/kWh · TC '+roi.tc+' ARS/USD · Inf. elec. '+(roi.inflacion*100).toFixed(1)+'%/año · Descuento '+(roi.tasa*100).toFixed(0)+'% · Degr. 0.4%/año'+(roi.repLineas&&roi.repLineas.length>0?' · Reposición: '+roi.repLineas.map(function(r){return 'año '+r.ano+' USD '+afFmt(r.costo);}).join(', '):'');
 
   var htmlContent=
   '<div class="pdf-page">'+
@@ -8625,9 +8790,9 @@ function afExportarPDF() {
       '</div>'+
       '<div style="font-size:8px;color:#666;margin-top:3px">'+params+'</div>'+
     '</div>'+
-    '<div class="pdf-section"><h3>Proyección a 20 años (USD)</h3>'+
+    '<div class="pdf-section"><h3>Proyección a 25 años (USD)</h3>'+
       '<table class="pdf-fin-table">'+
-        '<thead><tr><th style="text-align:center">Año</th><th style="text-align:right">Gen. kWh</th><th style="text-align:right">$/kWh USD</th><th style="text-align:right">Mant.</th><th style="text-align:right">Flujo USD</th><th style="text-align:right">Flujo acum.</th></tr></thead>'+
+        '<thead><tr><th style="text-align:center">Año</th><th style="text-align:right">Gen. kWh</th><th style="text-align:right">$/kWh USD</th><th style="text-align:right">Repos.</th><th style="text-align:right">Flujo USD</th><th style="text-align:right">Flujo acum.</th></tr></thead>'+
         '<tbody>'+proyRows+'</tbody>'+
       '</table>'+
     '</div>'+
@@ -8661,7 +8826,7 @@ async function afGuardar() {
   var tarifa   = document.getElementById('af-tarifa')    ? (parseFloat(document.getElementById('af-tarifa').value)||0)    : 0;
   var tc       = document.getElementById('af-tc')        ? (parseFloat(document.getElementById('af-tc').value)||1)        : 1;
   var efectivo = document.getElementById('af-efectivo')  ? (parseFloat(document.getElementById('af-efectivo').value)||1)  : 1;
-  var inflacion= document.getElementById('af-inflacion') ? (parseFloat(document.getElementById('af-inflacion').value)||0.05): 0.05;
+  var _imEl2=document.getElementById('af-inflacion-manual'); var inflacion= (_imEl2&&_imEl2.value!==''&&_imEl2.value!==null) ? parseFloat(_imEl2.value)/100 : (document.getElementById('af-inflacion') ? (parseFloat(document.getElementById('af-inflacion').value)||0.05): 0.05);
   var tasa     = document.getElementById('af-tasa')      ? (parseFloat(document.getElementById('af-tasa').value)||0.05)   : 0.05;
 
   // Tipo de sistema desde el dimensionamiento
@@ -8688,7 +8853,10 @@ async function afGuardar() {
   var afPct = parseFloat((document.getElementById('af-inst-pct')||{value:'0'}).value) || 0;
   var afFirmaN = ((document.getElementById('firma-af-nombre')||{value:''}).value.trim().replace(/[#|]/g,'-'));
   var afFirmaP = ((document.getElementById('firma-af-posicion')||{value:''}).value.trim().replace(/[#|]/g,'-'));
-  var sistemaConItems = (sistema || 'FV') + (afItemsArr.length ? '::' + afItemsArr.join(';') + '#PCT=' + afPct : '') + (afFirmaN||afFirmaP ? '#FIRMA_N=' + afFirmaN + '#FIRMA_P=' + afFirmaP : '');
+  var afRepStr = afGetRepLineas().map(function(r){return r.ano+':'+r.costo;}).join(',');
+  var afAhorroBase = parseFloat((document.getElementById('af-ahorro-usd')||{value:'0'}).value)||0;
+  var _afImEl = document.getElementById('af-inflacion-manual'); var afInflManual = (_afImEl && _afImEl.value !== '') ? (parseFloat(_afImEl.value) || 0) : 5;
+  var sistemaConItems = (sistema || 'FV') + (afItemsArr.length ? '::' + afItemsArr.join(';') + '#PCT=' + afPct : '') + (afFirmaN||afFirmaP ? '#FIRMA_N=' + afFirmaN + '#FIRMA_P=' + afFirmaP : '') + (afRepStr ? '#REP=' + afRepStr : '') + (afAhorroBase>0 ? '#AHORRO='+afAhorroBase : '') + '#INFL='+afInflManual;
 
   var payload = {
     cliente:         cliente || 'Análisis financiero',
@@ -8753,6 +8921,15 @@ function afReset() {
   window._af_inv = 0;
   window._af_roi = null;
   _afRowId = 0;
+  // Limpiar reposición múltiple
+  afRepLimpiar();
+  // Limpiar ahorro manual
+  var au = document.getElementById('af-ahorro-usd'); if (au) au.value = '';
+  // Limpiar instalación/ingeniería
+  var ip = document.getElementById('af-inst-pct'); if (ip) ip.value = '';
+  // Limpiar inflación manual a default 5%
+  var im = document.getElementById('af-inflacion-manual'); if (im) im.value = '5';
+  var is = document.getElementById('af-inflacion'); if (is) is.value = '0.05';
 }
 
 </script>

@@ -1458,27 +1458,42 @@ window.addEventListener('load', function() {
           <option value="0.87" selected>87% — On-Grid mixto</option>
           <option value="0.80">80% — On-Grid + volcado a red</option>
         </select>
-        <div class="calc-field">
-          <label>Inflación electricidad/año</label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <select id="af-inflacion" onchange="afInflacionSync('sel')" style="flex:1">
-              <option value="">Manual</option>
-              <option value="0.03">3%</option>
-              <option value="0.05" selected>5%</option>
-              <option value="0.08">8%</option>
+        <div style="grid-column:2;display:flex;flex-direction:column;gap:6px">
+          <div class="calc-field" style="margin-bottom:0">
+            <label>Inflación electricidad/año</label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <datalist id="af-inflacion-list">
+                <option value="0">0%</option>
+                <option value="3">3%</option>
+                <option value="5">5%</option>
+                <option value="8">8%</option>
+                <option value="10">10%</option>
+              </datalist>
+              <input type="number" id="af-inflacion-manual" list="af-inflacion-list" min="0" max="200" step="0.1" placeholder="%" oninput="afCalcularROI()" style="flex:1;border:1px solid var(--gris-borde);border-radius:6px;padding:6px 10px;font-size:14px" value="5">
+              <span style="font-size:13px;color:var(--muted)">%</span>
+            </div>
+          </div>
+          <div class="calc-field" style="margin-bottom:0">
+            <label>Degradación paneles/año</label>
+            <div style="display:flex;gap:6px;align-items:center">
+              <datalist id="af-degr-list">
+                <option value="0.4">0.4%</option>
+                <option value="0.5">0.5%</option>
+                <option value="0.6">0.6%</option>
+                <option value="0.7">0.7%</option>
+              </datalist>
+              <input type="number" id="af-degr-manual" list="af-degr-list" min="0" max="5" step="0.1" placeholder="%" oninput="afCalcularROI()" style="flex:1;border:1px solid var(--gris-borde);border-radius:6px;padding:6px 10px;font-size:14px" value="0.4">
+              <span style="font-size:13px;color:var(--muted)">%</span>
+            </div>
+          </div>
+          <div class="calc-field" style="margin-bottom:0">
+            <label>Tasa de descuento anual</label>
+            <select id="af-tasa" onchange="afCalcularROI()">
+              <option value="0.05" selected>5% — bonos tesoro EUA</option>
+              <option value="0.07">7%</option>
               <option value="0.10">10%</option>
             </select>
-            <input type="number" id="af-inflacion-manual" min="0" max="200" step="0.1" placeholder="%" oninput="afInflacionSync('inp')" style="width:70px;border:1px solid var(--gris-borde);border-radius:6px;padding:4px 7px;font-size:13px;text-align:center" value="5">
-            <span style="font-size:12px;color:var(--muted)">%</span>
           </div>
-        </div>
-        <div class="calc-field">
-          <label>Tasa de descuento anual</label>
-          <select id="af-tasa" onchange="afCalcularROI()">
-            <option value="0.05" selected>5% — bonos tesoro EUA</option>
-            <option value="0.07">7%</option>
-            <option value="0.10">10%</option>
-          </select>
         </div>
       </div>
     </div>
@@ -7870,7 +7885,7 @@ function afEditarGuardado(id) {
   setVal('af-tarifa',    a.tarifa_ars);
   setVal('af-tc',        a.tipo_cambio);
   setVal('af-efectivo',  a.efectivo);
-  setVal('af-inflacion', a.inflacion);
+  // af-inflacion se restaura vía #INFL= en sistema (ver líneas siguientes)
   setVal('af-tasa',      a.tasa_descuento);
   // Restaurar ítems individuales si están guardados en sistema (formato: "On-Grid::desc1|qty1|price1;...#PCT=30")
   var tbody2 = document.getElementById('af-items-tbody');
@@ -7914,6 +7929,9 @@ function afEditarGuardado(id) {
   // Restaurar inflación manual
   var inflRestM = sistemaStr.match(/#INFL=([\d.]+)/);
   var imEl = document.getElementById('af-inflacion-manual'); if (imEl) imEl.value = inflRestM ? inflRestM[1] : (parseFloat(a.inflacion||0.05)*100).toFixed(0);
+  // Restaurar degradación manual
+  var degrRestM = sistemaStr.match(/#DEGR=([\d.]+)/);
+  var dmEl = document.getElementById('af-degr-manual'); if (dmEl) dmEl.value = degrRestM ? degrRestM[1] : '0.4';
   afActualizarTotales();
   var pc = document.getElementById('af-params-card');
   if (pc) pc.style.display = '';
@@ -8298,8 +8316,10 @@ function afExportarPDFGuardado(id) {
   var ahorroBase = ahorroM ? parseFloat(ahorroM[1]) : 0;
   var inflM = sistStr.match(/#INFL=([\d.]+)/);
   if (inflM) inflacion = parseFloat(inflM[1])/100 || inflacion;
+  var degrM = sistStr.match(/#DEGR=([\d.]+)/);
+  var degrGuardado = degrM ? (parseFloat(degrM[1])/100 || 0.004) : 0.004;
 
-  var ANOS=25, DEGR=0.004;
+  var ANOS=25, DEGR=degrGuardado;
   var flujos=[], sumaAcum=-inv, vanAcum=-inv, pbS=null, pbD=null, totalGen=0;
   for (var y=1; y<=ANOS; y++) {
     var gen_y    = genAnual * Math.pow(1-DEGR, y-1);
@@ -8629,17 +8649,10 @@ function afRepLimpiar() {
   if (cont) cont.innerHTML = '';
 }
 
-// ── INFLACIÓN SYNC ─────────────────────────────────────────────────────────────
-function afInflacionSync(source) {
-  var sel = document.getElementById('af-inflacion');
-  var inp = document.getElementById('af-inflacion-manual');
-  if (!sel || !inp) return;
-  if (source === 'sel' && sel.value) {
-    inp.value = (parseFloat(sel.value)*100).toFixed(0);
-  } else if (source === 'inp') {
-    sel.value = ''; // switch to Manual
-  }
-  afCalcularROI();
+function afGetDEGR() {
+  var inp = document.getElementById('af-degr-manual');
+  if (inp && inp.value !== '') return parseFloat(inp.value)/100 || 0;
+  return 0.004;
 }
 
 function afCalcularROI() {
@@ -8654,7 +8667,7 @@ function afCalcularROI() {
 
   if (inv<=0||genAnual<=0||tarifa<=0||tc<=0) { resDiv.style.display='none'; return; }
 
-  var ANOS=25, DEGR=0.004;
+  var ANOS=25, DEGR=afGetDEGR();
   var ahorroBase = parseFloat((document.getElementById('af-ahorro-usd')||{}).value)||0;
   var repLineas  = afGetRepLineas();
   var flujos=[], sumaAcum=-inv, vanAcum=-inv, pbS=null, pbD=null, totalGen=0;
@@ -8856,7 +8869,8 @@ async function afGuardar() {
   var afRepStr = afGetRepLineas().map(function(r){return r.ano+':'+r.costo;}).join(',');
   var afAhorroBase = parseFloat((document.getElementById('af-ahorro-usd')||{value:'0'}).value)||0;
   var _afImEl = document.getElementById('af-inflacion-manual'); var afInflManual = (_afImEl && _afImEl.value !== '') ? (parseFloat(_afImEl.value) || 0) : 5;
-  var sistemaConItems = (sistema || 'FV') + (afItemsArr.length ? '::' + afItemsArr.join(';') + '#PCT=' + afPct : '') + (afFirmaN||afFirmaP ? '#FIRMA_N=' + afFirmaN + '#FIRMA_P=' + afFirmaP : '') + (afRepStr ? '#REP=' + afRepStr : '') + (afAhorroBase>0 ? '#AHORRO='+afAhorroBase : '') + '#INFL='+afInflManual;
+  var _afDmEl = document.getElementById('af-degr-manual'); var afDegrManual = (_afDmEl && _afDmEl.value !== '') ? parseFloat(_afDmEl.value) : 0.4;
+  var sistemaConItems = (sistema || 'FV') + (afItemsArr.length ? '::' + afItemsArr.join(';') + '#PCT=' + afPct : '') + (afFirmaN||afFirmaP ? '#FIRMA_N=' + afFirmaN + '#FIRMA_P=' + afFirmaP : '') + (afRepStr ? '#REP=' + afRepStr : '') + (afAhorroBase>0 ? '#AHORRO='+afAhorroBase : '') + '#INFL='+afInflManual + '#DEGR='+afDegrManual;
 
   var payload = {
     cliente:         cliente || 'Análisis financiero',
@@ -8929,7 +8943,7 @@ function afReset() {
   var ip = document.getElementById('af-inst-pct'); if (ip) ip.value = '';
   // Limpiar inflación manual a default 5%
   var im = document.getElementById('af-inflacion-manual'); if (im) im.value = '5';
-  var is = document.getElementById('af-inflacion'); if (is) is.value = '0.05';
+  var dm = document.getElementById('af-degr-manual'); if (dm) dm.value = '0.4';
 }
 
 </script>

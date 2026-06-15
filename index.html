@@ -1403,9 +1403,9 @@ window.addEventListener('load', function() {
             <tr>
               <td colspan="3" style="padding:7px 10px;display:flex;align-items:center;gap:8px;font-size:12px">
                 <span>Instalación / ingeniería</span>
-                <input type="number" id="af-inst-pct" min="0" max="200" value="30" oninput="afRecalcular()"
-                  style="width:60px;border:1px solid var(--gris-borde);border-radius:6px;padding:3px 7px;font-size:12px;font-family:inherit;text-align:center">
-                <span style="font-size:12px;color:var(--muted)">%</span>
+                <span style="font-size:12px;color:var(--muted)">$</span>
+                <input type="number" id="af-inst-pct" min="0" value="0" oninput="afRecalcular()"
+                  style="width:100px;border:1px solid var(--gris-borde);border-radius:6px;padding:3px 7px;font-size:12px;font-family:inherit;text-align:center" placeholder="0">
               </td>
               <td style="padding:7px 10px;text-align:right;font-size:12px" id="af-subtotal-inst">—</td>
               <td></td>
@@ -8337,10 +8337,7 @@ function afActualizarTotales() {
       if (cell) cell.textContent = sub > 0 ? '$ ' + afFmt(sub) : '—';
     });
   }
-  var pctSel  = document.getElementById('af-inst-pct');
-  // Input numérico: valor en % (ej: 30), convertir a decimal
-  var pct     = (parseFloat(pctSel ? pctSel.value : 30) || 30) / 100;
-  var instVal = totalEq * pct;
+  var instVal = parseFloat((document.getElementById('af-inst-pct')||{value:'0'}).value) || 0;
   var total   = totalEq + instVal;
   var el1 = document.getElementById('af-subtotal-eq');   if (el1) el1.textContent = totalEq > 0 ? '$ '+afFmt(totalEq)  : '—';
   var el2 = document.getElementById('af-subtotal-inst'); if (el2) el2.textContent = instVal > 0 ? '$ '+afFmt(instVal) : '—';
@@ -8584,11 +8581,9 @@ function afExportarPDF() {
     if(desc||qty) items.push({desc:desc,qty:qty,precio:precio,sub:qty*precio});
   });
 
-  var pctSel=document.getElementById('af-inst-pct');
-  var pct=(parseFloat(pctSel?pctSel.value:30)||30)/100;
   var totalEq=items.reduce(function(s,i){return s+i.sub;},0);
-  var instVal=totalEq*pct, total=totalEq+instVal;
-  var pctLbl=(pct*100).toFixed(0)+'%';
+  var instVal=parseFloat((document.getElementById('af-inst-pct')||{value:'0'}).value)||0;
+  var total=totalEq+instVal;
 
   var itemsRows=items.map(function(it){
     return '<tr><td>'+(it.desc||'—')+'</td><td style="text-align:center">'+it.qty+'</td><td style="text-align:right">'+(it.precio>0?'$ '+afFmt(it.precio):'—')+'</td><td style="text-align:right">'+(it.sub>0?'$ '+afFmt(it.sub):'—')+'</td></tr>';
@@ -8614,7 +8609,7 @@ function afExportarPDF() {
         '<tbody>'+itemsRows+'</tbody>'+
         '<tfoot>'+
           '<tr><td colspan="3">Subtotal equipos</td><td style="text-align:right;font-weight:700">$ '+afFmt(totalEq)+'</td></tr>'+
-          '<tr><td colspan="3">Instalación / ingeniería ('+pctLbl+')</td><td style="text-align:right">$ '+afFmt(instVal)+'</td></tr>'+
+          '<tr><td colspan="3">Instalación / ingeniería</td><td style="text-align:right">'+(instVal>0?'$ '+afFmt(instVal):'—')+'</td></tr>'+
           '<tr style="background:#E6F9F5"><td colspan="3" style="font-weight:800;color:#0D9E8C">INVERSIÓN TOTAL (USD)</td><td style="text-align:right;font-weight:800;color:#0D9E8C;font-size:13px">$ '+afFmt(total)+'</td></tr>'+
         '</tfoot>'+
       '</table>'+
@@ -8690,7 +8685,7 @@ async function afGuardar() {
     var price = parseFloat(inputs[2].value) || 0;
     if (desc || price) afItemsArr.push(desc + '|' + qty + '|' + price);
   });
-  var afPct = parseFloat((document.getElementById('af-inst-pct')||{value:'30'}).value) || 0;
+  var afPct = parseFloat((document.getElementById('af-inst-pct')||{value:'0'}).value) || 0;
   var afFirmaN = ((document.getElementById('firma-af-nombre')||{value:''}).value.trim().replace(/[#|]/g,'-'));
   var afFirmaP = ((document.getElementById('firma-af-posicion')||{value:''}).value.trim().replace(/[#|]/g,'-'));
   var sistemaConItems = (sistema || 'FV') + (afItemsArr.length ? '::' + afItemsArr.join(';') + '#PCT=' + afPct : '') + (afFirmaN||afFirmaP ? '#FIRMA_N=' + afFirmaN + '#FIRMA_P=' + afFirmaP : '');

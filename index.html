@@ -557,8 +557,8 @@ window.addEventListener('load', function() {
   <div class="tab active" onclick="showTab('agenda')">Checkpoints</div>
   <div class="tab" onclick="showTab('proveedores')">Proveedores</div>
   <div class="tab" onclick="showTab('dimension')">Dimensionamientos</div>
-  <div class="tab" onclick="showTab('finanzas')">Análisis Financiero</div>
   <div class="tab" onclick="showTab('presupuesto')">Presupuestos</div>
+  <div class="tab" onclick="showTab('finanzas')">Análisis Financiero</div>
   <div class="tab" onclick="showTab('documentos')">Documentos</div>
   <div class="tab" onclick="showTab('clientes')">Clientes</div>
 </div>
@@ -1978,7 +1978,7 @@ let dragSrcIdx = null, dragSrcCol = null;
 // ── UI Helpers ─────────────────────────────────────────────────────────────
 function showTab(name) {
   document.querySelectorAll('.tab').forEach((t,i) => {
-    t.classList.toggle('active', ['agenda','proveedores','dimension','finanzas','presupuesto','documentos','clientes'][i] === name);
+    t.classList.toggle('active', ['agenda','proveedores','dimension','presupuesto','finanzas','documentos','clientes'][i] === name);
   });
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
@@ -7817,6 +7817,19 @@ function initFinanzas() {
   afCargarGuardados();
 }
 
+function afNombreCliente(a) {
+  // Si el cliente es el genérico, intentar resolver desde el dimensionamiento vinculado
+  var nombre = a.cliente || '';
+  if (!nombre || nombre === 'Análisis financiero' || nombre === 'Cliente') {
+    var p = a.dim_id ? (presupuestos||[]).find(function(x){ return String(x.id)===String(a.dim_id); }) : null;
+    if (p) {
+      var sis = p.tipo ? (p.tipo.toLowerCase().startsWith('fv |') ? (p.tipo.split('|')[1]||'FV').trim() : 'Solar Térmica') : '';
+      nombre = (p.cliente||'Cliente') + (sis ? ' — ' + sis : '');
+    }
+  }
+  return nombre || 'Análisis financiero';
+}
+
 async function afCargarGuardados() {
   var el = document.getElementById('af-guardados-lista');
   if (!el) return;
@@ -7840,7 +7853,7 @@ async function afCargarGuardados() {
     return '<div class="prov-card" style="margin-bottom:8px">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">' +
         '<div>' +
-          '<strong style="font-size:14px">' + (a.cliente||'Cliente') + '</strong>' +
+          '<strong style="font-size:14px">' + afNombreCliente(a) + '</strong>' +
           '<div style="font-size:11px;color:var(--muted)">' + fecha + (sistDisplay ? ' · ' + sistDisplay : '') + '</div>' +
         '</div>' +
         (a.inversion_usd ? '<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;background:var(--azul-light);color:var(--azul)">' + inv + '</span>' : '') +
@@ -8267,7 +8280,7 @@ function afVerDetalleGuardado(id) {
   var body =
     '<div style="font-size:13px;line-height:2">' +
     '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:8px">Análisis financiero</div>' +
-    '<strong>' + (a.cliente||'—') + '</strong> · ' + fecha + (a.sistema?' · '+(a.sistema.split('::')[0]):'') + '<br><br>' +
+    '<strong>' + afNombreCliente(a) + '</strong> · ' + fecha + (a.sistema?' · '+(a.sistema.split('::')[0]):'') + '<br><br>' +
     '<b>Inversión total:</b> USD ' + (a.inversion_usd ? Number(a.inversion_usd).toLocaleString('es-AR',{maximumFractionDigits:0}) : '—') + '<br>' +
     '<b>Generación anual:</b> ' + (a.gen_anual_kwh ? Number(a.gen_anual_kwh).toLocaleString('es-AR') + ' kWh/año' : '—') + '<br>' +
     '<b>Tarifa equivalente:</b> $' + (a.tarifa_ars||'—') + '/kWh · TC: $' + (a.tipo_cambio||'—') + '/USD<br>' +
@@ -8346,7 +8359,7 @@ function afExportarPDFGuardado(id) {
   var ahorroPromUSD = flujos.reduce(function(s,f){return s+f.flujo_y;},0)/ANOS;
 
   var fecha  = a.created_at ? new Date(a.created_at).toLocaleDateString('es-AR') : new Date().toLocaleDateString('es-AR');
-  var cliente= a.cliente||'Cliente';
+  var cliente= afNombreCliente(a);
   var sistema= (a.sistema||'Sistema solar').split('::')[0];
 
   var proyRows = flujos.map(function(f){
@@ -8834,6 +8847,7 @@ async function afGuardar() {
   var dimId   = dimSel ? dimSel.value : '';
   var p       = dimId ? (presupuestos||[]).find(function(x){return String(x.id)===String(dimId);}) : null;
   var cliente = p ? (p.cliente||'') : '';
+  var dimNombre = p ? ((p.cliente||'Cliente') + (p.tipo ? ' — ' + (p.tipo.toLowerCase().startsWith('fv |') ? (p.tipo.split('|')[1]||'FV').trim() : 'Solar Térmica') : '')) : '';
 
   var genAnual = document.getElementById('af-gen-anual') ? (parseFloat(document.getElementById('af-gen-anual').value)||0) : 0;
   var tarifa   = document.getElementById('af-tarifa')    ? (parseFloat(document.getElementById('af-tarifa').value)||0)    : 0;
@@ -8873,7 +8887,7 @@ async function afGuardar() {
   var sistemaConItems = (sistema || 'FV') + (afItemsArr.length ? '::' + afItemsArr.join(';') + '#PCT=' + afPct : '') + (afFirmaN||afFirmaP ? '#FIRMA_N=' + afFirmaN + '#FIRMA_P=' + afFirmaP : '') + (afRepStr ? '#REP=' + afRepStr : '') + (afAhorroBase>0 ? '#AHORRO='+afAhorroBase : '') + '#INFL='+afInflManual + '#DEGR='+afDegrManual;
 
   var payload = {
-    cliente:         cliente || 'Análisis financiero',
+    cliente:         dimNombre || cliente || 'Análisis financiero',
     dim_id:          dimId ? parseInt(dimId) : null,
     sistema:         sistemaConItems || null,
     inversion_usd:   inv,

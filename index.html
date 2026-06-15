@@ -8368,7 +8368,7 @@ function afExportarPDFGuardado(id) {
   }).join('');
 
   var repStr = repLineas.length>0 ? ' · Reposición equipos: '+repLineas.map(function(r){return 'año '+r.ano+' USD '+afFmt(r.costo);}).join(', ') : '';
-  var params = 'Tarifa '+tarifa+' $/kWh · TC '+tc+' ARS/USD · Inf. elec. '+(inflacion*100).toFixed(1)+'%/año · Descuento '+(tasa*100).toFixed(0)+'% · Degr. 0.4%/año'+repStr;
+  var params = 'Tarifa '+tarifa+' $/kWh · TC '+tc+' ARS/USD · Inf. elec. '+(inflacion*100).toFixed(1)+'%/año · Descuento '+(tasa*100).toFixed(0)+'% · Degr. '+(DEGR*100).toFixed(1)+'%/año'+repStr;
 
   var htmlContent =
   '<div class="pdf-page">'+
@@ -8748,7 +8748,7 @@ function afCalcularROI() {
   }
 
   resDiv.style.display='block';
-  window._af_roi={inv:inv,genAnual:genAnual,tarifa:tarifa,tc:tc,efectivo:efectivo,inflacion:inflacion,tasa:tasa,van:vanAcum,tirVal:tirVal,pbSLbl:pbSLbl,pbDLbl:pbDLbl,lcoeRed:lcoeRed,lcoeSolar:lcoeSolar,ahorroPromUSD:ahorroPromUSD,usdKwp:usdKwp,kWp:kWp,flujos:flujos};
+  window._af_roi={inv:inv,genAnual:genAnual,tarifa:tarifa,tc:tc,efectivo:efectivo,inflacion:inflacion,tasa:tasa,degr:DEGR,van:vanAcum,tirVal:tirVal,pbSLbl:pbSLbl,pbDLbl:pbDLbl,lcoeRed:lcoeRed,lcoeSolar:lcoeSolar,ahorroPromUSD:ahorroPromUSD,usdKwp:usdKwp,kWp:kWp,flujos:flujos};
 }
 
 function afExportarPDF() {
@@ -8784,7 +8784,7 @@ function afExportarPDF() {
     return '<tr><td style="text-align:center">'+f.y+'</td><td style="text-align:right">'+Math.round(f.gen_y).toLocaleString('es-AR')+'</td><td style="text-align:right">'+f.tarUSD_y.toFixed(4)+'</td><td style="text-align:right">'+(f.rep_y>0?'- '+afFmt(f.rep_y):'—')+'</td><td style="text-align:right">'+afFmt(f.flujo_y)+'</td><td style="text-align:right">'+afFmt(f.acum)+'</td></tr>';
   }).join('');
 
-  var params='Tarifa '+roi.tarifa+' $/kWh · TC '+roi.tc+' ARS/USD · Inf. elec. '+(roi.inflacion*100).toFixed(1)+'%/año · Descuento '+(roi.tasa*100).toFixed(0)+'% · Degr. 0.4%/año'+(roi.repLineas&&roi.repLineas.length>0?' · Reposición: '+roi.repLineas.map(function(r){return 'año '+r.ano+' USD '+afFmt(r.costo);}).join(', '):'');
+  var params='Tarifa '+roi.tarifa+' $/kWh · TC '+roi.tc+' ARS/USD · Inf. elec. '+(roi.inflacion*100).toFixed(1)+'%/año · Descuento '+(roi.tasa*100).toFixed(0)+'% · Degr. '+(roi.degr*100).toFixed(1)+'%/año'+(roi.repLineas&&roi.repLineas.length>0?' · Reposición: '+roi.repLineas.map(function(r){return 'año '+r.ano+' USD '+afFmt(r.costo);}).join(', '):'');
 
   var htmlContent=
   '<div class="pdf-page">'+

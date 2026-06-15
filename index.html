@@ -8308,7 +8308,7 @@ function afVerDetalleGuardado(id) {
   modal.style.display = 'flex';
 }
 
-function afExportarPDFGuardado(id) {
+async function afExportarPDFGuardado(id) {
   var a = _afGuardadosCache.find(function(x){ return x.id === id; });
   if (!a) { toast('Datos no encontrados'); return; }
 
@@ -8409,8 +8409,49 @@ function afExportarPDFGuardado(id) {
   var el = document.getElementById('pdf-propuesta');
   if (!el) return;
   el.innerHTML = htmlContent;
-  var t = document.title; document.title = ' ';
-  setTimeout(function(){ window.print(); document.title = t; el.innerHTML=''; }, 130);
+  await afRenderPDF(el, 'Analisis_Financiero_' + (a.cliente||'AF').replace(/[^a-z0-9]/gi,'_') + '.pdf');
+  el.innerHTML = '';
+}
+
+async function afRenderPDF(el, filename) {
+  if (!window.html2canvas) {
+    await new Promise(function(res,rej){ var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  }
+  if (!window.jspdf) {
+    await new Promise(function(res,rej){ var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  }
+  var prevW = el.style.width, prevMW = el.style.minWidth;
+  el.style.width = '794px'; el.style.minWidth = '794px';
+  await new Promise(function(r){ setTimeout(r, 80); });
+  var canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: 794 });
+  el.style.width = prevW; el.style.minWidth = prevMW;
+  var jsPDF = window.jspdf.jsPDF;
+  var pdfW = 210, pdfH = 297;
+  var canvasW = canvas.width, canvasH = canvas.height;
+  var ratio = pdfW / canvasW;
+  var totalH = canvasH * ratio;
+  var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  var pageCount = Math.ceil(totalH / pdfH);
+  for (var i = 0; i < pageCount; i++) {
+    if (i > 0) doc.addPage();
+    var srcY = i * (pdfH / ratio);
+    var srcH = Math.min(pdfH / ratio, canvasH - srcY);
+    var pc = document.createElement('canvas');
+    pc.width = canvasW; pc.height = srcH;
+    pc.getContext('2d').drawImage(canvas, 0, srcY, canvasW, srcH, 0, 0, canvasW, srcH);
+    doc.addImage(pc.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pdfW, srcH * ratio);
+  }
+  var isIOS = /iP(ad|hone|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (isIOS) {
+    var dataUri = doc.output('datauristring');
+    var a = document.createElement('a'); a.href = dataUri; a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  } else {
+    var url = URL.createObjectURL(doc.output('blob'));
+    var a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+  }
 }
 
 function afFmt(v) {
@@ -8751,7 +8792,7 @@ function afCalcularROI() {
   window._af_roi={inv:inv,genAnual:genAnual,tarifa:tarifa,tc:tc,efectivo:efectivo,inflacion:inflacion,tasa:tasa,van:vanAcum,tirVal:tirVal,pbSLbl:pbSLbl,pbDLbl:pbDLbl,lcoeRed:lcoeRed,lcoeSolar:lcoeSolar,ahorroPromUSD:ahorroPromUSD,usdKwp:usdKwp,kWp:kWp,flujos:flujos};
 }
 
-function afExportarPDF() {
+async function afExportarPDF() {
   var roi = window._af_roi;
   if (!roi){ alert('Completá la inversión y los parámetros del análisis para generar el PDF.'); return; }
 
@@ -8826,16 +8867,11 @@ function afExportarPDF() {
     getFirmaBlockById('_', (document.getElementById('firma-af-nombre')||{value:''}).value.trim(), (document.getElementById('firma-af-posicion')||{value:''}).value.trim())+
   '</div>';
 
-  // Reutilizar el div permanente #pdf-propuesta (igual que los otros exportadores)
   var el = document.getElementById('pdf-propuesta');
   if (!el) return;
   el.innerHTML = htmlContent;
-  var t = document.title; document.title = ' ';
-  setTimeout(function(){
-    window.print();
-    document.title = t;
-    el.innerHTML = '';
-  }, 130);
+  await afRenderPDF(el, 'Analisis_Financiero_' + (cliente||'AF').replace(/[^a-z0-9]/gi,'_') + '.pdf');
+  el.innerHTML = '';
 }
 
 async function afGuardar() {

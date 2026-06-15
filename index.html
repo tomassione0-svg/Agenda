@@ -8406,23 +8406,11 @@ function afExportarPDFGuardado(id) {
     (function(){ var s=a.sistema||''; var nm=s.match(/#FIRMA_N=([^#]*)/); var pm=s.match(/#FIRMA_P=([^#]*)/); return getFirmaBlockById('_', nm?nm[1].trim():'', pm?pm[1].trim():''); })()+
   '</div>';
 
-  afRenderPDF(htmlContent, 'Analisis_Financiero_' + (a.cliente||'AF').replace(/[^a-z0-9]/gi,'_') + '.pdf');
-}
-
-function afRenderPDF(htmlContent, filename) {
-  var pdfStyles = '<style>html,body{margin:0;padding:0;font-family:Arial,sans-serif;font-size:10px;}*{box-sizing:border-box;}.pdf-page{padding:12mm 10mm;}.pdf-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1B6B2F;padding-bottom:8px;margin-bottom:10px;}.pdf-brand{font-size:20px;font-weight:800;color:#1B6B2F;}.pdf-sub{font-size:10px;color:#555;margin-top:3px;}.pdf-date{text-align:right;font-size:10px;color:#555;}.pdf-title{font-size:17px;font-weight:800;margin:10px 0 5px;color:#1a1a1a;}.pdf-client{background:#EAF5EC;border:1px solid #D6EEDD;border-radius:6px;padding:7px 10px;margin-bottom:10px;font-size:10px;}.pdf-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:8px 0;}.pdf-kpi{border:1px solid #ddd;border-radius:6px;padding:6px 8px;background:#fafafa;}.pdf-kpi .v{font-size:17px;font-weight:800;color:#1B6B2F;line-height:1;}.pdf-kpi .l{font-size:9px;color:#666;margin-top:3px;}.pdf-section{margin-top:9px;}.pdf-section h3{font-size:11px;color:#1B6B2F;margin-bottom:3px;border-bottom:1px solid #ddd;padding-bottom:3px;}.pdf-note{font-size:8.5px;color:#666;line-height:1.4;margin-top:8px;border-top:1px solid #ddd;padding-top:6px;}.pdf-fin-table{width:100%;border-collapse:collapse;font-size:9px;}.pdf-fin-table th{background:#185FA5;color:#fff;padding:4px 6px;text-align:left;}.pdf-fin-table td{border-bottom:1px solid #e0e0e0;padding:3px 6px;}.pdf-firma{margin-top:24px;text-align:right;font-size:10px;}.pdf-firma-line{border-top:1.5px solid #1B6B2F;width:180px;display:inline-block;margin-bottom:4px;}.pos{color:#1B6B2F;font-weight:700;font-size:9px;text-transform:uppercase;}</style>';
-  // Abrir ventana sincrónicamente (dentro del gesto del usuario, antes de cualquier async)
-  var popup = window.open('', '_blank');
-  if (!popup) {
-    // Popup bloqueado — fallback con window.print() en página actual
-    var el = document.getElementById('pdf-propuesta');
-    if (el) { el.innerHTML = htmlContent; var t = document.title; document.title = ' '; setTimeout(function(){ window.print(); document.title = t; el.innerHTML = ''; }, 130); }
-    return;
-  }
-  popup.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + filename.replace('.pdf','') + '</title>' + pdfStyles + '</head><body>' + htmlContent + '</body></html>');
-  popup.document.close();
-  popup.focus();
-  setTimeout(function(){ popup.print(); }, 600);
+  var el = document.getElementById('pdf-propuesta');
+  if (!el) return;
+  el.innerHTML = htmlContent;
+  var t = document.title; document.title = ' ';
+  setTimeout(function(){ window.print(); document.title = t; el.innerHTML=''; }, 130);
 }
 
 function afFmt(v) {
@@ -8838,7 +8826,16 @@ function afExportarPDF() {
     getFirmaBlockById('_', (document.getElementById('firma-af-nombre')||{value:''}).value.trim(), (document.getElementById('firma-af-posicion')||{value:''}).value.trim())+
   '</div>';
 
-  afRenderPDF(htmlContent, 'Analisis_Financiero_' + (cliente||'AF').replace(/[^a-z0-9]/gi,'_') + '.pdf');
+  // Reutilizar el div permanente #pdf-propuesta (igual que los otros exportadores)
+  var el = document.getElementById('pdf-propuesta');
+  if (!el) return;
+  el.innerHTML = htmlContent;
+  var t = document.title; document.title = ' ';
+  setTimeout(function(){
+    window.print();
+    document.title = t;
+    el.innerHTML = '';
+  }, 130);
 }
 
 async function afGuardar() {

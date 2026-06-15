@@ -8420,11 +8420,15 @@ async function afRenderPDF(el, filename) {
   if (!window.jspdf) {
     await new Promise(function(res,rej){ var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
   }
+  // Hacer visible fuera de pantalla para que html2canvas pueda capturar
+  var prevPos = el.style.position, prevLeft = el.style.left, prevTop = el.style.top, prevVis = el.style.visibility, prevDisp = el.style.display;
+  el.style.position = 'fixed'; el.style.left = '-9999px'; el.style.top = '0'; el.style.display = 'block'; el.style.visibility = 'visible';
   var prevW = el.style.width, prevMW = el.style.minWidth;
   el.style.width = '794px'; el.style.minWidth = '794px';
   await new Promise(function(r){ setTimeout(r, 80); });
   var canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: 794 });
   el.style.width = prevW; el.style.minWidth = prevMW;
+  el.style.position = prevPos; el.style.left = prevLeft; el.style.top = prevTop; el.style.display = prevDisp; el.style.visibility = prevVis;
   var jsPDF = window.jspdf.jsPDF;
   var pdfW = 210, pdfH = 297;
   var canvasW = canvas.width, canvasH = canvas.height;

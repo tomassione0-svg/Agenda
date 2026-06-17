@@ -6943,8 +6943,13 @@ function pqCloseModal() {
 
 // ─── DOWNLOAD PDF ─────────────────────────────────────────────────────────────
 async function pqDownloadPDF() {
-  const nro = document.getElementById('pq-nro').value;
-  document.getElementById('pq-pdf-canvas').innerHTML = pqBuildPDFHTML();
+  // Si estamos en modo solo-lectura, el nro viene del registro guardado (no del form actual)
+  const nro = _pqViewOnlyId ? (_pqHistMap[_pqViewOnlyId] || {}).nro || document.getElementById('pq-nro').value
+                             : document.getElementById('pq-nro').value;
+  // Solo re-renderizar si NO estamos en modo solo-lectura (el canvas ya tiene el HTML correcto)
+  if (!_pqViewOnlyId) {
+    document.getElementById('pq-pdf-canvas').innerHTML = pqBuildPDFHTML();
+  }
   const el = document.getElementById('pq-pdf-canvas');
   const dlBtn = document.getElementById('pq-btn-dl');
   dlBtn.textContent = '⏳ Generando...';

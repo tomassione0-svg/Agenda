@@ -7781,7 +7781,8 @@ function pqImportarDim() {
   var nPaneles = parseInt(p.colectores)||0;
   var kWp      = parseFloat(p.area)||0;
   var panelInfo = partes[2]||'';
-  var panelWp   = nPaneles > 0 ? Math.round(kWp*1000/nPaneles) : 0;
+  var _panelWpM = panelInfo.match(/^(\d+)/);
+  var panelWp   = _panelWpM ? parseInt(_panelWpM[1]) : (nPaneles > 0 ? Math.round(kWp*1000/nPaneles) : 0);
 
   // Limpiar líneas solar existentes que vengan de dim anterior
   pqLineasSolar = pqLineasSolar.filter(function(r){ return !r._fromDim; });

@@ -4438,7 +4438,8 @@ function construirPDFPresupuestoGuardado(p) {
     var promedio = cargados.length ? Math.round(anual/cargados.length) : 0;
     var kwpReal = parseFloat(p.area)||0;
     var nPaneles = parseInt(p.colectores)||0;
-    var panelWp = nPaneles>0 ? Math.round(kwpReal*1000/nPaneles) : 430;
+    var panelWpM = (partes[2]||'').match(/^(\d+)/);
+    var panelWp = panelWpM ? parseInt(panelWpM[1]) : (nPaneles>0 ? Math.round(kwpReal*1000/nPaneles) : 430);
     var ahorroAnual = parseInt(p.bomba)||0;
     // Generación: PVGIS si disponible
     var pvgM = tipo.match(/PVG=([\d.,]+)/); var kwpPvgM = tipo.match(/KWP=([\d.]+)/);

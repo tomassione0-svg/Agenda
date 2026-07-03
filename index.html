@@ -7318,6 +7318,8 @@ function pqExportHistorialPDF(id) {
   var prevCont    = (document.getElementById('pq-contacto') || {}).value || '';
   var prevDir     = document.getElementById('pq-dir').value;
   var prevObs     = document.getElementById('pq-obs').value;
+  var prevFirmaN  = (document.getElementById('firma-pq-nombre')   || {}).value || '';
+  var prevFirmaP  = (document.getElementById('firma-pq-posicion') || {}).value || '';
 
   // Cargar datos del registro guardado en el form temporalmente
   document.getElementById('pq-nro').value     = d.nro      || '';
@@ -7328,6 +7330,11 @@ function pqExportHistorialPDF(id) {
   if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = d.contacto      || '';
   document.getElementById('pq-dir').value     = d.direccion    || '';
   document.getElementById('pq-obs').value     = d.observaciones || '';
+  var _savedNro = d.nro || '';
+  var _firmaN = localStorage.getItem('pq_firma_' + _savedNro + '_nombre')   || '';
+  var _firmaP = localStorage.getItem('pq_firma_' + _savedNro + '_posicion') || '';
+  if (document.getElementById('firma-pq-nombre'))   document.getElementById('firma-pq-nombre').value   = _firmaN;
+  if (document.getElementById('firma-pq-posicion')) document.getElementById('firma-pq-posicion').value = _firmaP;
   try { pqLineasSolar  = d.lineas_solar  ? JSON.parse(d.lineas_solar)  : []; } catch(e) { pqLineasSolar  = []; }
   try { pqLineasManual = d.lineas_manual ? JSON.parse(d.lineas_manual) : []; } catch(e) { pqLineasManual = []; }
 
@@ -7348,6 +7355,8 @@ function pqExportHistorialPDF(id) {
   if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = prevCont;
   document.getElementById('pq-dir').value = prevDir;
   document.getElementById('pq-obs').value = prevObs;
+  if (document.getElementById('firma-pq-nombre'))   document.getElementById('firma-pq-nombre').value   = prevFirmaN;
+  if (document.getElementById('firma-pq-posicion')) document.getElementById('firma-pq-posicion').value = prevFirmaP;
 }
 
 // ─── HISTORIAL ────────────────────────────────────────────────────────────────

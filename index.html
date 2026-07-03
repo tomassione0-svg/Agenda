@@ -7864,11 +7864,10 @@ function afNombreCliente(a) {
   var nombre = a.cliente || '';
   if (!nombre || nombre === 'Análisis financiero' || nombre === 'Cliente') {
     var p = a.dim_id ? (presupuestos||[]).find(function(x){ return String(x.id)===String(a.dim_id); }) : null;
-    if (p) {
-      var sis = p.tipo ? (p.tipo.toLowerCase().startsWith('fv |') ? (p.tipo.split('|')[1]||'FV').trim() : 'Solar Térmica') : '';
-      nombre = (p.cliente||'Cliente') + (sis ? ' — ' + sis : '');
-    }
+    if (p && p.cliente) nombre = p.cliente;
   }
+  // Limpiar " — On-Grid" u otro sistema si quedó pegado al nombre por error
+  nombre = nombre.replace(/\s*—\s*(On-Grid|Off-Grid|Híbrido|FV|Solar Térmica).*$/i, '').trim();
   return nombre || 'Análisis financiero';
 }
 
@@ -7876,6 +7875,9 @@ async function afCargarGuardados() {
   var el = document.getElementById('af-guardados-lista');
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;padding:10px;color:var(--muted);font-size:12px">Cargando...</div>';
+
+  // Asegurar que presupuestos (dimensionamientos) esté cargado para poder resolver nombres de clientes
+  if (!presupuestos || !presupuestos.length) await loadPresupuestos();
 
   var result = await db.from('hes_analisis_financiero').select('*').order('created_at', {ascending:false});
   if (result.error || !result.data || !result.data.length) {
@@ -7929,7 +7931,7 @@ async function afCargarGuardados() {
 
   // Resolver nombres genéricos en segundo plano
   var _pendientes = result.data.filter(function(a) {
-    return !a.cliente || a.cliente === 'Análisis financiero' || a.cliente === 'Cliente';
+    return !a.cliente || a.cliente === 'Análisis financiero' || a.cliente === 'Cliente' || /—\s*(On-Grid|Off-Grid|Híbrido|FV|Solar Térmica)/i.test(a.cliente);
   });
   if (_pendientes.length) {
     (async function() {
@@ -7947,7 +7949,7 @@ async function afCargarGuardados() {
             if (_rd.data && _rd.data.cliente) _nombre = _rd.data.cliente;
           } catch(e) {}
         }
-        // 2) Buscar por total en presupuestos_solar
+        // 2) Buscar por total exacto en presupuestos_solar
         if (!_nombre && _inv > 0) {
           try {
             var _rp = await pqFetch('hes_presupuestos_solar?select=cliente&total=eq.' + _inv + '&order=created_at.desc&limit=1');
@@ -7955,7 +7957,24 @@ async function afCargarGuardados() {
             if (Array.isArray(_dp) && _dp.length && _dp[0].cliente) _nombre = _dp[0].cliente;
           } catch(e) {}
         }
-        if (_nombre && _nombre !== 'Análisis financiero') {
+        // 3) Buscar por kWp aproximado en dimensionamientos (gen_anual / PVGIS ≈ 1591.79)
+        if (!_nombre && _a.gen_anual_kwh) {
+          try {
+            var _kwp = _a.gen_anual_kwh / 1591.79;
+            var _lo = (_kwp * 0.95).toFixed(2);
+            var _hi = (_kwp * 1.05).toFixed(2);
+            var _rdim = await pqFetch('hes_presupuestos?select=cliente,tipo,area&area=gte.' + _lo + '&area=lte.' + _hi + '&order=created_at.desc&limit=5');
+            var _ddim = await _rdim.json();
+            if (Array.isArray(_ddim) && _ddim.length) {
+              // Si hay varios, preferir el que coincide en tipo de sistema (On-Grid / Off-Grid / Híbrido)
+              var _sistLow = ((_a.sistema||'').split('::')[0]||'').toLowerCase();
+              var _match = _ddim.find(function(d){ return d.cliente && (d.tipo||'').toLowerCase().includes(_sistLow); }) || _ddim.find(function(d){ return d.cliente; });
+              if (_match && _match.cliente) _nombre = _match.cliente;
+            }
+          } catch(e) {}
+        }
+        _nombre = (_nombre||'').replace(/\s*—\s*(On-Grid|Off-Grid|Híbrido|FV|Solar Térmica).*$/i, '').trim();
+        if (_nombre && _nombre !== 'Análisis financiero' && _nombre !== 'Cliente') {
           try {
             await db.from('hes_analisis_financiero').update({ cliente: _nombre }).eq('id', _a.id);
             _a.cliente = _nombre;
@@ -8469,6 +8488,21 @@ async function afExportarPDFGuardado(id) {
       var _rPQ = await pqFetch('hes_presupuestos_solar?select=cliente&total=eq.' + inv + '&order=created_at.desc&limit=1');
       var _dPQ = await _rPQ.json();
       if (Array.isArray(_dPQ) && _dPQ.length && _dPQ[0].cliente) cliente = _dPQ[0].cliente;
+    } catch(e) {}
+  }
+  // Búsqueda por kWp aproximado en dimensionamientos
+  if ((!cliente || cliente === 'Análisis financiero') && a.gen_anual_kwh) {
+    try {
+      var _kwpA = a.gen_anual_kwh / 1591.79;
+      var _loA = (_kwpA * 0.95).toFixed(2);
+      var _hiA = (_kwpA * 1.05).toFixed(2);
+      var _rdA = await pqFetch('hes_presupuestos?select=cliente,tipo,area&area=gte.' + _loA + '&area=lte.' + _hiA + '&order=created_at.desc&limit=5');
+      var _ddA = await _rdA.json();
+      if (Array.isArray(_ddA) && _ddA.length) {
+        var _slA = (_sistRaw||'').toLowerCase();
+        var _mA = _ddA.find(function(d){ return d.cliente && (d.tipo||'').toLowerCase().includes(_slA); }) || _ddA.find(function(d){ return d.cliente; });
+        if (_mA && _mA.cliente) cliente = _mA.cliente;
+      }
     } catch(e) {}
   }
   // Si resolvimos un cliente real, actualizar el registro en Supabase y en cache para que la card quede bien
@@ -9013,7 +9047,7 @@ async function afGuardar() {
   var dimId   = dimSel ? dimSel.value : '';
   var p       = dimId ? (presupuestos||[]).find(function(x){return String(x.id)===String(dimId);}) : null;
   var cliente = p ? (p.cliente||'') : '';
-  var dimNombre = p ? ((p.cliente||'Cliente') + (p.tipo ? ' — ' + (p.tipo.toLowerCase().startsWith('fv |') ? (p.tipo.split('|')[1]||'FV').trim() : 'Solar Térmica') : '')) : '';
+  var dimNombre = cliente; // solo el nombre, sin el sistema
 
   var genAnual = document.getElementById('af-gen-anual') ? (parseFloat(document.getElementById('af-gen-anual').value)||0) : 0;
   var tarifa   = document.getElementById('af-tarifa')    ? (parseFloat(document.getElementById('af-tarifa').value)||0)    : 0;

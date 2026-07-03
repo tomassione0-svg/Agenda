@@ -7926,6 +7926,46 @@ async function afCargarGuardados() {
       '</div>' +
     '</div>';
   }).join('');
+
+  // Resolver nombres genéricos en segundo plano
+  var _pendientes = result.data.filter(function(a) {
+    return !a.cliente || a.cliente === 'Análisis financiero' || a.cliente === 'Cliente';
+  });
+  if (_pendientes.length) {
+    (async function() {
+      var _actualizo = false;
+      for (var _i = 0; _i < _pendientes.length; _i++) {
+        var _a = _pendientes[_i];
+        var _inv = 0;
+        try { var _sp = (_a.sistema||'').split('::'); if (_sp[1]) { var _m = _sp[1].match(/INV=([0-9.]+)/); if (_m) _inv = parseFloat(_m[1])||0; } } catch(e){}
+        if (!_inv) _inv = _a.inversion_usd || 0;
+        var _nombre = '';
+        // 1) Buscar por dim_id en Supabase
+        if (!_nombre && _a.dim_id) {
+          try {
+            var _rd = await db.from('hes_presupuestos').select('cliente,tipo').eq('id', _a.dim_id).single();
+            if (_rd.data && _rd.data.cliente) _nombre = _rd.data.cliente;
+          } catch(e) {}
+        }
+        // 2) Buscar por total en presupuestos_solar
+        if (!_nombre && _inv > 0) {
+          try {
+            var _rp = await pqFetch('hes_presupuestos_solar?select=cliente&total=eq.' + _inv + '&order=created_at.desc&limit=1');
+            var _dp = await _rp.json();
+            if (Array.isArray(_dp) && _dp.length && _dp[0].cliente) _nombre = _dp[0].cliente;
+          } catch(e) {}
+        }
+        if (_nombre && _nombre !== 'Análisis financiero') {
+          try {
+            await db.from('hes_analisis_financiero').update({ cliente: _nombre }).eq('id', _a.id);
+            _a.cliente = _nombre;
+            _actualizo = true;
+          } catch(e) {}
+        }
+      }
+      if (_actualizo) afCargarGuardados();
+    })();
+  }
 }
 
 async function afEliminarGuardado(id) {

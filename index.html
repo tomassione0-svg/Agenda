@@ -7914,11 +7914,11 @@ async function afCargarGuardados() {
         '<div class="result-box accent"><div class="result-val" style="font-size:15px;color:'+vanColor+'">' + van + '</div><div class="result-label">VAN (USD)</div></div>' +
         '<div class="result-box"><div class="result-val" style="font-size:15px">' + tirPct + '</div><div class="result-label">TIR</div></div>' +
         (function(){ var _pb=afPbCeil(a.payback_simple||''); return '<div class="result-box"><div class="result-val" style="font-size:15px">'+_pb.ceil+'</div>'+(_pb.exact&&_pb.exact!==_pb.ceil?'<div style="font-size:10px;color:var(--muted)">('+_pb.exact+')</div>':'')+'<div class="result-label">Payback simple</div></div>'; })()+
+        (function(){ var _pb=afPbCeil(a.payback_desc||''); return '<div class="result-box"><div class="result-val" style="font-size:15px">'+_pb.ceil+'</div>'+(_pb.exact&&_pb.exact!==_pb.ceil?'<div style="font-size:10px;color:var(--muted)">('+_pb.exact+')</div>':'')+'<div class="result-label">Payback descontado</div></div>'; })()+
       '</div>' +
       '<div class="prov-rows" style="margin-bottom:10px">' +
         (a.gen_anual_kwh ? '<div class="prov-row"><strong>Generación anual:</strong> ' + Number(a.gen_anual_kwh).toLocaleString('es-AR') + ' kWh/año</div>' : '') +
         (a.lcoe_solar ? '<div class="prov-row"><strong>LCOE solar:</strong> USD ' + Number(a.lcoe_solar).toFixed(1) + '/MWh · <strong>LCOE red:</strong> USD ' + (a.lcoe_red ? Number(a.lcoe_red).toFixed(1) : '—') + '/MWh</div>' : '') +
-        (a.payback_desc ? (function(){ var _pb=afPbCeil(a.payback_desc); return '<div class="prov-row"><strong>Payback descontado:</strong> '+_pb.ceil+(_pb.exact&&_pb.exact!==_pb.ceil?' <span style="color:var(--muted);font-size:11px">('+_pb.exact+')</span>':'')+'</div>'; })() : '') +
       '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">' +
         '<button onclick="afVerDetalleGuardado(' + a.id + ')" class="btn btn-secondary" style="font-size:11px;padding:7px 4px">Ver detalle</button>' +

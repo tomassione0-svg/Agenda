@@ -596,7 +596,7 @@ window.addEventListener('load', function() {
     </div>
     <div class="pq-field">
         <label>Validez</label>
-        <input type="text" id="pq-validez" placeholder="15 días hábiles">
+        <input type="text" id="pq-validez" placeholder="7 días hábiles">
       </div>
     <div class="pq-field">
       <label style="display:flex;justify-content:space-between;align-items:center">
@@ -2026,7 +2026,7 @@ function showTab(name) {
     var va = document.getElementById('pq-validez');
     var nr = document.getElementById('pq-nro');
     if (fe && !fe.value) fe.value = hoy;
-    if (va && !va.value) va.value = '15 días hábiles';
+    if (va && !va.value) va.value = '7 días hábiles';
     if (nr && !nr.value) {
       pqGetNextNro().then(function(n) {
         nr.value = n;
@@ -6812,7 +6812,7 @@ async function pqReset() {
   if(document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
   document.getElementById('pq-dir').value = '';
   document.getElementById('pq-obs').value = '';
-  document.getElementById('pq-validez').value = '15 días hábiles';
+  document.getElementById('pq-validez').value = '7 días hábiles';
   document.getElementById('pq-fecha').value = new Date().toISOString().split('T')[0];
   const nro = await pqGetNextNro();
   document.getElementById('pq-nro').value = nro;
@@ -6995,7 +6995,7 @@ async function pqGuardar() {
     if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
     document.getElementById('pq-dir').value     = '';
     document.getElementById('pq-obs').value     = '';
-    document.getElementById('pq-validez').value = '15 días hábiles';
+    document.getElementById('pq-validez').value = '7 días hábiles';
     document.getElementById('pq-fecha').value   = new Date().toISOString().split('T')[0];
     // Siempre resetear al siguiente número disponible
     const nextNro = await pqGetNextNro();
@@ -7182,7 +7182,7 @@ async function pqDownloadPDF() {
     if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
     document.getElementById('pq-dir').value     = '';
     document.getElementById('pq-obs').value     = '';
-    document.getElementById('pq-validez').value = '15 días hábiles';
+    document.getElementById('pq-validez').value = '7 días hábiles';
     document.getElementById('pq-fecha').value   = new Date().toISOString().split('T')[0];
     pqCloseModal();
     // Siempre resetear el número al siguiente disponible (sea edición o nuevo)
@@ -7301,7 +7301,7 @@ function pqStartEdit(id) {
   document.getElementById('pq-nro').value              = d.nro       || '';
   document.getElementById('pq-nro-badge').textContent  = '#' + (d.nro || '');
   document.getElementById('pq-fecha').value            = d.fecha     || new Date().toISOString().split('T')[0];
-  document.getElementById('pq-validez').value          = d.validez   || '15 días hábiles';
+  document.getElementById('pq-validez').value          = d.validez   || '7 días hábiles';
   document.getElementById('pq-cliente').value          = d.cliente   || '';
   if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = d.cuit          || '';
   if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = d.contacto      || '';
@@ -7348,7 +7348,7 @@ function pqCancelEdit() {
   if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
   document.getElementById('pq-dir').value     = '';
   document.getElementById('pq-obs').value     = '';
-  document.getElementById('pq-validez').value = '15 días hábiles';
+  document.getElementById('pq-validez').value = '7 días hábiles';
   document.getElementById('pq-fecha').value   = new Date().toISOString().split('T')[0];
   pqGetNextNro().then(function(nro) {
     document.getElementById('pq-nro').value = nro;
@@ -7381,7 +7381,7 @@ function pqExportHistorialPDF(id) {
   // Cargar datos del registro guardado en el form temporalmente
   document.getElementById('pq-nro').value     = d.nro      || '';
   document.getElementById('pq-fecha').value   = d.fecha    || new Date().toISOString().split('T')[0];
-  document.getElementById('pq-validez').value = d.validez  || '15 días hábiles';
+  document.getElementById('pq-validez').value = d.validez  || '7 días hábiles';
   document.getElementById('pq-cliente').value = d.cliente  || '';
   if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = d.cuit          || '';
   if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = d.contacto      || '';

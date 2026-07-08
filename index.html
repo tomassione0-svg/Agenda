@@ -425,6 +425,8 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .pq-linea:last-child { border-bottom: none; }
 .pq-linea-head { background: transparent; padding: 7px 10px; display: grid; grid-template-columns: 1fr 70px 90px 28px; gap: 6px; border-bottom: 2px solid var(--verde); }
 .pq-linea-head span { font-size: 10px; font-weight: 700; color: var(--verde); text-transform: uppercase; letter-spacing: .04em; }
+/* Líneas de equipos solar: columna extra para IVA % */
+#pq-lineas-solar .pq-linea, #pq-lineas-solar .pq-linea-head { grid-template-columns: 1fr 52px 72px 46px 24px; }
 .pq-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #fff; background: var(--verde-mid); padding: 5px 10px; }
 .pq-inp { width: 100%; border: 1px solid var(--gris-borde); border-radius: 6px; padding: 7px 8px; font-size: 12px; font-family: inherit; transition: border-color .15s, box-shadow .15s; }
 .pq-inp:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px rgba(27,107,47,.15); }
@@ -639,6 +641,7 @@ window.addEventListener('load', function() {
         <span>Descripción</span>
         <span style="text-align:right">Cant.</span>
         <span style="text-align:right">P. Unit ($)</span>
+        <span style="text-align:right">IVA %</span>
         <span></span>
       </div>
     </div>
@@ -665,8 +668,9 @@ window.addEventListener('load', function() {
   <div class="pq-card">
     <div class="pq-card-head">💰 Resumen</div>
     <div class="pq-totales">
-      <div class="pq-tot-row"><span>Subtotal equipos solar</span><span id="pq-sub-solar">—</span></div>
-      <div class="pq-tot-row"><span>Subtotal instalación / otros</span><span id="pq-sub-manual">—</span></div>
+      <div class="pq-tot-row"><span>Subtotal equipos (sin IVA)</span><span id="pq-sub-solar">—</span></div>
+      <div class="pq-tot-row"><span>IVA</span><span id="pq-iva">—</span></div>
+      <div class="pq-tot-row"><span>Instalación</span><span id="pq-sub-manual">—</span></div>
       <div class="pq-tot-row"><span>TOTAL</span><span id="pq-total">—</span></div>
     </div>
   </div>
@@ -6731,11 +6735,18 @@ function pqRenderSolar() {
     iPrecio.addEventListener('input', function(){ row.precio=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; pqRecalc(); });
     iPrecio.addEventListener('blur',  function(){ var v=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; row.precio=v; this.value=v||''; pqRecalc(); });
 
+    // IVA % por producto (default 21). Editable a mano.
+    if (row.iva == null) row.iva = 21;
+    var iIva = document.createElement('input');
+    iIva.className='pq-inp'; iIva.type='text'; iIva.inputMode='decimal'; iIva.value=(row.iva!=null?row.iva:''); iIva.placeholder='21'; iIva.style.textAlign='right'; iIva.title='IVA %';
+    iIva.addEventListener('input', function(){ row.iva=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; pqRecalc(); });
+    iIva.addEventListener('blur',  function(){ var v=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; row.iva=v; this.value=v; pqRecalc(); });
+
     var btn = document.createElement('button');
     btn.className='pq-del'; btn.textContent='×';
     btn.addEventListener('click', function(){ pqLineasSolar=pqLineasSolar.filter(function(r){return r.id!==row.id;}); pqRenderSolar(); pqRecalc(); });
 
-    div.appendChild(wDesc); div.appendChild(iQty); div.appendChild(iPrecio); div.appendChild(btn);
+    div.appendChild(wDesc); div.appendChild(iQty); div.appendChild(iPrecio); div.appendChild(iIva); div.appendChild(btn);
     container.appendChild(div);
   });
 }
@@ -6743,12 +6754,21 @@ function pqRenderSolar() {
 // ─── RECALC ───────────────────────────────────────────────────────────────────
 function pqRecalc() {
   const sym = '$ ';
-  let subSolar = 0;
-  pqLineasSolar.forEach(r => subSolar += (r.precio || 0) * (r.qty || 1));
+  // Equipos: neto + IVA por producto (cada línea con su % de IVA, default 21)
+  let subSolarNeto = 0, ivaTotal = 0;
+  pqLineasSolar.forEach(r => {
+    const base = (r.precio || 0) * (r.qty || 1);
+    const iva  = (r.iva != null ? r.iva : 21);
+    subSolarNeto += base;
+    ivaTotal     += base * iva / 100;
+  });
+  // Instalación / otros: exento (sin IVA)
   let subManual = 0;
   pqLineasManual.forEach(r => subManual += (r.precio || 0) * (r.qty || 1));
-  const total = subSolar + subManual;
-  document.getElementById('pq-sub-solar').textContent = pqLineasSolar.length ? sym + fmtPQ(subSolar) : '—';
+  const total = subSolarNeto + ivaTotal + subManual;
+  document.getElementById('pq-sub-solar').textContent = pqLineasSolar.length ? sym + fmtPQ(subSolarNeto) : '—';
+  var elIva = document.getElementById('pq-iva');
+  if (elIva) elIva.textContent = ivaTotal > 0 ? sym + fmtPQ(ivaTotal) : '—';
   document.getElementById('pq-sub-manual').textContent = pqLineasManual.length ? sym + fmtPQ(subManual) : '—';
   document.getElementById('pq-total').textContent = total > 0 ? sym + fmtPQ(total) : '—';
 }
@@ -6806,15 +6826,22 @@ function pqBuildPDFHTML() {
   const obs      = document.getElementById('pq-obs').value || '';
   const sym      = '$ ';
 
-  let subSolar = 0, subManual = 0;
-  pqLineasSolar.forEach(r  => subSolar  += (r.precio||0)*(r.qty||1));
+  // Equipos: neto (sin IVA) + IVA agrupado por alícuota (21%, 10,5%, etc.)
+  let subSolarNeto = 0, ivaTotal = 0, subManual = 0;
+  const ivaByRate = {}; // { rate: montoIVA }
+  pqLineasSolar.forEach(function(r){
+    const neto = (r.precio||0)*(r.qty||1);
+    const rate = (r.iva!=null ? r.iva : 21);
+    subSolarNeto += neto;
+    if (rate > 0) {
+      const m = neto * rate / 100;
+      ivaTotal += m;
+      ivaByRate[rate] = (ivaByRate[rate]||0) + m;
+    }
+  });
+  // Instalación / otros: exento (sin IVA)
   pqLineasManual.forEach(r => subManual += (r.precio||0)*(r.qty||1));
-  const total = subSolar + subManual;
-
-  const allItems = [
-    ...pqLineasSolar.map(r  => ({ desc: r.desc || r.modelo, qty: r.qty, precio: r.precio })),
-    ...pqLineasManual.map(r => ({ desc: r.desc || '—',      qty: r.qty, precio: r.precio }))
-  ];
+  const total = subSolarNeto + ivaTotal + subManual;
 
   // Estilos tabla — sin degradados, fondo blanco limpio
   const TH  = 'padding:8px 10px;font-size:10.5px;font-weight:700;background:#ffffff;color:#1b6b2f;text-align:left;border-bottom:2px solid #1b6b2f;';
@@ -6823,15 +6850,38 @@ function pqBuildPDFHTML() {
   const TDR = 'padding:9px 10px;font-size:12px;color:#1e2118;border-bottom:1px solid #e8eeea;vertical-align:middle;text-align:right;background:#fff;';
   const TDB = 'padding:9px 10px;font-size:12px;font-weight:700;color:#165a2a;border-bottom:1px solid #e8eeea;vertical-align:middle;text-align:right;background:#fff;';
 
-  const rows = allItems.map(function(r) {
-    const sub = (r.precio||0)*(r.qty||1);
+  const fmtRate = function(x){ return String(x).replace('.', ','); };
+
+  // Filas: solo equipos. La instalación va en el bloque de totales.
+  const rows = pqLineasSolar.map(function(r) {
+    const neto = (r.precio||0)*(r.qty||1);            // importe sin IVA
+    const rate = (r.iva!=null ? r.iva : 21);
     return '<tr>' +
-      '<td style="' + TD  + '">' + escHtml(r.desc) + '</td>' +
-      '<td style="' + TDR + 'text-align:center;width:60px;">' + r.qty + '</td>' +
-      '<td style="' + TDR + 'width:130px;">' + sym + fmtPQ(r.precio) + '</td>' +
-      '<td style="' + TDB + 'width:130px;">' + sym + fmtPQ(sub) + '</td>' +
+      '<td style="' + TD  + '">' + escHtml(r.desc || r.modelo) + '</td>' +
+      '<td style="' + TDR + 'text-align:center;width:55px;">' + r.qty + '</td>' +
+      '<td style="' + TDR + 'width:120px;">' + sym + fmtPQ(r.precio) + '</td>' +
+      '<td style="' + TDR + 'text-align:center;width:60px;color:#555;">' + fmtRate(rate) + '</td>' +
+      '<td style="' + TDB + 'width:130px;">' + sym + fmtPQ(neto) + '</td>' +
     '</tr>';
   }).join('');
+
+  // Bloque de totales (Subtotal → IVA por alícuota → Instalación → TOTAL)
+  const TLBL = 'padding:5px 12px;font-size:12px;color:#444;text-align:right;';
+  const TVAL = 'padding:5px 12px;font-size:12px;color:#1e2118;text-align:right;font-weight:600;width:140px;';
+  const rateKeys = Object.keys(ivaByRate).map(Number).sort(function(a,b){ return b-a; });
+  let totRows =
+    '<tr><td style="' + TLBL + '">Subtotal</td><td style="' + TVAL + '">' + sym + fmtPQ(subSolarNeto) + '</td></tr>';
+  rateKeys.forEach(function(rate){
+    totRows += '<tr><td style="' + TLBL + '">IVA ' + fmtRate(rate) + '%</td><td style="' + TVAL + '">' + sym + fmtPQ(ivaByRate[rate]) + '</td></tr>';
+  });
+  if (subManual > 0) {
+    totRows += '<tr><td style="' + TLBL + '">Instalación</td><td style="' + TVAL + '">' + sym + fmtPQ(subManual) + '</td></tr>';
+  }
+  totRows +=
+    '<tr>' +
+      '<td style="padding:9px 12px;font-weight:700;font-size:13px;border-top:2px solid #165a2a;text-align:right;color:#165a2a;">TOTAL</td>' +
+      '<td style="padding:9px 12px;text-align:right;font-weight:800;font-size:15px;color:#165a2a;border-top:2px solid #165a2a;width:140px;">' + sym + fmtPQ(total) + '</td>' +
+    '</tr>';
 
   return (
     '<style>#pq-pdf-canvas{font-family:-apple-system,Arial,sans-serif;color:#1e2118;background:#fff;}</style>' +
@@ -6864,18 +6914,20 @@ function pqBuildPDFHTML() {
     '<table style="width:100%;border-collapse:collapse;margin-bottom:16px;">' +
       '<thead><tr>' +
         '<th style="' + TH  + '">Descripción</th>' +
-        '<th style="' + THR + 'text-align:center;width:60px;">Cant.</th>' +
-        '<th style="' + THR + 'width:130px;">Precio Unit.</th>' +
-        '<th style="' + THR + 'width:130px;">Importe</th>' +
+        '<th style="' + THR + 'text-align:center;width:55px;">Cant.</th>' +
+        '<th style="' + THR + 'width:120px;">Precio Unit. sin IVA</th>' +
+        '<th style="' + THR + 'text-align:center;width:60px;">IVA %</th>' +
+        '<th style="' + THR + 'width:130px;">Importe sin IVA</th>' +
       '</tr></thead>' +
       '<tbody>' + rows +
-        // TOTAL — fondo blanco, solo borde superior verde, texto verde
-        '<tr>' +
-          '<td colspan="3" style="padding:10px;font-weight:700;font-size:12px;border-top:2px solid #165a2a;text-align:right;color:#165a2a;background:#fff;">TOTAL</td>' +
-          '<td style="padding:10px;text-align:right;font-weight:800;font-size:15px;color:#165a2a;border-top:2px solid #165a2a;background:#fff;">' + sym + fmtPQ(total) + '</td>' +
-        '</tr>' +
       '</tbody>' +
     '</table>' +
+
+    // BLOQUE DE TOTALES — alineado a la derecha
+    '<table style="margin-left:auto;border-collapse:collapse;margin-bottom:16px;min-width:320px;">' +
+      '<tbody>' + totRows + '</tbody>' +
+    '</table>' +
+    '<div style="clear:both;"></div>' +
 
     // OBSERVACIONES — fondo verde suave como antes
     (obs ?
@@ -7173,8 +7225,8 @@ async function pqSaveToSupa(nro, pdfPath) {
   try {
     const moneda = 'ARS';
     let subSolar = 0, subManual = 0;
-    pqLineasSolar.forEach(r => subSolar += r.precio * r.qty);
-    pqLineasManual.forEach(r => subManual += r.precio * r.qty);
+    pqLineasSolar.forEach(r => subSolar += r.precio * r.qty * (1 + (r.iva != null ? r.iva : 21)/100)); // equipos con IVA
+    pqLineasManual.forEach(r => subManual += r.precio * r.qty); // instalación exenta
     const payload = {
       nro: nro,
       fecha: document.getElementById('pq-fecha').value || new Date().toISOString().split('T')[0],
@@ -7202,8 +7254,8 @@ async function pqUpdateToSupa(id, nro, pdfPath) {
   try {
     const moneda = 'ARS';
     let subSolar = 0, subManual = 0;
-    pqLineasSolar.forEach(r => subSolar += r.precio * r.qty);
-    pqLineasManual.forEach(r => subManual += r.precio * r.qty);
+    pqLineasSolar.forEach(r => subSolar += r.precio * r.qty * (1 + (r.iva != null ? r.iva : 21)/100)); // equipos con IVA
+    pqLineasManual.forEach(r => subManual += r.precio * r.qty); // instalación exenta
     const payload = {
       fecha: document.getElementById('pq-fecha').value || new Date().toISOString().split('T')[0],
       validez: document.getElementById('pq-validez').value || null,
@@ -8796,7 +8848,10 @@ async function afCargarDim() {
         var lineasManual = doc.lineas_manual ? JSON.parse(doc.lineas_manual) : [];
         // Separar instalación del resto
         var instTotal = 0;
-        var lineasEquipos = lineasSolar.concat(lineasManual.filter(function(it) {
+        // Equipos solar: entran con IVA incluido (default 21 si no está definido)
+        var lineasEquipos = lineasSolar.map(function(it) {
+          return Object.assign({}, it, { iva: (it.iva != null ? it.iva : 21) });
+        }).concat(lineasManual.filter(function(it) {
           var d = (it.desc || it.modelo || '').toLowerCase();
           var esInst = d.includes('instalac') || d.includes('ingeniería') || d.includes('ingenieria') || d.includes('mano de obra');
           if (esInst) instTotal += (it.precio || 0) * (it.qty || 1);
@@ -8806,7 +8861,9 @@ async function afCargarDim() {
           lineasEquipos.forEach(function(it) {
             var desc  = it.desc || it.modelo || '';
             var qty   = it.qty  || 1;
-            var price = it.precio != null ? it.precio : '';
+            // Precio + IVA (costo real que se paga). Instalación/otros manuales: exento (iva 0).
+            var iva   = (it.iva != null ? it.iva : 0);
+            var price = it.precio != null ? +(it.precio * (1 + iva/100)).toFixed(2) : '';
             afInsertarFila(desc, qty, price);
           });
           if (instTotal > 0) {

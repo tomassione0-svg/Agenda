@@ -1389,16 +1389,21 @@ window.addEventListener('load', function() {
   <div style="padding:0 8px">
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:14px">Análisis Financiero — Retorno de Inversión</div>
 
-    <!-- ① Seleccionar dimensionamiento -->
+    <!-- ① Seleccionar presupuesto -->
     <div class="calc-card" style="margin-bottom:12px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <span style="width:22px;height:22px;border-radius:50%;background:var(--azul);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</span>
-        <h3 style="margin:0">Seleccionar dimensionamiento</h3>
+        <h3 style="margin:0">Seleccionar presupuesto</h3>
       </div>
-      <select id="af-dim-select" onchange="afCargarDim()" style="width:100%;padding:9px 12px;border:1.5px solid var(--gris-borde);border-radius:8px;font-size:13px;margin-bottom:8px">
+      <!-- Selector de dimensionamiento (oculto: se conserva por compatibilidad de código) -->
+      <select id="af-dim-select" onchange="afCargarDim()" style="display:none">
         <option value="">— Seleccioná un dimensionamiento guardado —</option>
       </select>
       <div id="af-dim-info" style="display:none;background:var(--azul-light);border:1px solid #b8d4f0;border-radius:8px;padding:10px;font-size:12px;line-height:1.8"></div>
+      <select id="af-pq-select" onchange="afCargarPresupuesto()" onmousedown="afLoadPqList()" style="width:100%;padding:9px 12px;border:1.5px solid var(--gris-borde);border-radius:8px;font-size:13px">
+        <option value="">— Seleccioná un presupuesto guardado —</option>
+      </select>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">Trae los ítems con el precio unitario + IVA (costo real que se paga). La instalación entra al desglose sin IVA.</div>
     </div>
 
     <!-- ② Desglose de inversión manual -->
@@ -1422,7 +1427,7 @@ window.addEventListener('load', function() {
             </tr>
           </thead>
           <tbody id="af-items-tbody">
-            <tr id="af-items-empty"><td colspan="5" style="padding:14px;text-align:center;color:var(--muted);font-size:12px">Seleccioná un dimensionamiento para cargar los ítems, o agregá manualmente</td></tr>
+            <tr id="af-items-empty"><td colspan="5" style="padding:14px;text-align:center;color:var(--muted);font-size:12px">Seleccioná un presupuesto para cargar los ítems, o agregá manualmente</td></tr>
           </tbody>
           <tfoot>
             <tr style="background:var(--gris)">
@@ -7908,7 +7913,76 @@ function initFinanzas() {
     });
     if (curVal) sel.value = curVal;
   }
+  afLoadPqList();
   afCargarGuardados();
+}
+
+// Lista de presupuestos guardados (hes_presupuestos_solar) para el análisis financiero
+async function afLoadPqList() {
+  var sel = document.getElementById('af-pq-select');
+  if (!sel) return;
+  var curVal = sel.value;
+  try {
+    var res  = await pqFetch('hes_presupuestos_solar?select=id,nro,cliente,fecha,total,created_at&order=created_at.desc');
+    var docs = await res.json();
+    sel.innerHTML = '<option value="">— Seleccioná un presupuesto guardado —</option>';
+    if (Array.isArray(docs) && docs.length) {
+      docs.forEach(function(d){
+        var fecha = d.fecha ? new Date(d.fecha + 'T12:00:00').toLocaleDateString('es-AR')
+                            : (d.created_at ? new Date(d.created_at).toLocaleDateString('es-AR') : '—');
+        var opt = document.createElement('option');
+        opt.value       = d.id;
+        opt.textContent = 'N° ' + (d.nro||'—') + ' · ' + (d.cliente||'Cliente') + ' · ' + fecha;
+        sel.appendChild(opt);
+      });
+      if (curVal) sel.value = curVal;
+    }
+  } catch(e) { console.warn('No se pudo cargar la lista de presupuestos:', e); }
+}
+
+// Carga un presupuesto puntual (elegido) en el desglose financiero, con precio unitario + IVA
+async function afCargarPresupuesto() {
+  var sel = document.getElementById('af-pq-select');
+  if (!sel) return;
+  // Al deseleccionar ("— Seleccioná un presupuesto —") limpia todo y vuelve al estado normal
+  if (!sel.value) { afReset(); return; }
+  var tbody = document.getElementById('af-items-tbody');
+  try {
+    var res  = await pqFetch('hes_presupuestos_solar?select=*&id=eq.' + encodeURIComponent(sel.value) + '&limit=1');
+    var docs = await res.json();
+    if (!Array.isArray(docs) || !docs.length) { toast('No se encontró el presupuesto'); return; }
+    var doc = docs[0];
+    var lineasSolar  = doc.lineas_solar  ? JSON.parse(doc.lineas_solar)  : [];
+    var lineasManual = doc.lineas_manual ? JSON.parse(doc.lineas_manual) : [];
+
+    _afRowId = 0;
+    tbody.innerHTML = '';
+
+    // Equipos: precio unitario + IVA (costo real que se paga)
+    lineasSolar.forEach(function(it){
+      var iva   = (it.iva != null ? it.iva : 21);
+      var price = it.precio != null ? +(it.precio * (1 + iva/100)).toFixed(2) : '';
+      afInsertarFila(it.desc || it.modelo || '', it.qty || 1, price);
+    });
+
+    // Instalación → monto de instalación (sin IVA). Otros manuales exentos → ítems sin IVA.
+    var instTotal = 0;
+    lineasManual.forEach(function(it){
+      var d = (it.desc || it.modelo || '').toLowerCase();
+      var esInst = d.includes('instalac') || d.includes('ingenier') || d.includes('mano de obra');
+      if (esInst) { instTotal += (it.precio || 0) * (it.qty || 1); }
+      else { afInsertarFila(it.desc || '', it.qty || 1, it.precio != null ? it.precio : ''); }
+    });
+    var instEl = document.getElementById('af-inst-pct');
+    if (instEl) instEl.value = instTotal > 0 ? instTotal : '';
+
+    // Resetear el selector de dimensionamiento para no mezclar orígenes
+    var dimSel  = document.getElementById('af-dim-select'); if (dimSel)  dimSel.value = '';
+    var dimInfo = document.getElementById('af-dim-info');   if (dimInfo) dimInfo.style.display = 'none';
+
+    afActualizarTotales();
+    toast('Presupuesto N° ' + (doc.nro||'') + ' cargado con IVA');
+  } catch(e) { console.warn(e); toast('Error al cargar el presupuesto'); }
 }
 
 function afNombreCliente(a) {
@@ -8730,6 +8804,9 @@ async function afCargarDim() {
     return;
   }
 
+  // Resetear el selector de presupuesto para no mezclar orígenes
+  var _pqSel = document.getElementById('af-pq-select'); if (_pqSel) _pqSel.value = '';
+
   var p = (presupuestos||[]).find(function(x){ return String(x.id)===String(id); });
   if (!p) return;
 
@@ -9199,11 +9276,13 @@ async function afGuardar() {
 function afReset() {
   var fn=document.getElementById('firma-af-nombre'); if(fn) fn.value='';
   var fp=document.getElementById('firma-af-posicion'); if(fp) fp.value='';
-  // Limpiar selector y tabla
+  // Limpiar selectores y tabla
   var sel = document.getElementById('af-dim-select');
   if (sel) sel.value = '';
+  var pqSel = document.getElementById('af-pq-select');
+  if (pqSel) pqSel.value = '';
   var tbody = document.getElementById('af-items-tbody');
-  if (tbody) tbody.innerHTML = '<tr id="af-items-empty"><td colspan="5" style="padding:14px;text-align:center;color:var(--muted);font-size:12px">Seleccioná un dimensionamiento para cargar los ítems, o agregá manualmente</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr id="af-items-empty"><td colspan="5" style="padding:14px;text-align:center;color:var(--muted);font-size:12px">Seleccioná un presupuesto para cargar los ítems, o agregá manualmente</td></tr>';
   // Limpiar totales
   ['af-subtotal-eq','af-subtotal-inst','af-total-inv'].forEach(function(id){
     var el = document.getElementById(id); if (el) el.textContent = '—';

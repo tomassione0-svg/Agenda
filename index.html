@@ -427,6 +427,13 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .pq-linea-head span { font-size: 10px; font-weight: 700; color: var(--verde); text-transform: uppercase; letter-spacing: .04em; }
 /* Líneas de equipos solar: columna extra para IVA % */
 #pq-lineas-solar .pq-linea, #pq-lineas-solar .pq-linea-head { grid-template-columns: 1fr 52px 72px 46px 24px; }
+/* Filas de sección */
+.pq-sec-row { display:flex; align-items:center; gap:8px; padding:8px 10px; background:var(--verde-light); border-bottom:1px solid var(--verde-badge); }
+.pq-sec-row.activa { background:var(--verde-badge); }
+.pq-sec-tit { flex:1; border:1px solid var(--verde-badge); border-radius:6px; padding:5px 8px; font-size:12px; font-weight:700; color:var(--verde); background:#fff; font-family:inherit; }
+.pq-sec-act { border:1px solid var(--verde); background:#fff; color:var(--verde); font-size:11px; font-weight:700; border-radius:6px; padding:4px 9px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+.pq-sec-row.activa .pq-sec-act { background:var(--verde); color:#fff; }
+.pq-sec-del { border:none; background:none; color:#999; font-size:17px; line-height:1; cursor:pointer; padding:0 2px; }
 .pq-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #fff; background: var(--verde-mid); padding: 5px 10px; }
 .pq-inp { width: 100%; border: 1px solid var(--gris-borde); border-radius: 6px; padding: 7px 8px; font-size: 12px; font-family: inherit; transition: border-color .15s, box-shadow .15s; }
 .pq-inp:focus { outline: none; border-color: var(--verde); box-shadow: 0 0 0 3px rgba(27,107,47,.15); }
@@ -630,11 +637,25 @@ window.addEventListener('load', function() {
   <div class="pq-card">
     <div class="pq-card-head">☀ Equipos / Materiales</div>
     <div class="pq-field" style="margin-bottom:10px">
+      <label>Moneda del presupuesto</label>
+      <select id="pq-moneda" onchange="pqRecalc()" style="width:100%;padding:9px 12px;border:1.5px solid var(--gris-borde);border-radius:8px;font-size:13px;font-family:inherit">
+        <option value="ARS">Pesos ($)</option>
+        <option value="USD">Dólar (USD)</option>
+      </select>
+    </div>
+    <div class="pq-field" style="margin-bottom:10px">
       <label>Importar desde dimensionamiento</label>
       <select id="pq-dim-select" onchange="pqImportarDim()" style="width:100%;padding:9px 12px;border:1.5px solid var(--gris-borde);border-radius:8px;font-size:13px;font-family:inherit">
         <option value="">— Sin dimensionamiento —</option>
       </select>
       <div id="pq-dim-info" style="display:none;font-size:11px;color:var(--muted);margin-top:4px;padding:6px 8px;background:var(--verde-light);border-radius:6px;border:1px solid var(--verde-badge)"></div>
+    </div>
+    <div class="pq-field" style="margin-bottom:10px">
+      <label>Importar desde presupuesto guardado</label>
+      <select id="pq-hist-select" onchange="pqImportarHist()" style="width:100%;padding:9px 12px;border:1.5px solid var(--gris-borde);border-radius:8px;font-size:13px;font-family:inherit">
+        <option value="">— Sin presupuesto —</option>
+      </select>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Trae un presupuesto ya emitido para modificarlo sin cargar todo de nuevo.</div>
     </div>
     <div class="pq-lineas" id="pq-lineas-solar">
       <div class="pq-linea-head">
@@ -644,6 +665,10 @@ window.addEventListener('load', function() {
         <span style="text-align:right">IVA %</span>
         <span></span>
       </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px">
+      <button class="pq-add" style="width:auto;flex:0 0 auto;padding:8px 14px" onclick="pqAddSeccion()">＋ Agregar sección</button>
+      <span id="pq-sec-activa-lbl" style="font-size:11px;color:var(--muted);text-align:right"></span>
     </div>
     <div style="position:relative">
       <input type="text" id="pq-ac-input" autocomplete="off" placeholder="🔍 Buscar producto (ej: heat pipe, MultiPlus, panel solar, termotanque...)" style="width:100%;padding:9px 12px;border:1.5px solid var(--gris-borde);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;outline:none;box-sizing:border-box;">
@@ -1421,8 +1446,8 @@ window.addEventListener('load', function() {
             <tr style="background:var(--azul);color:#fff">
               <th style="padding:7px 10px;text-align:left">Descripción</th>
               <th style="padding:7px 8px;text-align:center;width:60px">Cant.</th>
-              <th style="padding:7px 8px;text-align:right;width:110px">Precio unit. USD</th>
-              <th style="padding:7px 8px;text-align:right;width:100px">Subtotal USD</th>
+              <th style="padding:7px 8px;text-align:right;width:110px" id="af-th-precio">Precio unit. USD</th>
+              <th style="padding:7px 8px;text-align:right;width:100px" id="af-th-sub">Subtotal USD</th>
               <th style="padding:7px 6px;width:32px"></th>
             </tr>
           </thead>
@@ -1439,14 +1464,14 @@ window.addEventListener('load', function() {
               <td colspan="3" style="padding:7px 10px;display:flex;align-items:center;gap:8px;font-size:12px">
                 <span>Instalación / ingeniería</span>
                 <span style="font-size:12px;color:var(--muted)">$</span>
-                <input type="number" id="af-inst-pct" min="0" value="" oninput="afRecalcular()"
+                <input type="number" id="af-inst-pct" min="0" value="" data-base="0" oninput="afOnEditInst(this)"
                   style="width:100px;border:1px solid var(--gris-borde);border-radius:6px;padding:3px 7px;font-size:12px;font-family:inherit;text-align:center" placeholder="0">
               </td>
               <td style="padding:7px 10px;text-align:right;font-size:12px" id="af-subtotal-inst">—</td>
               <td></td>
             </tr>
             <tr style="background:var(--teal-light)">
-              <td colspan="3" style="padding:9px 10px;font-weight:700;color:var(--teal);font-size:13px">INVERSIÓN TOTAL (USD)</td>
+              <td colspan="3" style="padding:9px 10px;font-weight:700;color:var(--teal);font-size:13px" id="af-lbl-inv-total">INVERSIÓN TOTAL (USD)</td>
               <td style="padding:9px 10px;text-align:right;font-weight:800;font-size:16px;color:var(--teal)" id="af-total-inv">—</td>
               <td></td>
             </tr>
@@ -1474,7 +1499,7 @@ window.addEventListener('load', function() {
         </div>
         <div class="calc-field">
           <label>Tipo de cambio ARS/USD</label>
-          <input type="number" id="af-tc" value="1470" min="1" oninput="afCalcularROI()">
+          <input type="number" id="af-tc" value="1470" min="1" oninput="afRenderMoneda()">
         </div>
         <div class="calc-field">
           <label>Ahorro año 1 (USD) — opcional</label>
@@ -2054,7 +2079,7 @@ function showTab(name) {
           if (!val) return;
           var dd = document.getElementById('pq-ac-dropdown');
           if (dd) dd.style.display = 'none';
-          pqLineasSolar.push({id:pqNextId++, modelo:'', desc:val, precio:0, qty:1});
+          pqLineasSolar.push({id:pqNextId++, modelo:'', desc:val, precio:0, qty:1, iva:21, seccion:pqSeccionActiva});
           pqRenderSolar();
           pqRecalc();
           this.value = '';
@@ -6588,8 +6613,10 @@ const ENERTIK_CATALOG = [
 ];
 
 // ─── STATE ─────────────────────────────────────────────────────────────────────
-let pqLineasSolar = [];  // [{id, modelo, desc, precio, qty}]
+let pqLineasSolar = [];  // [{id, modelo, desc, precio, qty, iva, seccion}]
 let pqLineasManual = []; // [{id, desc, precio, qty}]
+let pqSeccionesOrden = [];   // orden de secciones (títulos) del presupuesto
+let pqSeccionActiva = null;  // sección donde caen los ítems nuevos
 let pqNextId = 1;
 let pqAcActiveRow = null; // which solar row is being edited
 let _pqAcBlurTimer = null;
@@ -6663,7 +6690,7 @@ function pqAcSearch(query, anchorEl) {
         if (row) { row.modelo=item[0]; row.desc=item[1]; row.precio=0; }
         pqRenderSolar(); pqAcActiveRow=null;
       } else {
-        pqLineasSolar.push({id:pqNextId++, modelo:item[0], desc:item[1], precio:0, qty:1});
+        pqLineasSolar.push({id:pqNextId++, modelo:item[0], desc:item[1], precio:0, qty:1, iva:21, seccion:pqSeccionActiva});
         pqRenderSolar();
         if (inp) inp.value='';
       }
@@ -6718,54 +6745,126 @@ function pqRenderManual() {
   });
 }
 
+// Reconstruye el orden de secciones a partir de los ítems cargados
+function pqRebuildSecciones() {
+  var seen = [];
+  pqLineasSolar.forEach(function(r){ if (r.seccion && seen.indexOf(r.seccion) < 0) seen.push(r.seccion); });
+  pqSeccionesOrden = seen;
+  pqSeccionActiva  = seen.length ? seen[seen.length - 1] : null;
+}
+
+// Agrega una sección nueva y la deja activa (los ítems nuevos caen ahí)
+function pqAddSeccion() {
+  var t = prompt('Título de la sección (ej: Inversión y control):', '');
+  if (t === null) return;
+  t = (t || '').trim();
+  if (!t) return;
+  if (pqSeccionesOrden.indexOf(t) < 0) pqSeccionesOrden.push(t);
+  pqSeccionActiva = t;
+  pqRenderSolar();
+}
+
+function _pqBuildLineaRow(row) {
+  var div = document.createElement('div');
+  div.className = 'pq-linea';
+
+  var iDesc = document.createElement('input');
+  iDesc.className='pq-inp'; iDesc.value=row.desc||row.modelo||''; iDesc.placeholder='Descripción';
+  iDesc.addEventListener('input', function(){ row.desc=this.value; pqAcActiveRow=row.id; pqAcSearch(this.value,this); });
+  iDesc.addEventListener('focus', function(){ pqAcActiveRow=row.id; pqAcSearch(this.value,this); });
+  iDesc.addEventListener('blur',  function(){ _pqAcBlurTimer=setTimeout(function(){ var d=document.getElementById('pq-ac-dropdown'); if(d) d.style.display='none'; },350); });
+
+  var wDesc = document.createElement('div');
+  wDesc.appendChild(iDesc);
+
+  var iQty = document.createElement('input');
+  iQty.className='pq-inp'; iQty.type='number'; iQty.min='0.5'; iQty.step='0.5'; iQty.value=row.qty; iQty.style.textAlign='right';
+  iQty.addEventListener('change', function(){ row.qty=parseFloat(this.value)||1; pqRecalc(); });
+
+  var iPrecio = document.createElement('input');
+  iPrecio.className='pq-inp'; iPrecio.type='text'; iPrecio.inputMode='numeric'; iPrecio.value=row.precio||''; iPrecio.placeholder='0'; iPrecio.style.textAlign='right';
+  iPrecio.addEventListener('focus', function(){ if(this.value==='0') this.value=''; });
+  iPrecio.addEventListener('input', function(){ row.precio=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; pqRecalc(); });
+  iPrecio.addEventListener('blur',  function(){ var v=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; row.precio=v; this.value=v||''; pqRecalc(); });
+
+  // IVA % por producto (default 21). Editable a mano.
+  if (row.iva == null) row.iva = 21;
+  var iIva = document.createElement('input');
+  iIva.className='pq-inp'; iIva.type='text'; iIva.inputMode='decimal'; iIva.value=(row.iva!=null?row.iva:''); iIva.placeholder='21'; iIva.style.textAlign='right'; iIva.title='IVA %';
+  iIva.addEventListener('input', function(){ row.iva=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; pqRecalc(); });
+  iIva.addEventListener('blur',  function(){ var v=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; row.iva=v; this.value=v; pqRecalc(); });
+
+  var btn = document.createElement('button');
+  btn.className='pq-del'; btn.textContent='×';
+  btn.addEventListener('click', function(){ pqLineasSolar=pqLineasSolar.filter(function(r){return r.id!==row.id;}); pqRenderSolar(); pqRecalc(); });
+
+  div.appendChild(wDesc); div.appendChild(iQty); div.appendChild(iPrecio); div.appendChild(iIva); div.appendChild(btn);
+  return div;
+}
+
+function _pqBuildSecRow(sec) {
+  var row = document.createElement('div');
+  row.className = 'pq-sec-row' + (sec === pqSeccionActiva ? ' activa' : '');
+
+  var tit = document.createElement('input');
+  tit.className = 'pq-sec-tit'; tit.value = sec; tit.placeholder = 'Título de la sección';
+  tit.addEventListener('change', function(){
+    var nuevo = this.value.trim();
+    if (!nuevo) { this.value = sec; return; }
+    if (nuevo === sec) return;
+    var idx = pqSeccionesOrden.indexOf(sec);
+    if (idx >= 0) pqSeccionesOrden[idx] = nuevo;
+    pqLineasSolar.forEach(function(r){ if (r.seccion === sec) r.seccion = nuevo; });
+    if (pqSeccionActiva === sec) pqSeccionActiva = nuevo;
+    pqRenderSolar();
+  });
+
+  var act = document.createElement('button');
+  act.type='button'; act.className='pq-sec-act';
+  act.textContent = (sec === pqSeccionActiva) ? '● activa' : 'usar';
+  act.title = 'Los ítems nuevos se agregan a esta sección';
+  act.addEventListener('click', function(){ pqSeccionActiva = sec; pqRenderSolar(); });
+
+  var del = document.createElement('button');
+  del.type='button'; del.className='pq-sec-del'; del.textContent='×'; del.title='Quitar sección';
+  del.addEventListener('click', function(){
+    if (!confirm('¿Quitar la sección "'+sec+'"? Los ítems quedan sin sección.')) return;
+    pqSeccionesOrden = pqSeccionesOrden.filter(function(s){ return s !== sec; });
+    pqLineasSolar.forEach(function(r){ if (r.seccion === sec) r.seccion = null; });
+    if (pqSeccionActiva === sec) pqSeccionActiva = pqSeccionesOrden.length ? pqSeccionesOrden[pqSeccionesOrden.length-1] : null;
+    pqRenderSolar();
+  });
+
+  row.appendChild(tit); row.appendChild(act); row.appendChild(del);
+  return row;
+}
+
 function pqRenderSolar() {
   var container = document.getElementById('pq-lineas-solar');
   if (!container) return;
   Array.from(container.children).forEach(function(ch){
     if (!ch.classList.contains('pq-linea-head')) ch.remove();
   });
-  pqLineasSolar.forEach(function(row) {
-    var div = document.createElement('div');
-    div.className = 'pq-linea';
 
-    var iDesc = document.createElement('input');
-    iDesc.className='pq-inp'; iDesc.value=row.desc||row.modelo||''; iDesc.placeholder='Descripción';
-    iDesc.addEventListener('input', function(){ row.desc=this.value; pqAcActiveRow=row.id; pqAcSearch(this.value,this); });
-    iDesc.addEventListener('focus', function(){ pqAcActiveRow=row.id; pqAcSearch(this.value,this); });
-    iDesc.addEventListener('blur',  function(){ _pqAcBlurTimer=setTimeout(function(){ var d=document.getElementById('pq-ac-dropdown'); if(d) d.style.display='none'; },350); });
-
-    var wDesc = document.createElement('div');
-    wDesc.appendChild(iDesc);
-
-    var iQty = document.createElement('input');
-    iQty.className='pq-inp'; iQty.type='number'; iQty.min='0.5'; iQty.step='0.5'; iQty.value=row.qty; iQty.style.textAlign='right';
-    iQty.addEventListener('change', function(){ row.qty=parseFloat(this.value)||1; pqRecalc(); });
-
-    var iPrecio = document.createElement('input');
-    iPrecio.className='pq-inp'; iPrecio.type='text'; iPrecio.inputMode='numeric'; iPrecio.value=row.precio||''; iPrecio.placeholder='0'; iPrecio.style.textAlign='right';
-    iPrecio.addEventListener('focus', function(){ if(this.value==='0') this.value=''; });
-    iPrecio.addEventListener('input', function(){ row.precio=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; pqRecalc(); });
-    iPrecio.addEventListener('blur',  function(){ var v=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; row.precio=v; this.value=v||''; pqRecalc(); });
-
-    // IVA % por producto (default 21). Editable a mano.
-    if (row.iva == null) row.iva = 21;
-    var iIva = document.createElement('input');
-    iIva.className='pq-inp'; iIva.type='text'; iIva.inputMode='decimal'; iIva.value=(row.iva!=null?row.iva:''); iIva.placeholder='21'; iIva.style.textAlign='right'; iIva.title='IVA %';
-    iIva.addEventListener('input', function(){ row.iva=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; pqRecalc(); });
-    iIva.addEventListener('blur',  function(){ var v=parseFloat(this.value.replace(/[^0-9.]/g,''))||0; row.iva=v; this.value=v; pqRecalc(); });
-
-    var btn = document.createElement('button');
-    btn.className='pq-del'; btn.textContent='×';
-    btn.addEventListener('click', function(){ pqLineasSolar=pqLineasSolar.filter(function(r){return r.id!==row.id;}); pqRenderSolar(); pqRecalc(); });
-
-    div.appendChild(wDesc); div.appendChild(iQty); div.appendChild(iPrecio); div.appendChild(iIva); div.appendChild(btn);
-    container.appendChild(div);
+  // 1) Ítems sin sección (legacy o sin asignar todavía)
+  pqLineasSolar.filter(function(r){ return !r.seccion; }).forEach(function(row){
+    container.appendChild(_pqBuildLineaRow(row));
   });
+  // 2) Cada sección en orden, con su título y sus ítems
+  pqSeccionesOrden.forEach(function(sec){
+    container.appendChild(_pqBuildSecRow(sec));
+    pqLineasSolar.filter(function(r){ return r.seccion === sec; }).forEach(function(row){
+      container.appendChild(_pqBuildLineaRow(row));
+    });
+  });
+
+  var lbl = document.getElementById('pq-sec-activa-lbl');
+  if (lbl) lbl.textContent = pqSeccionActiva ? ('Ítems nuevos → ' + pqSeccionActiva) : 'Ítems nuevos sin sección';
 }
 
 // ─── RECALC ───────────────────────────────────────────────────────────────────
 function pqRecalc() {
-  const sym = '$ ';
+  const sym = pqMonedaSym();
   // Equipos: neto + IVA por producto (cada línea con su % de IVA, default 21)
   let subSolarNeto = 0, ivaTotal = 0;
   pqLineasSolar.forEach(r => {
@@ -6786,9 +6885,16 @@ function pqRecalc() {
 }
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
-function fmtPQ(n) {
+function fmtPQ(n, moneda) {
   if (!n && n !== 0) return '—';
-  return Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  var m = moneda || (document.getElementById('pq-moneda')||{}).value || 'ARS';
+  var loc = (m === 'USD') ? 'en-US' : 'es-AR'; // pesos: 17.897,00 · dólar: 17,897.00
+  return Number(n).toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+// Símbolo de moneda del presupuesto: 'USD ' para dólar, '$ ' para pesos
+function pqMonedaSym() {
+  var m = (document.getElementById('pq-moneda') || {}).value;
+  return m === 'USD' ? 'USD ' : '$ ';
 }
 function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -6800,13 +6906,14 @@ function fmtDatePQ(s) {
 }
 
 // ─── RESET ────────────────────────────────────────────────────────────────────
-async function pqReset() {
-  if ((pqLineasSolar.length || pqLineasManual.length || _pqEditRecord) && !confirm('¿Limpiar el presupuesto en curso?')) return;
+async function pqReset(silent) {
+  if (!silent && (pqLineasSolar.length || pqLineasManual.length || _pqEditRecord) && !confirm('¿Limpiar el presupuesto en curso?')) return;
   _pqEditRecord = null;
   document.getElementById('pq-edit-banner').style.display = 'none';
   document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
   pqLineasSolar = [];
   pqLineasManual = [];
+  pqSeccionesOrden = []; pqSeccionActiva = null;
   pqAcActiveRow = null;
   pqRenderSolar();
   pqRenderManual();
@@ -6820,6 +6927,7 @@ async function pqReset() {
   document.getElementById('pq-dir').value = '';
   document.getElementById('pq-obs').value = '';
   document.getElementById('pq-validez').value = '7 días hábiles';
+  if (document.getElementById('pq-moneda')) document.getElementById('pq-moneda').value = 'ARS';
   document.getElementById('pq-fecha').value = new Date().toISOString().split('T')[0];
   const nro = await pqGetNextNro();
   document.getElementById('pq-nro').value = nro;
@@ -6836,7 +6944,7 @@ function pqBuildPDFHTML() {
   const contacto = document.getElementById('pq-contacto') ? document.getElementById('pq-contacto').value || '' : '';
   const dir      = document.getElementById('pq-dir').value || '';
   const obs      = document.getElementById('pq-obs').value || '';
-  const sym      = '$ ';
+  const sym      = pqMonedaSym();
 
   // Equipos: neto (sin IVA) + IVA agrupado por alícuota (21%, 10,5%, etc.)
   let subSolarNeto = 0, ivaTotal = 0, subManual = 0;
@@ -6864,18 +6972,40 @@ function pqBuildPDFHTML() {
 
   const fmtRate = function(x){ return String(x).replace('.', ','); };
 
-  // Filas: solo equipos. La instalación va en el bloque de totales.
-  const rows = pqLineasSolar.map(function(r) {
+  // Estilos de sección (verde) y subtotal por sección
+  const SEC = 'padding:8px 11px;font-size:11px;font-weight:800;color:#fff;background:#2d9448;text-transform:uppercase;letter-spacing:.03em;';
+  const SUB = 'padding:7px 11px;font-size:11.5px;font-weight:700;color:#165a2a;background:#eef6f0;text-align:right;';
+
+  const _pqItemRow = function(r, exento) {
     const neto = (r.precio||0)*(r.qty||1);            // importe sin IVA
-    const rate = (r.iva!=null ? r.iva : 21);
+    const rate = exento ? 0 : (r.iva!=null ? r.iva : 21);
     return '<tr>' +
-      '<td style="' + TD  + '">' + escHtml(r.desc || r.modelo) + '</td>' +
+      '<td style="' + TD  + '">' + escHtml(r.desc || r.modelo || '—') + '</td>' +
       '<td style="' + TDR + 'text-align:center;width:55px;">' + r.qty + '</td>' +
       '<td style="' + TDR + 'width:120px;">' + sym + fmtPQ(r.precio) + '</td>' +
-      '<td style="' + TDR + 'text-align:center;width:60px;color:#555;">' + fmtRate(rate) + '</td>' +
+      '<td style="' + TDR + 'text-align:center;width:60px;color:#555;">' + (exento ? '' : fmtRate(rate)) + '</td>' +
       '<td style="' + TDB + 'width:130px;">' + sym + fmtPQ(neto) + '</td>' +
     '</tr>';
-  }).join('');
+  };
+  const _pqSecBlock = function(titulo, items, exento) {
+    if (!items.length) return '';
+    var html = '';
+    if (titulo) html += '<tr><td colspan="5" style="' + SEC + '">' + escHtml(titulo) + '</td></tr>';
+    var sub = 0;
+    items.forEach(function(r){ sub += (r.precio||0)*(r.qty||1); html += _pqItemRow(r, exento); });
+    if (titulo) html += '<tr><td colspan="4" style="' + SUB + '">Subtotal ' + escHtml(titulo) + '</td><td style="' + SUB + '">' + sym + fmtPQ(sub) + '</td></tr>';
+    return html;
+  };
+
+  // Filas agrupadas por sección. La instalación va como sección propia al final (exenta).
+  var rows = '';
+  var haySecciones = pqSeccionesOrden.length > 0;
+  var sinSeccion = pqLineasSolar.filter(function(r){ return !r.seccion; });
+  rows += _pqSecBlock(haySecciones && sinSeccion.length ? 'Otros' : null, sinSeccion, false);
+  pqSeccionesOrden.forEach(function(sec){
+    rows += _pqSecBlock(sec, pqLineasSolar.filter(function(r){ return r.seccion === sec; }), false);
+  });
+  // La instalación NO va como ítem/sección: aparece solo en el bloque de totales (Subtotal · IVA · Instalación).
 
   // Bloque de totales (Subtotal → IVA por alícuota → Instalación → TOTAL)
   const TLBL = 'padding:5px 12px;font-size:12px;color:#444;text-align:right;';
@@ -6907,7 +7037,7 @@ function pqBuildPDFHTML() {
         '<div style="font-size:10.5px;color:#888;margin-top:1px;">Teléfono: +54 1166110831</div>' +
       '</div>' +
       '<div style="text-align:right;">' +
-        '<div style="font-size:20px;font-weight:700;color:#1e2118;">Presupuestos</div>' +
+        '<div style="font-size:20px;font-weight:700;color:#1e2118;">Presupuesto</div>' +
         '<div style="font-size:11.5px;color:#444;margin-top:3px;">N° <strong>' + nro + '</strong></div>' +
         '<div style="font-size:11.5px;color:#444;">Fecha: <strong>' + fecha + '</strong></div>' +
       '</div>' +
@@ -6992,7 +7122,7 @@ async function pqGuardar() {
     _pqEditRecord = null;
     document.getElementById('pq-edit-banner').style.display = 'none';
     document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
-    pqLineasSolar = []; pqLineasManual = [];
+    pqLineasSolar = []; pqLineasManual = []; pqSeccionesOrden = []; pqSeccionActiva = null;
     pqRenderSolar(); pqRenderManual(); pqRecalc();
     document.getElementById('pq-ac-input').value = '';
     var _pds = document.getElementById('pq-dim-select'); if (_pds) _pds.value = '';
@@ -7003,6 +7133,7 @@ async function pqGuardar() {
     document.getElementById('pq-dir').value     = '';
     document.getElementById('pq-obs').value     = '';
     document.getElementById('pq-validez').value = '7 días hábiles';
+  if (document.getElementById('pq-moneda')) document.getElementById('pq-moneda').value = 'ARS';
     document.getElementById('pq-fecha').value   = new Date().toISOString().split('T')[0];
     // Siempre resetear al siguiente número disponible
     const nextNro = await pqGetNextNro();
@@ -7179,7 +7310,7 @@ async function pqDownloadPDF() {
     _pqEditRecord = null;
     document.getElementById('pq-edit-banner').style.display = 'none';
     document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
-    pqLineasSolar = []; pqLineasManual = [];
+    pqLineasSolar = []; pqLineasManual = []; pqSeccionesOrden = []; pqSeccionActiva = null;
     pqRenderSolar(); pqRenderManual(); pqRecalc();
     document.getElementById('pq-ac-input').value = '';
     var _pds = document.getElementById('pq-dim-select'); if (_pds) _pds.value = '';
@@ -7190,6 +7321,7 @@ async function pqDownloadPDF() {
     document.getElementById('pq-dir').value     = '';
     document.getElementById('pq-obs').value     = '';
     document.getElementById('pq-validez').value = '7 días hábiles';
+  if (document.getElementById('pq-moneda')) document.getElementById('pq-moneda').value = 'ARS';
     document.getElementById('pq-fecha').value   = new Date().toISOString().split('T')[0];
     pqCloseModal();
     // Siempre resetear el número al siguiente disponible (sea edición o nuevo)
@@ -7235,7 +7367,7 @@ async function pqDownloadPDF() {
 // ─── SAVE TO SUPABASE ────────────────────────────────────────────────────────
 async function pqSaveToSupa(nro, pdfPath) {
   try {
-    const moneda = 'ARS';
+    const moneda = (document.getElementById('pq-moneda') || {}).value || 'ARS';
     let subSolar = 0, subManual = 0;
     pqLineasSolar.forEach(r => subSolar += r.precio * r.qty * (1 + (r.iva != null ? r.iva : 21)/100)); // equipos con IVA
     pqLineasManual.forEach(r => subManual += r.precio * r.qty); // instalación exenta
@@ -7264,7 +7396,7 @@ async function pqSaveToSupa(nro, pdfPath) {
 
 async function pqUpdateToSupa(id, nro, pdfPath) {
   try {
-    const moneda = 'ARS';
+    const moneda = (document.getElementById('pq-moneda') || {}).value || 'ARS';
     let subSolar = 0, subManual = 0;
     pqLineasSolar.forEach(r => subSolar += r.precio * r.qty * (1 + (r.iva != null ? r.iva : 21)/100)); // equipos con IVA
     pqLineasManual.forEach(r => subManual += r.precio * r.qty); // instalación exenta
@@ -7298,6 +7430,43 @@ async function pqUpdateToSupa(id, nro, pdfPath) {
 var _pqHistMap = {}; // id -> full record, populated in pqLoadHistorial
 var _pqViewOnlyId = null; // when set, Descargar PDF re-descarga sin guardar
 
+async function pqImportarHist() {
+  var sel = document.getElementById('pq-hist-select');
+  if (!sel) return;
+  // Deseleccionar → limpiar y volver a un presupuesto nuevo en blanco
+  if (!sel.value) { await pqReset(true); return; }
+  var d = _pqHistMap[sel.value];
+  if (!d) { toast('No se encontró el presupuesto'); return; }
+
+  // Copiar como NUEVO presupuesto (no edita ni pisa el original)
+  _pqEditRecord = null;
+  document.getElementById('pq-edit-banner').style.display = 'none';
+  document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
+
+  document.getElementById('pq-cliente').value = d.cliente || '';
+  if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = d.cuit     || '';
+  if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = d.contacto || '';
+  document.getElementById('pq-dir').value = d.direccion || '';
+  document.getElementById('pq-obs').value = d.observaciones || '';
+  document.getElementById('pq-validez').value = d.validez || '7 días hábiles';
+  if (document.getElementById('pq-moneda')) document.getElementById('pq-moneda').value = d.moneda || 'ARS';
+
+  try { pqLineasSolar  = d.lineas_solar  ? JSON.parse(d.lineas_solar)  : []; } catch(e){ pqLineasSolar  = []; }
+  try { pqLineasManual = d.lineas_manual ? JSON.parse(d.lineas_manual) : []; } catch(e){ pqLineasManual = []; }
+  // Nuevos ids para no colisionar con la sesión en curso
+  pqLineasSolar.forEach(function(r){ r.id = pqNextId++; });
+  pqLineasManual.forEach(function(r){ r.id = pqNextId++; });
+  pqRebuildSecciones();
+  pqRenderSolar(); pqRenderManual(); pqRecalc();
+
+  // Número nuevo (fresco), no el del original
+  document.getElementById('pq-fecha').value = new Date().toISOString().split('T')[0];
+  var nro = await pqGetNextNro();
+  document.getElementById('pq-nro').value = nro;
+  document.getElementById('pq-nro-badge').textContent = '#' + nro;
+  toast('Copiado como presupuesto nuevo #' + nro);
+}
+
 function pqStartEdit(id) {
   var d = _pqHistMap[id];
   if (!d) { toast('No se encontró el presupuesto'); return; }
@@ -7309,6 +7478,7 @@ function pqStartEdit(id) {
   document.getElementById('pq-nro-badge').textContent  = '#' + (d.nro || '');
   document.getElementById('pq-fecha').value            = d.fecha     || new Date().toISOString().split('T')[0];
   document.getElementById('pq-validez').value          = d.validez   || '7 días hábiles';
+  if (document.getElementById('pq-moneda')) document.getElementById('pq-moneda').value = d.moneda || 'ARS';
   document.getElementById('pq-cliente').value          = d.cliente   || '';
   if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = d.cuit          || '';
   if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = d.contacto      || '';
@@ -7318,6 +7488,7 @@ function pqStartEdit(id) {
   // Restore line items
   try { pqLineasSolar  = d.lineas_solar  ? JSON.parse(d.lineas_solar)  : []; } catch(e) { pqLineasSolar  = []; }
   try { pqLineasManual = d.lineas_manual ? JSON.parse(d.lineas_manual) : []; } catch(e) { pqLineasManual = []; }
+  pqRebuildSecciones();
   pqRenderSolar();
   pqRenderManual();
   pqRecalc();
@@ -7356,6 +7527,7 @@ function pqCancelEdit() {
   document.getElementById('pq-dir').value     = '';
   document.getElementById('pq-obs').value     = '';
   document.getElementById('pq-validez').value = '7 días hábiles';
+  if (document.getElementById('pq-moneda')) document.getElementById('pq-moneda').value = 'ARS';
   document.getElementById('pq-fecha').value   = new Date().toISOString().split('T')[0];
   pqGetNextNro().then(function(nro) {
     document.getElementById('pq-nro').value = nro;
@@ -7384,8 +7556,10 @@ function pqExportHistorialPDF(id) {
   var prevObs     = document.getElementById('pq-obs').value;
   var prevFirmaN  = (document.getElementById('firma-pq-nombre')   || {}).value || '';
   var prevFirmaP  = (document.getElementById('firma-pq-posicion') || {}).value || '';
+  var prevMoneda  = (document.getElementById('pq-moneda') || {}).value || 'ARS';
 
   // Cargar datos del registro guardado en el form temporalmente
+  if (document.getElementById('pq-moneda')) document.getElementById('pq-moneda').value = d.moneda || 'ARS';
   document.getElementById('pq-nro').value     = d.nro      || '';
   document.getElementById('pq-fecha').value   = d.fecha    || new Date().toISOString().split('T')[0];
   document.getElementById('pq-validez').value = d.validez  || '7 días hábiles';
@@ -7401,6 +7575,7 @@ function pqExportHistorialPDF(id) {
   if (document.getElementById('firma-pq-posicion')) document.getElementById('firma-pq-posicion').value = _firmaP;
   try { pqLineasSolar  = d.lineas_solar  ? JSON.parse(d.lineas_solar)  : []; } catch(e) { pqLineasSolar  = []; }
   try { pqLineasManual = d.lineas_manual ? JSON.parse(d.lineas_manual) : []; } catch(e) { pqLineasManual = []; }
+  pqRebuildSecciones();
 
   // Construir y mostrar PDF sin activar modo edición
   _pqViewOnlyId = id; // marcar modo solo-lectura para que Descargar no guarde nada
@@ -7411,6 +7586,8 @@ function pqExportHistorialPDF(id) {
   _pqEditRecord = prevEdit;
   pqLineasSolar  = prevSolar;
   pqLineasManual = prevManual;
+  pqRebuildSecciones();
+  if (document.getElementById('pq-moneda')) document.getElementById('pq-moneda').value = prevMoneda;
   document.getElementById('pq-nro').value     = prevNro;
   document.getElementById('pq-fecha').value   = prevFecha;
   document.getElementById('pq-validez').value = prevValidez;
@@ -7438,9 +7615,9 @@ async function pqLoadHistorial() {
     _pqHistMap = {}; // reset map
     const rows = docs.map(function(d) {
       _pqHistMap[d.id] = d;
-      const sym = '$ ';
+      const sym = monedaSym[d.moneda] || '$ ';
       const fechaStr = d.fecha ? new Date(d.fecha + 'T12:00:00').toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
-      const totalStr = d.total ? sym + fmtPQ(d.total) : '—';
+      const totalStr = d.total ? sym + fmtPQ(d.total, d.moneda) : '—';
       return '<tr>' +
         '<td class="pq-hist-nro">#' + (d.nro || '—') + '</td>' +
         '<td>' + (d.cliente || '—') + '</td>' +
@@ -7455,6 +7632,20 @@ async function pqLoadHistorial() {
         '</td>' +
       '</tr>';
     }).join('');
+    // Poblar el selector "Importar desde presupuesto guardado"
+    var histSel = document.getElementById('pq-hist-select');
+    if (histSel) {
+      var curH = histSel.value;
+      histSel.innerHTML = '<option value="">— Sin presupuesto —</option>';
+      docs.forEach(function(d){
+        var f = d.fecha ? new Date(d.fecha + 'T12:00:00').toLocaleDateString('es-AR') : '—';
+        var o = document.createElement('option');
+        o.value = d.id;
+        o.textContent = 'N° ' + (d.nro||'—') + ' · ' + (d.cliente||'Cliente') + ' · ' + f;
+        histSel.appendChild(o);
+      });
+      if (curH) histSel.value = curH;
+    }
     el.innerHTML =
       '<div class="pq-hist-table-wrap">' +
         '<table class="pq-hist-table">' +
@@ -7962,10 +8153,15 @@ async function afCargarPresupuesto() {
     var lineasSolar  = doc.lineas_solar  ? JSON.parse(doc.lineas_solar)  : [];
     var lineasManual = doc.lineas_manual ? JSON.parse(doc.lineas_manual) : [];
 
+    // Traer los valores en la MONEDA del presupuesto (sin convertir). El análisis usa esa moneda base.
+    var monPres = (doc.moneda === 'ARS') ? 'ARS' : 'USD';
+    window._afEntryMon = monPres;      // los precios base quedan en la moneda del presupuesto
+    afSetMonedaSilencioso(monPres);    // el toggle arranca en esa misma moneda
+
     _afRowId = 0;
     tbody.innerHTML = '';
 
-    // Equipos: precio unitario + IVA (costo real que se paga)
+    // Equipos: precio unitario + IVA (costo real que se paga), en la moneda del presupuesto
     lineasSolar.forEach(function(it){
       var iva   = (it.iva != null ? it.iva : 21);
       var price = it.precio != null ? +(it.precio * (1 + iva/100)).toFixed(2) : '';
@@ -7981,14 +8177,14 @@ async function afCargarPresupuesto() {
       else { afInsertarFila(it.desc || '', it.qty || 1, it.precio != null ? it.precio : ''); }
     });
     var instEl = document.getElementById('af-inst-pct');
-    if (instEl) instEl.value = instTotal > 0 ? instTotal : '';
+    if (instEl) { var _iv = instTotal > 0 ? +instTotal.toFixed(2) : ''; instEl.value = _iv; instEl.setAttribute('data-base', _iv !== '' ? _iv : 0); }
 
     // Resetear el selector de dimensionamiento para no mezclar orígenes
     var dimSel  = document.getElementById('af-dim-select'); if (dimSel)  dimSel.value = '';
     var dimInfo = document.getElementById('af-dim-info');   if (dimInfo) dimInfo.style.display = 'none';
 
     afActualizarTotales();
-    toast('Presupuesto N° ' + (doc.nro||'') + ' cargado con IVA');
+    toast('Presupuesto N° ' + (doc.nro||'') + ' cargado en ' + (monPres==='ARS'?'pesos':'USD'));
   } catch(e) { console.warn(e); toast('Error al cargar el presupuesto'); }
 }
 
@@ -8721,9 +8917,57 @@ function afFmt(v) {
   return Number(v).toLocaleString('es-AR', {minimumFractionDigits:0, maximumFractionDigits:0});
 }
 
+// Moneda en la que están guardados los precios "base" del desglose (la del presupuesto importado)
+window._afEntryMon = window._afEntryMon || 'USD';
+// Factor de conversión from→to según el tipo de cambio
+function _afFactor(from, to, tc) {
+  if (from === to) return 1;
+  if (from === 'ARS' && to === 'USD') return 1 / (tc || 1);
+  if (from === 'USD' && to === 'ARS') return (tc || 1);
+  return 1;
+}
+// Re-deriva los precios mostrados (desglose + instalación) desde su base, con la moneda/TC actuales
+function afRenderMoneda() {
+  var tc    = parseFloat((document.getElementById('af-tc')||{}).value) || 1;
+  var disp  = (document.getElementById('af-moneda')||{}).value || 'USD';
+  var entry = window._afEntryMon || 'USD';
+  var f     = _afFactor(entry, disp, tc);
+  var tbody = document.getElementById('af-items-tbody');
+  if (tbody) tbody.querySelectorAll('tr[id^="afrow-"]').forEach(function(tr){
+    var nums = tr.querySelectorAll('input[type="number"]');
+    var pin  = nums[1];
+    if (pin) { var b = parseFloat(pin.getAttribute('data-base'))||0; pin.value = b ? +(b*f).toFixed(2) : ''; }
+  });
+  var inst = document.getElementById('af-inst-pct');
+  if (inst) { var ib = parseFloat(inst.getAttribute('data-base'))||0; inst.value = ib ? +(ib*f).toFixed(2) : ''; }
+  afActualizarTotales();
+}
+// Al editar un precio (en la moneda mostrada), actualiza su base (en la moneda de entrada)
+function afOnEditPrecio(inp) {
+  var tc    = parseFloat((document.getElementById('af-tc')||{}).value) || 1;
+  var disp  = (document.getElementById('af-moneda')||{}).value || 'USD';
+  var entry = window._afEntryMon || 'USD';
+  var v = parseFloat(inp.value)||0;
+  inp.setAttribute('data-base', v ? +(v * _afFactor(disp, entry, tc)).toFixed(4) : 0);
+  afActualizarTotales();
+}
+function afOnEditInst(inp) {
+  var tc    = parseFloat((document.getElementById('af-tc')||{}).value) || 1;
+  var disp  = (document.getElementById('af-moneda')||{}).value || 'USD';
+  var entry = window._afEntryMon || 'USD';
+  var v = parseFloat(inp.value)||0;
+  inp.setAttribute('data-base', v ? +(v * _afFactor(disp, entry, tc)).toFixed(4) : 0);
+  afActualizarTotales();
+}
+
 function afInsertarFila(desc, qty, price) {
   _afRowId++;
   var id    = 'afrow-' + _afRowId;
+  var _tcF   = parseFloat((document.getElementById('af-tc')||{}).value) || 1;
+  var _dispF = (document.getElementById('af-moneda')||{}).value || 'USD';
+  var _fIns  = _afFactor(window._afEntryMon || 'USD', _dispF, _tcF);
+  var _baseV = (price != null && price !== '') ? price : '';
+  var _dispV = (_baseV !== '') ? +(_baseV * _fIns).toFixed(2) : '';
   var tbody = document.getElementById('af-items-tbody');
   var empty = document.getElementById('af-items-empty');
   if (empty) empty.remove();
@@ -8742,9 +8986,9 @@ function afInsertarFila(desc, qty, price) {
       'oninput="afActualizarTotales()">' +
     '</td>' +
     '<td style="padding:5px 6px;text-align:right">' +
-      '<input type="number" min="0" step="0.01" placeholder="0" value="' + (price != null ? price : '') + '" ' +
+      '<input type="number" min="0" step="0.01" placeholder="0" value="' + _dispV + '" data-base="' + (_baseV!==''?_baseV:0) + '" ' +
       'style="width:100px;text-align:right;border:1.5px solid #185FA5;border-radius:5px;padding:4px 7px;font-size:12px;font-family:inherit;color:#185FA5;font-weight:600" ' +
-      'oninput="afActualizarTotales()">' +
+      'oninput="afOnEditPrecio(this)">' +
     '</td>' +
     '<td class="af-sub-cell" style="padding:5px 8px;text-align:right;font-weight:700;font-size:12px;min-width:90px">—</td>' +
     '<td style="padding:5px 4px;text-align:center">' +
@@ -8770,6 +9014,13 @@ function afEliminarFila(rowId) {
 }
 
 function afActualizarTotales() {
+  // Moneda base del desglose (la del toggle)
+  var _afMon  = (document.getElementById('af-moneda')||{}).value || 'USD';
+  var _afSimb = (_afMon === 'ARS') ? '$' : 'U$D';
+  var _afCur  = (_afMon === 'ARS') ? 'ARS' : 'USD';
+  var _lp = document.getElementById('af-th-precio');   if (_lp) _lp.textContent = 'Precio unit. ' + _afCur;
+  var _ls = document.getElementById('af-th-sub');      if (_ls) _ls.textContent = 'Subtotal ' + _afCur;
+  var _li = document.getElementById('af-lbl-inv-total'); if (_li) _li.textContent = 'INVERSIÓN TOTAL (' + _afCur + ')';
   var tbody   = document.getElementById('af-items-tbody');
   var totalEq = 0;
   if (tbody) {
@@ -8780,14 +9031,14 @@ function afActualizarTotales() {
       var sub    = qty * precio;
       totalEq   += sub;
       var cell   = tr.querySelector('.af-sub-cell');
-      if (cell) cell.textContent = sub > 0 ? '$ ' + afFmt(sub) : '—';
+      if (cell) cell.textContent = sub > 0 ? _afSimb + ' ' + afFmt(sub) : '—';
     });
   }
   var instVal = parseFloat((document.getElementById('af-inst-pct')||{value:'0'}).value) || 0;
   var total   = totalEq + instVal;
-  var el1 = document.getElementById('af-subtotal-eq');   if (el1) el1.textContent = totalEq > 0 ? '$ '+afFmt(totalEq)  : '—';
-  var el2 = document.getElementById('af-subtotal-inst'); if (el2) el2.textContent = instVal > 0 ? '$ '+afFmt(instVal) : '—';
-  var el3 = document.getElementById('af-total-inv');     if (el3) el3.textContent = total > 0   ? '$ '+afFmt(total)   : '—';
+  var el1 = document.getElementById('af-subtotal-eq');   if (el1) el1.textContent = totalEq > 0 ? _afSimb+' '+afFmt(totalEq)  : '—';
+  var el2 = document.getElementById('af-subtotal-inst'); if (el2) el2.textContent = instVal > 0 ? _afSimb+' '+afFmt(instVal) : '—';
+  var el3 = document.getElementById('af-total-inv');     if (el3) el3.textContent = total > 0   ? _afSimb+' '+afFmt(total)   : '—';
   var paramsCard = document.getElementById('af-params-card');
   if (paramsCard) paramsCard.style.display = totalEq > 0 ? 'block' : 'none';
   window._af_inv = total;
@@ -8928,6 +9179,9 @@ async function afCargarDim() {
       var docsPQ = await resPQ.json();
       if (Array.isArray(docsPQ) && docsPQ.length) {
         var doc = docsPQ[0];
+        // Los valores entran en la moneda del presupuesto (sin convertir)
+        window._afEntryMon = (doc.moneda === 'ARS') ? 'ARS' : 'USD';
+        afSetMonedaSilencioso(window._afEntryMon);
         var lineasSolar  = doc.lineas_solar  ? JSON.parse(doc.lineas_solar)  : [];
         var lineasManual = doc.lineas_manual ? JSON.parse(doc.lineas_manual) : [];
         // Separar instalación del resto
@@ -8952,7 +9206,7 @@ async function afCargarDim() {
           });
           if (instTotal > 0) {
             var instEl = document.getElementById('af-inst-pct');
-            if (instEl) instEl.value = instTotal;
+            if (instEl) { instEl.value = instTotal; instEl.setAttribute('data-base', instTotal); }
           }
           pqItemsCargados = true;
         }
@@ -9019,6 +9273,19 @@ function afGetDEGR() {
   return 0.004;
 }
 
+// Setea la moneda y el toggle SIN convertir el desglose (para cargas frescas ya en esa moneda)
+function afSetMonedaSilencioso(m) {
+  var isArs = (m === 'ARS');
+  var el = document.getElementById('af-moneda');
+  if (el) el.value = isArs ? 'ARS' : 'USD';
+  var bu = document.getElementById('af-mon-usd');
+  var ba = document.getElementById('af-mon-ars');
+  if (bu && ba) {
+    bu.style.background = isArs ? '#fff' : 'var(--verde)'; bu.style.color = isArs ? 'var(--muted)' : '#fff';
+    ba.style.background = isArs ? 'var(--verde)' : '#fff'; ba.style.color = isArs ? '#fff' : 'var(--muted)';
+  }
+}
+
 function afSetMoneda(m) {
   var isArs = (m === 'ARS');
   var el = document.getElementById('af-moneda');
@@ -9029,7 +9296,8 @@ function afSetMoneda(m) {
     bu.style.background = isArs ? '#fff' : 'var(--verde)'; bu.style.color = isArs ? 'var(--muted)' : '#fff';
     ba.style.background = isArs ? 'var(--verde)' : '#fff'; ba.style.color = isArs ? '#fff' : 'var(--muted)';
   }
-  afCalcularROI();
+  // Re-deriva los precios mostrados desde su base con el TC actual (conversión en vivo, no destructiva)
+  afRenderMoneda();
 }
 
 function afCalcularROI() {
@@ -9042,6 +9310,10 @@ function afCalcularROI() {
   var tasa     = parseFloat((document.getElementById('af-tasa')||{}).value)||0.05;
   var resDiv   = document.getElementById('af-resultados');
 
+  // Moneda BASE del análisis (la del toggle). El desglose y todo el flujo están en esta moneda.
+  var _monEl = document.getElementById('af-moneda');
+  var moneda = _monEl ? _monEl.value : 'USD';
+
   if (inv<=0||genAnual<=0||tarifa<=0||tc<=0) { resDiv.style.display='none'; return; }
 
   var ANOS=25, DEGR=afGetDEGR();
@@ -9051,7 +9323,7 @@ function afCalcularROI() {
 
   for (var y=1; y<=ANOS; y++) {
     var gen_y    = genAnual * Math.pow(1-DEGR, y-1);
-    var tarUSD_y = (tarifa * Math.pow(1+inflacion, y-1)) / tc;
+    var tarUSD_y = tarifa * Math.pow(1+inflacion, y-1); if (moneda==='USD') tarUSD_y /= tc; // tarifa en la moneda base
     var ahorro_y = ahorroBase>0 ? ahorroBase*Math.pow(1-DEGR,y-1) : gen_y * tarUSD_y * efectivo;
     var rep_y    = repLineas.filter(function(r){return r.ano===y;}).reduce(function(s,r){return s+r.costo;},0);
     var flujo_y  = ahorro_y - rep_y;
@@ -9071,7 +9343,7 @@ function afCalcularROI() {
 
   var pbSLbl = pbS!==null ? pbS.toFixed(1)+' años' : '> 25 años';
   var pbDLbl = pbD!==null ? pbD.toFixed(1)+' años' : '> 25 años';
-  var lcoeRed   = (tarifa/tc)*1000;
+  var lcoeRed   = (moneda==='USD' ? tarifa/tc : tarifa)*1000;
   var lcoeSolar = totalGen>0 ? inv/totalGen*1000 : 0;
   var ahorroPromUSD = flujos.reduce(function(s,f){return s+f.flujo_y;},0)/ANOS;
 
@@ -9080,10 +9352,7 @@ function afCalcularROI() {
   var kWp    = dimP ? (parseFloat(dimP.area)||0) : 0;
   var usdKwp = kWp>0 ? afFmt(inv/kWp) : '—';
 
-  // ── Moneda de visualización (USD o ARS). El motor calcula en USD; ARS = ×TC ──
-  var _monEl = document.getElementById('af-moneda');
-  var moneda = _monEl ? _monEl.value : 'USD';
-  var k      = (moneda === 'ARS') ? tc : 1;   // factor de conversión para montos
+  // Moneda base ya definida arriba. Todo el flujo está en esa moneda (sin factores extra).
   var simb   = (moneda === 'ARS') ? '$' : 'U$D';
   var curLbl = (moneda === 'ARS') ? 'ARS' : 'USD';
 
@@ -9098,16 +9367,16 @@ function afCalcularROI() {
   _set('af-th-rep',   'Repos. '+curLbl);
   _set('af-th-flujo', 'Flujo '+curLbl);
 
-  document.getElementById('af-van').textContent          = simb+' '+afFmt(vanAcum*k);
+  document.getElementById('af-van').textContent          = simb+' '+afFmt(vanAcum);
   document.getElementById('af-tir').textContent          = tirVal!==null?(tirVal*100).toFixed(1)+'%':'< 0%';
   var _pbLive = afPbCeil(pbSLbl);
   document.getElementById('af-pb-simple').innerHTML = _pbLive.ceil + (_pbLive.exact && _pbLive.exact !== _pbLive.ceil ? '<div style="font-size:10px;color:var(--muted);font-weight:400">('+_pbLive.exact+')</div>' : '');
   var _pbDLive = afPbCeil(pbDLbl);
   document.getElementById('af-pb-desc').innerHTML = _pbDLive.ceil + (_pbDLive.exact && _pbDLive.exact !== _pbDLive.ceil ? '<div style="font-size:10px;color:var(--muted);font-weight:400">('+_pbDLive.exact+')</div>' : '');
-  document.getElementById('af-lcoe-red').textContent     = simb+' '+afFmt(lcoeRed*k);
-  document.getElementById('af-lcoe-solar').textContent   = simb+' '+afFmt(lcoeSolar*k);
-  document.getElementById('af-ahorro-anual').textContent = simb+' '+afFmt(ahorroPromUSD*k);
-  document.getElementById('af-usd-kwp').textContent      = usdKwp!=='—'?simb+' '+afFmt((inv/kWp)*k):'—';
+  document.getElementById('af-lcoe-red').textContent     = simb+' '+afFmt(lcoeRed);
+  document.getElementById('af-lcoe-solar').textContent   = simb+' '+afFmt(lcoeSolar);
+  document.getElementById('af-ahorro-anual').textContent = simb+' '+afFmt(ahorroPromUSD);
+  document.getElementById('af-usd-kwp').textContent      = usdKwp!=='—'?simb+' '+afFmt(inv/kWp):'—';
 
   var tb = document.getElementById('af-tabla-20-body');
   if (tb) {
@@ -9118,16 +9387,16 @@ function afCalcularROI() {
       if (bgBE) tr.style.background='var(--verde-light)';
       var cA = f.acum>=0    ? 'color:var(--verde);font-weight:700':'color:var(--rojo)';
       var cV = f.van_acum>=0? 'color:var(--verde);font-weight:700':'color:var(--rojo)';
-      var tarCol = moneda==='ARS' ? afFmt(f.tarUSD_y*tc) : f.tarUSD_y.toFixed(4);
+      var tarCol = moneda==='ARS' ? afFmt(f.tarUSD_y) : f.tarUSD_y.toFixed(4);
       tr.innerHTML =
         '<td style="padding:4px 7px;text-align:center">'+f.y+'</td>'+
         '<td style="padding:4px 7px;text-align:right">'+Math.round(f.gen_y).toLocaleString('es-AR')+'</td>'+
         '<td style="padding:4px 7px;text-align:right">'+tarCol+'</td>'+
-        '<td style="padding:4px 7px;text-align:right">'+(f.rep_y>0?'- '+afFmt(f.rep_y*k):'—')+'</td>'+
-        '<td style="padding:4px 7px;text-align:right">'+afFmt(f.flujo_y*k)+'</td>'+
-        '<td style="padding:4px 7px;text-align:right;'+cA+'">'+afFmt(f.acum*k)+'</td>'+
-        '<td style="padding:4px 7px;text-align:right">'+afFmt(f.va_y*k)+'</td>'+
-        '<td style="padding:4px 7px;text-align:right;'+cV+'">'+afFmt(f.van_acum*k)+'</td>';
+        '<td style="padding:4px 7px;text-align:right">'+(f.rep_y>0?'- '+afFmt(f.rep_y):'—')+'</td>'+
+        '<td style="padding:4px 7px;text-align:right">'+afFmt(f.flujo_y)+'</td>'+
+        '<td style="padding:4px 7px;text-align:right;'+cA+'">'+afFmt(f.acum)+'</td>'+
+        '<td style="padding:4px 7px;text-align:right">'+afFmt(f.va_y)+'</td>'+
+        '<td style="padding:4px 7px;text-align:right;'+cV+'">'+afFmt(f.van_acum)+'</td>';
       tb.appendChild(tr);
     });
   }
@@ -9149,7 +9418,7 @@ function afExportarPDF() {
 
   // Moneda del análisis (misma que la vista): USD o ARS (×TC)
   var moneda = roi.moneda || 'USD';
-  var k      = (moneda === 'ARS') ? (roi.tc||1) : 1;
+  var k      = 1; // los valores del ROI ya están en la moneda base (roi.moneda)
   var simb   = (moneda === 'ARS') ? '$' : 'U$D';
   var curLbl = (moneda === 'ARS') ? 'ARS' : 'USD';
 
@@ -9172,7 +9441,7 @@ function afExportarPDF() {
   }).join('');
 
   var proyRows=(roi.flujos||[]).map(function(f){
-    var tarCol = moneda==='ARS' ? afFmt(f.tarUSD_y*(roi.tc||1)) : f.tarUSD_y.toFixed(4);
+    var tarCol = moneda==='ARS' ? afFmt(f.tarUSD_y) : f.tarUSD_y.toFixed(4);
     return '<tr><td style="text-align:center">'+f.y+'</td><td style="text-align:right">'+Math.round(f.gen_y).toLocaleString('es-AR')+'</td><td style="text-align:right">'+tarCol+'</td><td style="text-align:right">'+(f.rep_y>0?'- '+afFmt(f.rep_y*k):'—')+'</td><td style="text-align:right">'+afFmt(f.flujo_y*k)+'</td><td style="text-align:right">'+afFmt(f.acum*k)+'</td></tr>';
   }).join('');
 
@@ -9322,6 +9591,8 @@ async function afGuardar() {
 function afReset() {
   var fn=document.getElementById('firma-af-nombre'); if(fn) fn.value='';
   var fp=document.getElementById('firma-af-posicion'); if(fp) fp.value='';
+  window._afEntryMon = 'USD';
+  if (typeof afSetMonedaSilencioso === 'function') afSetMonedaSilencioso('USD'); // moneda por defecto
   // Limpiar selectores y tabla
   var sel = document.getElementById('af-dim-select');
   if (sel) sel.value = '';
@@ -9348,7 +9619,7 @@ function afReset() {
   // Limpiar ahorro manual
   var au = document.getElementById('af-ahorro-usd'); if (au) au.value = '';
   // Limpiar instalación/ingeniería
-  var ip = document.getElementById('af-inst-pct'); if (ip) ip.value = '';
+  var ip = document.getElementById('af-inst-pct'); if (ip) { ip.value = ''; ip.setAttribute('data-base', 0); }
   // Limpiar inflación manual a default 5%
   var im = document.getElementById('af-inflacion-manual'); if (im) im.value = '5';
   var dm = document.getElementById('af-degr-manual'); if (dm) dm.value = '0.4';

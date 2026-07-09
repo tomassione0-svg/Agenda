@@ -1497,7 +1497,7 @@ window.addEventListener('load', function() {
       </div>
       <div class="af-params-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="calc-field">
-          <label>Energía anual generada/ahorrada (kWh/año)</label>
+          <label>Consumo / Generación anual (kWh/año)</label>
           <input type="number" id="af-gen-anual" min="0" placeholder="ej: 4500" oninput="afCalcularROI()" style="font-weight:700;border-color:var(--verde)">
           <span style="font-size:10px;color:var(--muted)">Valor pre-cargado del dimensionamiento · editable</span>
         </div>
@@ -1523,8 +1523,8 @@ window.addEventListener('load', function() {
         </div>
         <!-- af-efectivo: se auto-detecta del dimensionamiento (Off-Grid=100%, On-Grid=87%) -->
         <select id="af-efectivo" onchange="afCalcularROI()" style="display:none">
-          <option value="1.00">100% — Off-Grid total</option>
-          <option value="0.87" selected>87% — On-Grid mixto</option>
+          <option value="1.00" selected>100% — sin coeficiente</option>
+          <option value="0.87">87% — On-Grid mixto</option>
           <option value="0.80">80% — On-Grid + volcado a red</option>
         </select>
         <div style="grid-column:2;display:flex;flex-direction:column;gap:6px">
@@ -8842,7 +8842,7 @@ async function afExportarPDFGuardado(id) {
   var genAnual = parseFloat(a.gen_anual_kwh)   || 0;
   var tarifa   = parseFloat(a.tarifa_ars)      || 0;
   var tc       = parseFloat(a.tipo_cambio)     || 1;
-  var efectivo = parseFloat(a.efectivo)        || 1;
+  var efectivo = 1; // 100% SIEMPRE (sin coeficiente de autoconsumo), también en PDF de guardados
   var inflacion= parseFloat(a.inflacion)       || 0.05;
   var tasa     = parseFloat(a.tasa_descuento)  || 0.05;
 
@@ -9225,7 +9225,7 @@ async function afCargarDim() {
         { desc:'Medidor bidireccional', qty:1 },
         { desc:'Cableado + protecciones (lote)', qty:1 }
       ];
-      var ef2 = document.getElementById('af-efectivo'); if (ef2) ef2.value='0.87';
+      var ef2 = document.getElementById('af-efectivo'); if (ef2) ef2.value='1.00'; // 100%: sin coeficiente de autoconsumo
     }
 
   } else {
@@ -9397,7 +9397,7 @@ function afCalcularROI() {
   var genAnual = parseFloat((document.getElementById('af-gen-anual')||{}).value)||0;
   var tarifa   = parseFloat((document.getElementById('af-tarifa')||{}).value)||0;
   var tc       = parseFloat((document.getElementById('af-tc')||{}).value)||1;
-  var efectivo = parseFloat((document.getElementById('af-efectivo')||{}).value)||0.87;
+  var efectivo = 1; // 100% SIEMPRE: el ahorro usa la generación completa (sin coeficiente de autoconsumo)
   var _imEl=document.getElementById('af-inflacion-manual'); var inflacion= (_imEl&&_imEl.value!==''&&_imEl.value!==null) ? parseFloat(_imEl.value)/100 : (parseFloat((document.getElementById('af-inflacion')||{}).value)||0.05);
   var tasa     = parseFloat((document.getElementById('af-tasa')||{}).value)||0.05;
   var resDiv   = document.getElementById('af-resultados');

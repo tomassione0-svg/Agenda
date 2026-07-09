@@ -309,6 +309,12 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   .pdf-fin-table{width:100%;border-collapse:collapse;font-size:9px;}
   .pdf-fin-table th{background:#185FA5;color:#fff;padding:4px 6px;text-align:left;}
   .pdf-fin-table td{border-bottom:1px solid #e0e0e0;padding:3px 6px;}
+  /* Saltos de página prolijos: no cortar filas, repetir encabezados, mantener bloques */
+  .pdf-fin-table tr, .pdf-table tr { page-break-inside: avoid; break-inside: avoid; }
+  .pdf-fin-table thead, .pdf-table thead { display: table-header-group; }
+  .pdf-fin-table tfoot, .pdf-table tfoot { display: table-footer-group; }
+  .pdf-kpis, .pdf-client, .pdf-head { page-break-inside: avoid; break-inside: avoid; }
+  .pdf-section h3 { page-break-after: avoid; break-after: avoid; }
 }
 
 /* Clientes */
@@ -6921,6 +6927,7 @@ async function pqReset(silent) {
   document.getElementById('pq-ac-input').value = '';
   var pqDimSel = document.getElementById('pq-dim-select'); if (pqDimSel) pqDimSel.value = '';
   var pqDimInfo = document.getElementById('pq-dim-info'); if (pqDimInfo) { pqDimInfo.style.display='none'; pqDimInfo.textContent=''; }
+  var pqHistSel = document.getElementById('pq-hist-select'); if (pqHistSel) pqHistSel.value = '';
   document.getElementById('pq-cliente').value = '';
   if(document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value = '';
   if(document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = '';
@@ -6990,10 +6997,10 @@ function pqBuildPDFHTML() {
   const _pqSecBlock = function(titulo, items, exento) {
     if (!items.length) return '';
     var html = '';
-    if (titulo) html += '<tr><td colspan="5" style="' + SEC + '">' + escHtml(titulo) + '</td></tr>';
+    if (titulo) html += '<tr data-sechead="1"><td colspan="5" style="' + SEC + '">' + escHtml(titulo) + '</td></tr>';
     var sub = 0;
     items.forEach(function(r){ sub += (r.precio||0)*(r.qty||1); html += _pqItemRow(r, exento); });
-    if (titulo) html += '<tr><td colspan="4" style="' + SUB + '">Subtotal ' + escHtml(titulo) + '</td><td style="' + SUB + '">' + sym + fmtPQ(sub) + '</td></tr>';
+    if (titulo) html += '<tr data-break="1"><td colspan="4" style="' + SUB + '">Subtotal ' + escHtml(titulo) + '</td><td style="' + SUB + '">' + sym + fmtPQ(sub) + '</td></tr>';
     return html;
   };
 
@@ -7020,7 +7027,7 @@ function pqBuildPDFHTML() {
     totRows += '<tr><td style="' + TLBL + '">Instalación</td><td style="' + TVAL + '">' + sym + fmtPQ(subManual) + '</td></tr>';
   }
   totRows +=
-    '<tr>' +
+    '<tr data-break="1">' +
       '<td style="padding:9px 12px;font-weight:700;font-size:13px;border-top:2px solid #165a2a;text-align:right;color:#165a2a;">TOTAL</td>' +
       '<td style="padding:9px 12px;text-align:right;font-weight:800;font-size:15px;color:#165a2a;border-top:2px solid #165a2a;width:140px;">' + sym + fmtPQ(total) + '</td>' +
     '</tr>';
@@ -7207,6 +7214,20 @@ async function pqDownloadPDF() {
 
     const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, width: 794 });
 
+    // Corte entre filas para LLENAR la página (estilo cotización): la sección continúa en la
+    // página siguiente si hace falta. Se mide por FRACCIÓN de altura → inmune a escalados/transform.
+    // Se excluyen las filas de título de sección (data-sechead) para que un título no quede solo al pie.
+    const _elRect = el.getBoundingClientRect();
+    const _elH = _elRect.height || el.scrollHeight || 1;
+    const _fracY = function(e){ return ((e.getBoundingClientRect().bottom - _elRect.top) / _elH) * canvas.height; };
+    let _breaks = [];
+    el.querySelectorAll('tr').forEach(function(e){
+      if (e.hasAttribute('data-sechead')) return;
+      var y = _fracY(e); if (y > 0) _breaks.push(y);
+    });
+    _breaks.push(canvas.height);
+    _breaks = _breaks.filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(p,q){return p-q;});
+
     // Restore original width
     el.style.width = prevWidth;
     el.style.minWidth = prevMinWidth;
@@ -7214,17 +7235,26 @@ async function pqDownloadPDF() {
     const pdfW = 210, pdfH = 297;
     const canvasW = canvas.width, canvasH = canvas.height;
     const ratio = pdfW / canvasW;
-    const totalH = canvasH * ratio;
+    const _marginTop = 12, _marginBottom = 10; // mm de aire por página (arriba sólo en continuación)
+    const _lastFit = function(arr, top, lim){ var c=0; for (var i=0;i<arr.length;i++){ if (arr[i] > top+5 && arr[i] <= lim) c=arr[i]; } return c; };
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageCount = Math.ceil(totalH / pdfH);
-    for (let i = 0; i < pageCount; i++) {
-      if (i > 0) doc.addPage();
-      const srcY = i * (pdfH / ratio);
-      const srcH = Math.min(pdfH / ratio, canvasH - srcY);
+    let pageTop = 0, first = true;
+    while (pageTop < canvasH - 1) {
+      const topM = first ? 0 : _marginTop;                  // la 1ª página ya trae su padding superior
+      const usableH = pdfH - topM - _marginBottom;
+      const pageMaxPx = usableH / ratio;                    // alto útil de la página en px de canvas
+      const limit = pageTop + pageMaxPx;
+      let cut = _lastFit(_breaks, pageTop, limit);           // última fila que entra → llena la página
+      if (!cut || cut <= pageTop) cut = Math.min(limit, canvasH); // último recurso: página completa
+      const srcH = Math.min(cut - pageTop, canvasH - pageTop);
+      if (srcH <= 0) break;
+      if (!first) doc.addPage();
+      first = false;
       const pc = document.createElement('canvas');
       pc.width = canvasW; pc.height = srcH;
-      pc.getContext('2d').drawImage(canvas, 0, srcY, canvasW, srcH, 0, 0, canvasW, srcH);
-      doc.addImage(pc.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pdfW, srcH * ratio);
+      pc.getContext('2d').drawImage(canvas, 0, pageTop, canvasW, srcH, 0, 0, canvasW, srcH);
+      doc.addImage(pc.toDataURL('image/jpeg', 0.92), 'JPEG', 0, topM, pdfW, srcH * ratio);
+      pageTop += srcH;
     }
 
     const pdfBlob = doc.output('blob');
@@ -8139,6 +8169,22 @@ async function afLoadPqList() {
 }
 
 // Carga un presupuesto puntual (elegido) en el desglose financiero, con precio unitario + IVA
+// Infiere el tipo de sistema desde los ítems del presupuesto (On-Grid / Off-Grid / Solar Térmica)
+function afInferirSistema(lineasSolar, lineasManual) {
+  var txt = (lineasSolar||[]).concat(lineasManual||[]).map(function(it){ return (it.desc||it.modelo||''); }).join(' ').toLowerCase();
+  // Fotovoltaico: si hay paneles / inversor / etc. (prioridad sobre térmica)
+  var esFV = /panel(es)? solar|fotovolta|inversor|mppt|goodwe|jinko|kwp|microinversor/.test(txt);
+  if (esFV) {
+    if (/conexi[oó]n a red|on-?grid|a red|inyecci|medidor bidirec|bidireccional/.test(txt)) return 'On-Grid';
+    if (/off-?grid|aislad|standalone/.test(txt)) return 'Off-Grid';
+    if (/bater[ií]a|banco de bater/.test(txt)) return 'Off-Grid';
+    return 'On-Grid';
+  }
+  // Térmica: sólo términos específicos (NO "termo" suelto, para no confundir con "termomagnético")
+  if (/termotanque|colector solar|tubos al vac|heat\s*pipe|termosif[oó]n|acumulador solar|panel(es)? t[eé]rmico/.test(txt)) return 'Solar Térmica';
+  return 'FV';
+}
+
 async function afCargarPresupuesto() {
   var sel = document.getElementById('af-pq-select');
   if (!sel) return;
@@ -8178,6 +8224,10 @@ async function afCargarPresupuesto() {
     });
     var instEl = document.getElementById('af-inst-pct');
     if (instEl) { var _iv = instTotal > 0 ? +instTotal.toFixed(2) : ''; instEl.value = _iv; instEl.setAttribute('data-base', _iv !== '' ? _iv : 0); }
+
+    // Guardar cliente y sistema del presupuesto para el PDF y la tarjeta guardada
+    window._afCliente = doc.cliente || '';
+    window._afSistema = afInferirSistema(lineasSolar, lineasManual);
 
     // Resetear el selector de dimensionamiento para no mezclar orígenes
     var dimSel  = document.getElementById('af-dim-select'); if (dimSel)  dimSel.value = '';
@@ -9182,6 +9232,11 @@ async function afCargarDim() {
         // Los valores entran en la moneda del presupuesto (sin convertir)
         window._afEntryMon = (doc.moneda === 'ARS') ? 'ARS' : 'USD';
         afSetMonedaSilencioso(window._afEntryMon);
+        window._afCliente = doc.cliente || (p ? p.cliente : '') || '';
+        window._afSistema = afInferirSistema(
+          doc.lineas_solar ? JSON.parse(doc.lineas_solar) : [],
+          doc.lineas_manual ? JSON.parse(doc.lineas_manual) : []
+        );
         var lineasSolar  = doc.lineas_solar  ? JSON.parse(doc.lineas_solar)  : [];
         var lineasManual = doc.lineas_manual ? JSON.parse(doc.lineas_manual) : [];
         // Separar instalación del resto
@@ -9412,8 +9467,11 @@ function afExportarPDF() {
   var dimSel  = document.getElementById('af-dim-select');
   var dimId   = dimSel ? dimSel.value : '';
   var p       = dimId ? (presupuestos||[]).find(function(x){return String(x.id)===String(dimId);}) : null;
-  var cliente = p?(p.cliente||'Cliente'):'Cliente';
-  var sistema = p?(function(){var t=(p.tipo||'');return t.toLowerCase().startsWith('fv |')?(t.split('|')[1]||'FV').trim():'Solar Térmica';})():'Sistema solar';
+  var _sistMapPDF = {'On-Grid':'Solar Fotovoltaico On-Grid','Off-Grid':'Solar Fotovoltaico Off-Grid','Híbrido':'Solar Fotovoltaico Híbrido','FV':'Solar Fotovoltaico','Solar Térmica':'Solar Térmica'};
+  var cliente = p ? (p.cliente||'Cliente') : (window._afCliente || 'Cliente');
+  var sistema = p
+    ? (function(){var t=(p.tipo||'');return t.toLowerCase().startsWith('fv |')?(_sistMapPDF[(t.split('|')[1]||'FV').trim()]||(t.split('|')[1]||'FV').trim()):'Solar Térmica';})()
+    : (_sistMapPDF[window._afSistema] || window._afSistema || 'Solar Fotovoltaico');
   var fecha   = new Date().toLocaleDateString('es-AR');
 
   // Moneda del análisis (misma que la vista): USD o ARS (×TC)
@@ -9507,7 +9565,7 @@ async function afGuardar() {
   var dimSel  = document.getElementById('af-dim-select');
   var dimId   = dimSel ? dimSel.value : '';
   var p       = dimId ? (presupuestos||[]).find(function(x){return String(x.id)===String(dimId);}) : null;
-  var cliente = p ? (p.cliente||'') : '';
+  var cliente = p ? (p.cliente||'') : (window._afCliente || '');
   var dimNombre = cliente; // solo el nombre, sin el sistema
 
   var genAnual = document.getElementById('af-gen-anual') ? (parseFloat(document.getElementById('af-gen-anual').value)||0) : 0;
@@ -9517,7 +9575,7 @@ async function afGuardar() {
   var _imEl2=document.getElementById('af-inflacion-manual'); var inflacion= (_imEl2&&_imEl2.value!==''&&_imEl2.value!==null) ? parseFloat(_imEl2.value)/100 : (document.getElementById('af-inflacion') ? (parseFloat(document.getElementById('af-inflacion').value)||0.05): 0.05);
   var tasa     = document.getElementById('af-tasa')      ? (parseFloat(document.getElementById('af-tasa').value)||0.05)   : 0.05;
 
-  // Tipo de sistema desde el dimensionamiento
+  // Tipo de sistema: del dimensionamiento si hay, si no del presupuesto importado
   var sistema = '';
   if (p) {
     var tp = (p.tipo||'').toLowerCase();
@@ -9526,6 +9584,8 @@ async function afGuardar() {
     } else if (tp.startsWith('térmica')) {
       sistema = 'Solar Térmica';
     }
+  } else {
+    sistema = window._afSistema || '';
   }
 
   // Guardar ítems individuales del desglose en sistema como "On-Grid::desc1|qty1|price1;desc2|qty2|price2#PCT=30"
@@ -9592,6 +9652,7 @@ function afReset() {
   var fn=document.getElementById('firma-af-nombre'); if(fn) fn.value='';
   var fp=document.getElementById('firma-af-posicion'); if(fp) fp.value='';
   window._afEntryMon = 'USD';
+  window._afCliente = ''; window._afSistema = '';
   if (typeof afSetMonedaSilencioso === 'function') afSetMonedaSilencioso('USD'); // moneda por defecto
   // Limpiar selectores y tabla
   var sel = document.getElementById('af-dim-select');

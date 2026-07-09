@@ -7492,11 +7492,12 @@ async function pqImportarHist() {
   var d = _pqHistMap[sel.value];
   if (!d) { toast('No se encontró el presupuesto'); return; }
 
-  // Copiar como NUEVO presupuesto (no edita ni pisa el original)
-  _pqEditRecord = null;
-  document.getElementById('pq-edit-banner').style.display = 'none';
-  document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
+  // ¿Estamos editando un presupuesto existente? Si sí, se mantiene ESE (mismo N°) y al guardar
+  // se sobrescribe. Si estamos en un presupuesto en blanco, se crea uno nuevo (copia). El original
+  // que se importa NUNCA se toca.
+  var editando = !!_pqEditRecord;
 
+  // Traer el contenido del presupuesto seleccionado
   document.getElementById('pq-cliente').value = d.cliente || '';
   if (document.getElementById('pq-cuit'))     document.getElementById('pq-cuit').value     = d.cuit     || '';
   if (document.getElementById('pq-contacto')) document.getElementById('pq-contacto').value = d.contacto || '';
@@ -7507,18 +7508,28 @@ async function pqImportarHist() {
 
   try { pqLineasSolar  = d.lineas_solar  ? JSON.parse(d.lineas_solar)  : []; } catch(e){ pqLineasSolar  = []; }
   try { pqLineasManual = d.lineas_manual ? JSON.parse(d.lineas_manual) : []; } catch(e){ pqLineasManual = []; }
-  // Nuevos ids para no colisionar con la sesión en curso
+  // Nuevos ids internos para no colisionar en la sesión en curso
   pqLineasSolar.forEach(function(r){ r.id = pqNextId++; });
   pqLineasManual.forEach(function(r){ r.id = pqNextId++; });
   pqRebuildSecciones();
   pqRenderSolar(); pqRenderManual(); pqRecalc();
 
-  // Número nuevo (fresco), no el del original
-  document.getElementById('pq-fecha').value = new Date().toISOString().split('T')[0];
-  var nro = await pqGetNextNro();
-  document.getElementById('pq-nro').value = nro;
-  document.getElementById('pq-nro-badge').textContent = '#' + nro;
-  toast('Copiado como presupuesto nuevo #' + nro);
+  if (editando) {
+    // Mantener el presupuesto en edición (mismo N°) → al guardar se sobrescribe ese, no duplica
+    document.getElementById('pq-nro').value = _pqEditRecord.nro || document.getElementById('pq-nro').value;
+    document.getElementById('pq-nro-badge').textContent = '#' + (_pqEditRecord.nro || '');
+    toast('Contenido traído · se guardará sobre el presupuesto en edición #' + (_pqEditRecord.nro || ''));
+  } else {
+    // Copia como NUEVO presupuesto (número fresco)
+    _pqEditRecord = null;
+    document.getElementById('pq-edit-banner').style.display = 'none';
+    document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
+    document.getElementById('pq-fecha').value = new Date().toISOString().split('T')[0];
+    var nro = await pqGetNextNro();
+    document.getElementById('pq-nro').value = nro;
+    document.getElementById('pq-nro-badge').textContent = '#' + nro;
+    toast('Copiado como presupuesto nuevo #' + nro);
+  }
 }
 
 function pqStartEdit(id) {
@@ -7570,9 +7581,11 @@ function pqCancelEdit() {
   document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
   // Reset sin confirm (ya confirmamos arriba)
   pqLineasSolar = []; pqLineasManual = [];
+  pqSeccionesOrden = []; pqSeccionActiva = null;   // limpiar también las secciones
   pqAcActiveRow = null;
   pqRenderSolar(); pqRenderManual(); pqRecalc();
   document.getElementById('pq-ac-input').value = '';
+  var _hs = document.getElementById('pq-hist-select'); if (_hs) _hs.value = '';
   var _ds = document.getElementById('pq-dim-select'); if (_ds) _ds.value = '';
   var _di = document.getElementById('pq-dim-info'); if (_di) { _di.style.display='none'; _di.textContent=''; }
   document.getElementById('pq-cliente').value  = '';

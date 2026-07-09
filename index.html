@@ -280,11 +280,14 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .btn-outline{background:#fff;color:var(--verde);border:1.5px solid var(--verde);}
 @media(max-width:520px){.fv-months-grid{grid-template-columns:repeat(2,1fr)}.pdf-actions{grid-template-columns:1fr}.af-params-grid{grid-template-columns:1fr!important}}
 @page { size: A4; margin: 0; }
+#pdf-footer-fixed{ display: none; }
 @media print{
   html,body{margin:0!important;padding:0!important;}
-  body > *:not(#pdf-propuesta){display:none!important;}
+  body > *:not(#pdf-propuesta):not(#pdf-footer-fixed){display:none!important;}
   #pdf-propuesta{display:block!important;position:relative;width:100%;background:#fff;color:#111;margin:0;padding:0;}
-  .pdf-page{width:100%;margin:0;padding:12mm 10mm;font-family:Arial,sans-serif;font-size:10px;box-sizing:border-box;}
+  /* Pie fijo en TODAS las hojas de los PDF que se imprimen por navegador */
+  #pdf-footer-fixed{display:block!important;position:fixed;bottom:5mm;left:10mm;right:10mm;font-family:Arial,sans-serif;font-size:8px;color:#999;text-align:center;border-top:1px solid #ddd;padding-top:3px;}
+  .pdf-page{width:100%;margin:0;padding:12mm 10mm 20mm;font-family:Arial,sans-serif;font-size:10px;box-sizing:border-box;}
   .pdf-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1B6B2F;padding-bottom:8px;margin-bottom:10px;}
   .pdf-brand{font-size:20px;font-weight:800;color:#1B6B2F;}
   .pdf-sub{font-size:10px;color:#555;margin-top:3px;}
@@ -1955,6 +1958,7 @@ window.addEventListener('load', function() {
 </div><!-- /app -->
 
 <div id="pdf-propuesta" class="pdf-preview"></div>
+<div id="pdf-footer-fixed">info@exergrid.com.ar&nbsp;&nbsp;·&nbsp;&nbsp;+54 1166110831&nbsp;&nbsp;·&nbsp;&nbsp;exergrid.com.ar</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -7085,12 +7089,9 @@ function pqBuildPDFHTML() {
       '</div>'
     : '') +
 
-    // PIE
-    '<div style="margin-top:20px;padding-top:10px;border-top:1px solid #e0e0e0;display:flex;justify-content:space-between;">' +
-      '<span style="font-size:10px;color:#bbb;">info@exergrid.com.ar  ·  +54 1166110831</span>' +
-      '<span style="font-size:10px;color:#bbb;">Validez: ' + validez + ' · N° ' + nro + '</span>' +
-    '</div>' +
-    getFirmaBlockById('_', (document.getElementById('firma-pq-nombre')||{value:''}).value.trim(), (document.getElementById('firma-pq-posicion')||{value:''}).value.trim())
+    // El pie (mail · teléfono · web · N° · página) se dibuja fijo en cada hoja del PDF (ver pqDownloadPDF).
+    getFirmaBlockById('_', (document.getElementById('firma-pq-nombre')||{value:''}).value.trim(), (document.getElementById('firma-pq-posicion')||{value:''}).value.trim()) +
+    '<div id="pq-content-end" style="height:1px"></div>'  // marcador: fin real del contenido (firma)
   );
 }
 // ─── PREVIEW MODAL ────────────────────────────────────────────────────────────
@@ -7227,6 +7228,9 @@ async function pqDownloadPDF() {
     });
     _breaks.push(canvas.height);
     _breaks = _breaks.filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(p,q){return p-q;});
+    // Fin real del contenido (borde inferior de la firma) en px de canvas
+    var _ceEl = el.querySelector('#pq-content-end');
+    var _contentEndPx = _ceEl ? ((_ceEl.getBoundingClientRect().top - _elRect.top) / _elH) * canvas.height : canvas.height;
 
     // Restore original width
     el.style.width = prevWidth;
@@ -7235,12 +7239,13 @@ async function pqDownloadPDF() {
     const pdfW = 210, pdfH = 297;
     const canvasW = canvas.width, canvasH = canvas.height;
     const ratio = pdfW / canvasW;
-    const _marginTop = 12, _marginBottom = 10; // mm de aire por página (arriba sólo en continuación)
+    const _marginTop = 12, _marginBottom = 15; // mm de aire por página (abajo reserva lugar para el pie)
     const _lastFit = function(arr, top, lim){ var c=0; for (var i=0;i<arr.length;i++){ if (arr[i] > top+5 && arr[i] <= lim) c=arr[i]; } return c; };
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    let pageTop = 0, first = true;
+    let pageTop = 0, first = true, lastPageBottomMm = 0, lastPageTopPx = 0, lastTopM = 0;
     while (pageTop < canvasH - 1) {
       const topM = first ? 0 : _marginTop;                  // la 1ª página ya trae su padding superior
+      lastPageTopPx = pageTop; lastTopM = topM;             // datos de la última página (para ubicar el pie)
       const usableH = pdfH - topM - _marginBottom;
       const pageMaxPx = usableH / ratio;                    // alto útil de la página en px de canvas
       const limit = pageTop + pageMaxPx;
@@ -7254,7 +7259,26 @@ async function pqDownloadPDF() {
       pc.width = canvasW; pc.height = srcH;
       pc.getContext('2d').drawImage(canvas, 0, pageTop, canvasW, srcH, 0, 0, canvasW, srcH);
       doc.addImage(pc.toDataURL('image/jpeg', 0.92), 'JPEG', 0, topM, pdfW, srcH * ratio);
+      lastPageBottomMm = topM + srcH * ratio; // fondo del contenido de la última página dibujada
       pageTop += srcH;
+    }
+
+    // ── Pie de página en todas las hojas (mail · teléfono · web · N° · página) ──
+    // En páginas intermedias va pegado al pie; en la ÚLTIMA va justo debajo del contenido (firma).
+    var _validez = (document.getElementById('pq-validez') || {}).value || '';
+    var _totPages = doc.getNumberOfPages();
+    // Posición del fin del contenido (firma) en la última página, en mm
+    var _contentEndMm = lastTopM + (_contentEndPx - lastPageTopPx) * ratio;
+    for (var _pp = 1; _pp <= _totPages; _pp++) {
+      doc.setPage(_pp);
+      var _isLast = (_pp === _totPages);
+      var _lineY = _isLast ? Math.min(_contentEndMm + 7, pdfH - 11) : (pdfH - 11);
+      var _txtY  = _lineY + 5;
+      doc.setDrawColor(220); doc.setLineWidth(0.2);
+      doc.line(12, _lineY, pdfW - 12, _lineY);
+      doc.setFontSize(7.5); doc.setTextColor(150);
+      doc.text('info@exergrid.com.ar  ·  +54 1166110831  ·  exergrid.com.ar', 12, _txtY);
+      doc.text((_validez ? 'Validez: ' + _validez + '  ·  ' : '') + 'N° ' + nro + '  ·  Página ' + _pp + ' de ' + _totPages, pdfW - 12, _txtY, { align: 'right' });
     }
 
     const pdfBlob = doc.output('blob');

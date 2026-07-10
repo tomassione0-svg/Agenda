@@ -1944,6 +1944,7 @@ window.addEventListener('load', function() {
       <h2 style="margin:0">Cliente potencial</h2>
     </div>
     <input type="hidden" id="cli-id">
+    <input type="hidden" id="cli-fuente">
     <label>Nombre completo</label><input type="text" id="cli-nombre" placeholder="Juan García">
     <label>Teléfono / WhatsApp</label><input type="text" id="cli-tel" placeholder="+54 ...">
     <label>Correo electrónico</label><input type="text" id="cli-email" placeholder="tucorreo@ejemplo.com">
@@ -5148,11 +5149,10 @@ function _normalizarLead(c){
     var em = (c.contacto||'').match(/[\w.+-]+@[\w-]+\.[\w.-]+/) || notas.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
     if(em) c.email = em[0];
   }
-  // teléfono (del contacto: "Tel: 123 | Email: ...")
-  if(!c.telefono && c.contacto){
-    var tm = c.contacto.match(/tel[:\s]*([+\d][\d\s().-]{4,})/i) || c.contacto.match(/([+\d][\d\s().-]{5,})/);
-    if(tm) c.telefono = tm[1].trim();
-  }
+  // teléfono limpio (saca "Tel:" y lo que siga de "|"), de telefono o contacto
+  var telRaw = String(c.telefono || c.contacto || '');
+  var tm = telRaw.match(/([+\d][\d\s().\-]{4,})/);
+  if(tm) c.telefono = tm[1].trim();
   // provincia (del texto: "Provincia: Santa Fe")
   if(!c.provincia){
     var pm = notas.match(/provincia[:\s]*([^.\n·|]+)/i);
@@ -5196,7 +5196,7 @@ function renderClientes() {
         <div class="cliente-meta">📱 ${c.telefono||c.contacto||'—'}${c.email?` · ✉️ ${c.email}`:''}</div>
         <div class="cliente-meta">🔧 ${tipoClienteDisplay(c)}${c.provincia?` · 📍 ${c.provincia}`:''}</div>
         ${c.direccion?`<div class="cliente-meta">📌 ${c.direccion}</div>`:''}
-        ${c.notas?`<div class="cliente-meta" style="margin-top:2px">💬 ${c.notas}</div>`:''}
+        ${(c._mensaje!=null?c._mensaje:c.notas)?`<div class="cliente-meta" style="margin-top:2px">💬 ${c._mensaje!=null?c._mensaje:c.notas}</div>`:''}
         ${c.resumen?`<div class="cliente-meta">🤖 ${c.resumen}</div>`:''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
@@ -5370,11 +5370,12 @@ function openClienteModal(id=null) {
     document.getElementById('cli-email').value=c.email||'';
     document.getElementById('cli-provincia').value=c.provincia||'';
     document.getElementById('cli-direccion').value=c.direccion||'';
-    document.getElementById('cli-notas').value=c.notas||'';
+    document.getElementById('cli-notas').value=(c._mensaje!=null?c._mensaje:(c.notas||''));
     document.getElementById('cli-resumen').value=c.resumen||'';
+    document.getElementById('cli-fuente').value=c.fuente||c._fuente||'';
     setSelectValuePreservingOption(document.getElementById('cli-tipo'), c.tipo, c.notas);
     document.getElementById('cli-estado').value=c.estado;}
-  else{['cli-nombre','cli-tel','cli-email','cli-provincia','cli-direccion','cli-notas','cli-resumen'].forEach(id=>document.getElementById(id).value='');document.getElementById('cli-tipo').value='Solar Térmica — ACS';document.getElementById('cli-estado').value='consulta';}
+  else{['cli-nombre','cli-tel','cli-email','cli-provincia','cli-direccion','cli-notas','cli-resumen','cli-fuente'].forEach(id=>document.getElementById(id).value='');document.getElementById('cli-tipo').value='Solar Térmica — ACS';document.getElementById('cli-estado').value='consulta';}
   openOverlay('modal-cliente');
   setTimeout(()=>document.getElementById('cli-nombre').focus(),80);
 }
@@ -5382,7 +5383,7 @@ function openClienteModal(id=null) {
 async function saveCliente() {
   const id=document.getElementById('cli-id').value;
   const _tel=document.getElementById('cli-tel').value.trim();
-  const payload={nombre:document.getElementById('cli-nombre').value.trim(),telefono:_tel,contacto:_tel,email:document.getElementById('cli-email').value.trim(),provincia:document.getElementById('cli-provincia').value.trim(),direccion:document.getElementById('cli-direccion').value.trim(),tipo:normalizarTipoCliente(document.getElementById('cli-tipo').value, document.getElementById('cli-notas').value),estado:document.getElementById('cli-estado').value,notas:document.getElementById('cli-notas').value.trim(),resumen:document.getElementById('cli-resumen').value.trim()};
+  const payload={nombre:document.getElementById('cli-nombre').value.trim(),telefono:_tel,contacto:_tel,email:document.getElementById('cli-email').value.trim(),provincia:document.getElementById('cli-provincia').value.trim(),direccion:document.getElementById('cli-direccion').value.trim(),tipo:normalizarTipoCliente(document.getElementById('cli-tipo').value, document.getElementById('cli-notas').value),estado:document.getElementById('cli-estado').value,notas:document.getElementById('cli-notas').value.trim(),resumen:document.getElementById('cli-resumen').value.trim(),fuente:document.getElementById('cli-fuente').value.trim()||'manual'};
   if(!payload.nombre){toast('Ingresá el nombre');return;}
   setSyncState('loading');
   let error;

@@ -1944,9 +1944,12 @@ window.addEventListener('load', function() {
       <h2 style="margin:0">Cliente potencial</h2>
     </div>
     <input type="hidden" id="cli-id">
-    <label>Nombre / Empresa</label><input type="text" id="cli-nombre" placeholder="Juan García">
-    <label>Teléfono / Email</label><input type="text" id="cli-contacto" placeholder="11-xxxx-xxxx">
-    <label>Tipo de sistema</label>
+    <label>Nombre completo</label><input type="text" id="cli-nombre" placeholder="Juan García">
+    <label>Teléfono / WhatsApp</label><input type="text" id="cli-tel" placeholder="+54 ...">
+    <label>Correo electrónico</label><input type="text" id="cli-email" placeholder="tucorreo@ejemplo.com">
+    <label>Provincia</label><input type="text" id="cli-provincia" placeholder="Buenos Aires">
+    <label>Dirección exacta</label><input type="text" id="cli-direccion" placeholder="Calle, número, localidad">
+    <label>Tipo de proyecto</label>
     <select id="cli-tipo">
       <option value="">Seleccionar tipo de sistema</option>
       <option value="Fotovoltaico On-Grid">Fotovoltaico On-Grid</option>
@@ -1965,7 +1968,8 @@ window.addEventListener('load', function() {
       <option value="enviado">Presupuesto enviado</option><option value="cerrado">Cerrado ✅</option>
       <option value="perdido">Perdido ❌</option>
     </select>
-    <label>Notas</label><textarea id="cli-notas" placeholder="Ubicación, necesidades, próximos pasos..."></textarea>
+    <label>Mensaje / Sobre el proyecto</label><textarea id="cli-notas" placeholder="Factura mensual aproximada, superficie del techo, cantidad de personas, etc."></textarea>
+    <label>🤖 Resumen del bot</label><textarea id="cli-resumen" placeholder="Se completa solo con lo que junta el bot (lo podés editar)."></textarea>
     <div class="modal-actions">
       <button class="btn btn-delete" id="cli-btn-delete" style="display:none;margin-right:auto" onclick="deleteCliente()">Eliminar</button>
       <button class="btn btn-secondary" onclick="closeModal('modal-cliente')">Cancelar</button>
@@ -5116,21 +5120,59 @@ function tipoClienteDisplay(c) {
   return normalizarTipoCliente(c.tipo, c.notas) || 'Sin especificar';
 }
 function leadFuenteTag(c) {
-  var notas = (c.notas || '').toLowerCase();
-  if (notas.includes('lead desde bot') || notas.includes('bot web')) {
-    return '<span style="font-size:10px;background:#e9defb;color:#6b3fc0;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead Bot 🤖</span>';
-  } else if (notas.includes('lead desde whatsapp') || notas.includes('botón whatsapp') || notas.includes('boton whatsapp')) {
-    return '<span style="font-size:10px;background:#25d36620;color:#128c7e;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead WhatsApp</span>';
-  } else if (notas.includes('lead desde mail') || notas.includes('página web') || notas.includes('pagina web') || notas.includes('consulta recibida desde')) {
-    return '<span style="font-size:10px;background:#e8f0fe;color:#1a73e8;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead Mail</span>';
+  var f = c.fuente || c._fuente || '';
+  if (!f) {
+    var notas = (c.notas || '').toLowerCase();
+    if (notas.includes('lead desde bot') || notas.includes('bot web') || notas.includes('bot whatsapp')) f='bot';
+    else if (notas.includes('lead desde whatsapp') || notas.includes('botón whatsapp') || notas.includes('boton whatsapp')) f='whatsapp';
+    else if (notas.includes('lead desde mail') || notas.includes('página web') || notas.includes('pagina web') || notas.includes('consulta recibida desde')) f='mail';
   }
+  if (f==='bot')      return '<span style="font-size:10px;background:#e9defb;color:#6b3fc0;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead Bot 🤖</span>';
+  if (f==='whatsapp') return '<span style="font-size:10px;background:#25d36620;color:#128c7e;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead WhatsApp</span>';
+  if (f==='mail')     return '<span style="font-size:10px;background:#e8f0fe;color:#1a73e8;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead Mail</span>';
   return '';
+}
+
+// Extrae de leads viejos "amontonados" (web/mail) los datos a sus campos correctos (solo en memoria)
+function _normalizarLead(c){
+  var notas = c.notas || '';
+  var nl = notas.toLowerCase();
+  // fuente
+  if(!c._fuente){
+    if(nl.includes('lead desde bot')||nl.includes('bot whatsapp')) c._fuente='bot';
+    else if(nl.includes('lead desde whatsapp')) c._fuente='whatsapp';
+    else if(nl.includes('lead desde mail')||nl.includes('pagina web')||nl.includes('página web')) c._fuente='mail';
+  }
+  // email (del contacto o del texto)
+  if(!c.email){
+    var em = (c.contacto||'').match(/[\w.+-]+@[\w-]+\.[\w.-]+/) || notas.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+    if(em) c.email = em[0];
+  }
+  // teléfono (del contacto: "Tel: 123 | Email: ...")
+  if(!c.telefono && c.contacto){
+    var tm = c.contacto.match(/tel[:\s]*([+\d][\d\s().-]{4,})/i) || c.contacto.match(/([+\d][\d\s().-]{5,})/);
+    if(tm) c.telefono = tm[1].trim();
+  }
+  // provincia (del texto: "Provincia: Santa Fe")
+  if(!c.provincia){
+    var pm = notas.match(/provincia[:\s]*([^.\n·|]+)/i);
+    if(pm) c.provincia = pm[1].trim();
+  }
+  // mensaje limpio (del texto: "Mensaje: ...")
+  var mm = notas.match(/mensaje[:\s]*([\s\S]+)$/i);
+  if(mm) c._mensaje = mm[1].trim();
+  else if(c._fuente){
+    // sacar prefijos "Lead desde ...", "Provincia: ...", "Proyecto: ..." y dejar lo útil
+    var clean = notas.replace(/^🤖\s*/,'').replace(/lead desde [^.]*\.?/i,'').replace(/provincia[:\s]*[^.\n·|]+[.\n·|]?/i,'').replace(/proyecto[:\s]*[^.\n·|]+[.\n·|]?/i,'').trim();
+    c._mensaje = clean;
+  }
+  return c;
 }
 
 // ── CLIENTES ───────────────────────────────────────────────────────────────
 async function loadClientes() {
   const {data}=await db.from('hes_clientes').select('*').order('orden',{nullsFirst:true}).order('created_at',{ascending:false});
-  clientes=data||[];
+  clientes=(data||[]).map(_normalizarLead);
   renderClientes();
 }
 
@@ -5150,9 +5192,12 @@ function renderClientes() {
       ondrop="cliDragDrop(event,${idx})">
       <span class="drag-handle" style="font-size:18px;padding:0 8px 0 4px;margin-top:2px;color:var(--muted);user-select:none;touch-action:none;cursor:grab;flex-shrink:0">⠃</span>
       <div style="flex:1;min-width:0">
-        <div class="cliente-name">${c.nombre}</div>
-        <div class="cliente-meta">${tipoClienteDisplay(c)} · ${c.contacto||'—'}</div>
-        ${c.notas?`<div class="cliente-meta">${c.notas}</div>`:''}
+        <div class="cliente-name">${c.nombre||'—'}</div>
+        <div class="cliente-meta">📱 ${c.telefono||c.contacto||'—'}${c.email?` · ✉️ ${c.email}`:''}</div>
+        <div class="cliente-meta">🔧 ${tipoClienteDisplay(c)}${c.provincia?` · 📍 ${c.provincia}`:''}</div>
+        ${c.direccion?`<div class="cliente-meta">📌 ${c.direccion}</div>`:''}
+        ${c.notas?`<div class="cliente-meta" style="margin-top:2px">💬 ${c.notas}</div>`:''}
+        ${c.resumen?`<div class="cliente-meta">🤖 ${c.resumen}</div>`:''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
         <span class="cliente-status-pill ${cls}">${lbl}</span>
@@ -5198,7 +5243,7 @@ function waOpen(id){
   document.getElementById('wa-avatar').textContent = (c.nombre||'?').trim().charAt(0).toUpperCase() || '?';
   document.getElementById('wa-resumen').innerHTML =
     '<span style="display:inline-block;font-size:10px;background:#e9defb;color:#6b3fc0;padding:2px 8px;border-radius:8px;font-weight:700;margin-bottom:3px">Lead Bot 🤖</span><br>' +
-    (c.notas ? escHtml(c.notas).replace(/\n/g,'<br>') : 'Sin resumen todavía');
+    (c.resumen ? escHtml(c.resumen).replace(/\n/g,'<br>') : (c.notas ? escHtml(c.notas).replace(/\n/g,'<br>') : 'Sin resumen todavía'));
 
   var convo = Array.isArray(c.conversacion) ? c.conversacion : [];
   var demo = convo.length === 0;
@@ -5218,7 +5263,7 @@ function waOpen(id){
         if(cv.length){ document.getElementById('wa-demo-banner').style.display='none'; waRenderChat(cv); }
         document.getElementById('wa-resumen').innerHTML =
           '<span style="display:inline-block;font-size:10px;background:#e9defb;color:#6b3fc0;padding:2px 8px;border-radius:8px;font-weight:700;margin-bottom:3px">Lead Bot 🤖</span><br>' +
-          (p.new.notas ? escHtml(p.new.notas).replace(/\n/g,'<br>') : '');
+          (p.new.resumen ? escHtml(p.new.resumen).replace(/\n/g,'<br>') : (p.new.notas ? escHtml(p.new.notas).replace(/\n/g,'<br>') : ''));
       }).subscribe();
   }catch(e){}
 }
@@ -5319,15 +5364,25 @@ async function botConfigSave(){
 function openClienteModal(id=null) {
   document.getElementById('cli-id').value=id||'';
   document.getElementById('cli-btn-delete').style.display=id?'block':'none';
-  if(id){const c=clientes.find(c=>c.id==id);if(!c)return;document.getElementById('cli-nombre').value=c.nombre;document.getElementById('cli-contacto').value=c.contacto||'';document.getElementById('cli-notas').value=c.notas||'';setSelectValuePreservingOption(document.getElementById('cli-tipo'), c.tipo, c.notas);document.getElementById('cli-estado').value=c.estado;}
-  else{['cli-nombre','cli-contacto','cli-notas'].forEach(id=>document.getElementById(id).value='');document.getElementById('cli-tipo').value='Solar Térmica — ACS';document.getElementById('cli-estado').value='consulta';}
+  if(id){const c=clientes.find(c=>c.id==id);if(!c)return;
+    document.getElementById('cli-nombre').value=c.nombre||'';
+    document.getElementById('cli-tel').value=c.telefono||c.contacto||'';
+    document.getElementById('cli-email').value=c.email||'';
+    document.getElementById('cli-provincia').value=c.provincia||'';
+    document.getElementById('cli-direccion').value=c.direccion||'';
+    document.getElementById('cli-notas').value=c.notas||'';
+    document.getElementById('cli-resumen').value=c.resumen||'';
+    setSelectValuePreservingOption(document.getElementById('cli-tipo'), c.tipo, c.notas);
+    document.getElementById('cli-estado').value=c.estado;}
+  else{['cli-nombre','cli-tel','cli-email','cli-provincia','cli-direccion','cli-notas','cli-resumen'].forEach(id=>document.getElementById(id).value='');document.getElementById('cli-tipo').value='Solar Térmica — ACS';document.getElementById('cli-estado').value='consulta';}
   openOverlay('modal-cliente');
   setTimeout(()=>document.getElementById('cli-nombre').focus(),80);
 }
 
 async function saveCliente() {
   const id=document.getElementById('cli-id').value;
-  const payload={nombre:document.getElementById('cli-nombre').value.trim(),contacto:document.getElementById('cli-contacto').value.trim(),tipo:normalizarTipoCliente(document.getElementById('cli-tipo').value, document.getElementById('cli-notas').value),estado:document.getElementById('cli-estado').value,notas:document.getElementById('cli-notas').value.trim()};
+  const _tel=document.getElementById('cli-tel').value.trim();
+  const payload={nombre:document.getElementById('cli-nombre').value.trim(),telefono:_tel,contacto:_tel,email:document.getElementById('cli-email').value.trim(),provincia:document.getElementById('cli-provincia').value.trim(),direccion:document.getElementById('cli-direccion').value.trim(),tipo:normalizarTipoCliente(document.getElementById('cli-tipo').value, document.getElementById('cli-notas').value),estado:document.getElementById('cli-estado').value,notas:document.getElementById('cli-notas').value.trim(),resumen:document.getElementById('cli-resumen').value.trim()};
   if(!payload.nombre){toast('Ingresá el nombre');return;}
   setSyncState('loading');
   let error;

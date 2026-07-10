@@ -1633,11 +1633,39 @@ window.addEventListener('load', function() {
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:0 8px">
     <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Pipeline de clientes</div>
     <div style="display:flex;gap:6px">
+      <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px" onclick="botConfigOpen()" title="Entrenar al bot de WhatsApp">🤖 Config bot</button>
       <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="openClienteModal()">＋ Nuevo</button>
       <button class="btn btn-primary" style="font-size:12px;padding:6px 10px" onclick="startVozCliente()" title="Agregar cliente por voz">🎤</button>
     </div>
   </div>
   <div id="cliente-list" style="padding:0 8px"></div>
+</div>
+
+<!-- ══ CONFIGURACIÓN DEL BOT ══ -->
+<div class="modal-overlay" id="bot-config-modal">
+  <div class="modal" style="max-width:640px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+      <h2 style="margin:0">🤖 Configuración del bot</h2>
+      <button onclick="closeModal('bot-config-modal')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1">×</button>
+    </div>
+    <p style="font-size:12.5px;color:var(--muted);margin:2px 0 10px">Editá cómo conversa el bot. Los cambios se aplican al instante, sin tocar código.</p>
+
+    <div style="background:var(--verde-light);border:1px solid var(--verde-badge);border-radius:8px;padding:9px 12px;font-size:12px;color:#20402b;line-height:1.5;margin-bottom:14px">
+      ℹ️ El bot ya recibe automáticamente el <b>nombre, teléfono y sistema</b> que el cliente completa en el formulario web, y arranca la charla desde ahí (no los vuelve a preguntar). Acá definís <b>el resto</b> de las preguntas y la info que usa para responder. Todo lo que junte se va cargando en la <b>tarjeta del lead</b>.
+    </div>
+
+    <label style="font-weight:600">📋 Instrucciones — cómo se comporta y qué pregunta</label>
+    <textarea id="bot-instrucciones" rows="7" placeholder="Ej: Sos Sol, asistente de Exergrid. Español rioplatense, cálido y breve. Preguntá de a poco: nombre, zona, si necesita agua caliente o electricidad, consumo, presupuesto y urgencia. Una pregunta por mensaje. Nunca des un precio cerrado, solo rangos. Ofrecé financiación si preguntan." style="width:100%;font-family:inherit;font-size:13px;padding:9px;border:1.5px solid var(--gris-borde);border-radius:8px;line-height:1.5;resize:vertical;margin-bottom:12px"></textarea>
+
+    <label style="font-weight:600">📚 Información / Conocimiento — pegá tus productos, precios y FAQs</label>
+    <textarea id="bot-conocimiento" rows="9" placeholder="Ej:&#10;PRODUCTOS: paneles Jinko 635W, inversores GoodWe on-grid, termotanques solares...&#10;PRECIOS ORIENTATIVOS: sistema on-grid casa chica desde USD 3.000...&#10;PREGUNTAS FRECUENTES:&#10;- ¿Cuánto tarda la instalación? R: 1 a 3 días.&#10;- ¿Dan garantía? R: 10 años en paneles..." style="width:100%;font-family:inherit;font-size:13px;padding:9px;border:1.5px solid var(--gris-borde);border-radius:8px;line-height:1.5;resize:vertical;margin-bottom:6px"></textarea>
+    <div id="bot-config-info" style="font-size:11px;color:var(--muted);margin-bottom:12px"></div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal('bot-config-modal')">Cancelar</button>
+      <button class="btn btn-primary" onclick="botConfigSave()">Guardar</button>
+    </div>
+  </div>
 </div>
 
 <!-- ══ DOCUMENTOS ══ -->
@@ -1885,6 +1913,31 @@ window.addEventListener('load', function() {
 </div>
 
 <!-- ══ MODAL CLIENTE ══ -->
+<!-- ══ PANEL DE CONVERSACIÓN WHATSAPP (bot + vos) ══ -->
+<div class="modal-overlay" id="wa-modal">
+  <div class="modal" style="max-width:520px;padding:0;overflow:hidden">
+    <div style="background:var(--verde);color:#fff;padding:13px 16px;display:flex;align-items:center;gap:11px">
+      <div id="wa-avatar" style="width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">–</div>
+      <div style="flex:1;min-width:0">
+        <div id="wa-nombre" style="font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Cliente</div>
+        <div id="wa-tel" style="font-size:12px;opacity:.85">WhatsApp</div>
+      </div>
+      <button onclick="waClose()" style="background:none;border:none;color:rgba(255,255,255,.8);font-size:22px;cursor:pointer;line-height:1">×</button>
+    </div>
+    <div id="wa-resumen" style="background:var(--verde-light);border-bottom:1px solid var(--verde-badge);padding:9px 16px;font-size:12.5px;color:#20402b;line-height:1.55"></div>
+    <div id="wa-demo-banner" style="display:none;background:#fff7e0;border-bottom:1px solid #f0d98a;padding:6px 16px;font-size:11.5px;color:#7a5800;text-align:center">Ejemplo — se llena solo cuando el bot esté activo</div>
+    <div id="wa-chat" style="height:320px;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:#f7f9f8"></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-top:1px solid var(--gris-borde);background:#fff">
+      <span id="wa-estado" style="font-size:12.5px;font-weight:600">🤖 El bot está atendiendo</span>
+      <div style="margin-left:auto;display:inline-flex;border:1.5px solid var(--gris-borde);border-radius:9px;overflow:hidden">
+        <button id="wa-btn-bot" onclick="waSetModo(true)"  style="border:none;background:var(--verde);color:#fff;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:inherit">Bot</button>
+        <button id="wa-btn-yo"  onclick="waSetModo(false)" style="border:none;background:#fff;color:var(--muted);font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;font-family:inherit">La atiendo yo</button>
+      </div>
+    </div>
+    <div id="wa-reply" style="padding:11px 16px;border-top:1px solid var(--gris-borde);background:#fff"></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-cliente">
   <div class="modal">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0">
@@ -5064,7 +5117,9 @@ function tipoClienteDisplay(c) {
 }
 function leadFuenteTag(c) {
   var notas = (c.notas || '').toLowerCase();
-  if (notas.includes('lead desde whatsapp') || notas.includes('botón whatsapp') || notas.includes('boton whatsapp')) {
+  if (notas.includes('lead desde bot') || notas.includes('bot web')) {
+    return '<span style="font-size:10px;background:#e9defb;color:#6b3fc0;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead Bot 🤖</span>';
+  } else if (notas.includes('lead desde whatsapp') || notas.includes('botón whatsapp') || notas.includes('boton whatsapp')) {
     return '<span style="font-size:10px;background:#25d36620;color:#128c7e;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead WhatsApp</span>';
   } else if (notas.includes('lead desde mail') || notas.includes('página web') || notas.includes('pagina web') || notas.includes('consulta recibida desde')) {
     return '<span style="font-size:10px;background:#e8f0fe;color:#1a73e8;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead Mail</span>';
@@ -5102,7 +5157,10 @@ function renderClientes() {
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
         <span class="cliente-status-pill ${cls}">${lbl}</span>
         ${leadFuenteTag(c)}
-        <button class="edit-btn" onclick="openClienteModal('${c.id}')">✎</button>
+        <div style="display:flex;gap:4px">
+          <button class="edit-btn" onclick="waOpen('${c.id}')" title="Conversación WhatsApp" style="font-size:14px">💬</button>
+          <button class="edit-btn" onclick="openClienteModal('${c.id}')">✎</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -5112,6 +5170,150 @@ function renderClientes() {
     const handle = card.querySelector('.drag-handle');
     if (handle) addTouchDrag(handle, card, 'cli', parseInt(card.dataset.id), null);
   });
+}
+
+// ══ PANEL DE CONVERSACIÓN WHATSAPP ═══════════════════════════════════════════
+// URL de la función que envía tus respuestas por WhatsApp (se completa al deployar)
+const WA_SEND_URL = 'https://venvzyzbuduzbyqlrtcm.supabase.co/functions/v1/whatsapp-send';
+let _waCliente = null;      // lead abierto
+let _waChan = null;         // canal realtime
+
+function _waEsWhatsapp(c){ return c && (String(c.session_id||'').startsWith('wa:') || c.telefono); }
+
+const _WA_DEMO = [
+  { role:'user',      content:'Hola, quería info de paneles solares' },
+  { role:'assistant', content:'¡Hola! 👋 Soy Sol, de Exergrid. ¿Es para bajar la factura de tu casa/negocio, o para un lugar sin red?' },
+  { role:'user',      content:'Para mi casa, bajar la factura' },
+  { role:'assistant', content:'¡Genial! ¿En qué zona estás? Y ¿cuánto te viene la boleta por mes más o menos?' },
+  { role:'user',      content:'San Miguel, unos 80 lucas' },
+  { role:'assistant', content:'Perfecto, con ese consumo un sistema On-Grid te sirve. ¿Me pasás tu nombre para que un asesor te cotice?' },
+];
+
+function waOpen(id){
+  var c = clientes.find(function(x){ return String(x.id)===String(id); });
+  if(!c) return;
+  _waCliente = c;
+  document.getElementById('wa-nombre').textContent = c.nombre || 'Cliente';
+  document.getElementById('wa-tel').textContent = '📱 ' + (c.telefono || c.contacto || '—') + ' · WhatsApp';
+  document.getElementById('wa-avatar').textContent = (c.nombre||'?').trim().charAt(0).toUpperCase() || '?';
+  document.getElementById('wa-resumen').innerHTML =
+    '<span style="display:inline-block;font-size:10px;background:#e9defb;color:#6b3fc0;padding:2px 8px;border-radius:8px;font-weight:700;margin-bottom:3px">Lead Bot 🤖</span><br>' +
+    (c.notas ? escHtml(c.notas).replace(/\n/g,'<br>') : 'Sin resumen todavía');
+
+  var convo = Array.isArray(c.conversacion) ? c.conversacion : [];
+  var demo = convo.length === 0;
+  document.getElementById('wa-demo-banner').style.display = demo ? 'block' : 'none';
+  waRenderChat(demo ? _WA_DEMO : convo);
+
+  waSetModoUI(c.bot_activo !== false);   // por defecto bot activo
+  openOverlay('wa-modal');
+
+  // Realtime: refrescar si llega/cambia algo de este lead
+  try{
+    if(_waChan) db.removeChannel(_waChan);
+    _waChan = db.channel('wa_'+c.id)
+      .on('postgres_changes', { event:'UPDATE', schema:'public', table:'hes_clientes', filter:'id=eq.'+c.id }, function(p){
+        _waCliente = p.new;
+        var cv = Array.isArray(p.new.conversacion) ? p.new.conversacion : [];
+        if(cv.length){ document.getElementById('wa-demo-banner').style.display='none'; waRenderChat(cv); }
+        document.getElementById('wa-resumen').innerHTML =
+          '<span style="display:inline-block;font-size:10px;background:#e9defb;color:#6b3fc0;padding:2px 8px;border-radius:8px;font-weight:700;margin-bottom:3px">Lead Bot 🤖</span><br>' +
+          (p.new.notas ? escHtml(p.new.notas).replace(/\n/g,'<br>') : '');
+      }).subscribe();
+  }catch(e){}
+}
+
+function waRenderChat(convo){
+  var chat = document.getElementById('wa-chat');
+  chat.innerHTML = convo.map(function(m){
+    var who = (m.role === 'user') ? 'cliente' : (m.by === 'agente' ? 'agente' : 'bot');
+    if(who==='cliente')
+      return '<div style="align-self:flex-start;max-width:78%;background:#fff;border:1px solid var(--gris-borde);border-radius:14px;border-bottom-left-radius:4px;padding:8px 12px;font-size:13.5px;line-height:1.45">'+escHtml(m.content)+'</div>';
+    if(who==='agente')
+      return '<div style="align-self:flex-end;max-width:78%;background:var(--verde);color:#fff;border-radius:14px;border-bottom-right-radius:4px;padding:8px 12px;font-size:13.5px;line-height:1.45"><div style="font-size:10px;font-weight:700;opacity:.75;margin-bottom:2px">Vos</div>'+escHtml(m.content)+'</div>';
+    return '<div style="align-self:flex-start;max-width:78%;background:var(--verde-light);border-radius:14px;border-bottom-left-radius:4px;padding:8px 12px;font-size:13.5px;line-height:1.45"><div style="font-size:10px;font-weight:700;color:var(--verde);margin-bottom:2px">🤖 Sol (bot)</div>'+escHtml(m.content)+'</div>';
+  }).join('');
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function waSetModoUI(botActivo){
+  document.getElementById('wa-btn-bot').style.background = botActivo ? 'var(--verde)' : '#fff';
+  document.getElementById('wa-btn-bot').style.color = botActivo ? '#fff' : 'var(--muted)';
+  document.getElementById('wa-btn-yo').style.background = botActivo ? '#fff' : 'var(--verde)';
+  document.getElementById('wa-btn-yo').style.color = botActivo ? 'var(--muted)' : '#fff';
+  document.getElementById('wa-estado').textContent = botActivo ? '🤖 El bot está atendiendo' : '✋ La estás atendiendo vos';
+  var reply = document.getElementById('wa-reply');
+  if(botActivo){
+    reply.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center">Tocá "La atiendo yo" para responder por WhatsApp</div>';
+  } else {
+    reply.innerHTML = '<div style="display:flex;gap:8px;align-items:center">'+
+      '<input id="wa-inp" placeholder="Escribí tu respuesta..." style="flex:1;border:1.5px solid var(--gris-borde);border-radius:22px;padding:10px 16px;font-size:14px;font-family:inherit;outline:none">'+
+      '<button onclick="waEnviar()" style="background:var(--verde);color:#fff;border:none;border-radius:50%;width:42px;height:42px;font-size:17px;cursor:pointer;flex-shrink:0">➤</button></div>';
+    var i = document.getElementById('wa-inp'); if(i){ i.focus(); i.addEventListener('keydown', function(e){ if(e.key==='Enter') waEnviar(); }); }
+  }
+}
+
+async function waSetModo(botActivo){
+  waSetModoUI(botActivo);
+  if(!_waCliente) return;
+  try{ await db.from('hes_clientes').update({ bot_activo: botActivo }).eq('id', _waCliente.id); _waCliente.bot_activo = botActivo; }catch(e){}
+}
+
+async function waEnviar(){
+  var inp = document.getElementById('wa-inp'); if(!inp) return;
+  var texto = inp.value.trim(); if(!texto || !_waCliente) return;
+  inp.value='';
+  // Mostrarlo al toque
+  var convo = Array.isArray(_waCliente.conversacion) ? _waCliente.conversacion : [];
+  convo.push({ role:'assistant', by:'agente', content:texto });
+  _waCliente.conversacion = convo;
+  document.getElementById('wa-demo-banner').style.display='none';
+  waRenderChat(convo);
+  // Enviar por WhatsApp (requiere la función whatsapp-send deployada)
+  try{
+    await fetch(WA_SEND_URL, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+SUPA_KEY, 'apikey':SUPA_KEY },
+      body: JSON.stringify({ telefono: _waCliente.telefono || _waCliente.contacto, texto: texto, id: _waCliente.id })
+    });
+  }catch(e){ toast('No se pudo enviar (¿bot sin configurar?)'); }
+}
+
+function waClose(){
+  if(_waChan){ try{ db.removeChannel(_waChan); }catch(e){} _waChan=null; }
+  closeModal('wa-modal');
+}
+
+// ══ CONFIGURACIÓN DEL BOT (instrucciones + conocimiento) ═════════════════════
+async function botConfigOpen(){
+  openOverlay('bot-config-modal');
+  var info = document.getElementById('bot-config-info');
+  info.textContent = 'Cargando...';
+  try{
+    var { data } = await db.from('hes_bot_config').select('*').eq('id',1).maybeSingle();
+    document.getElementById('bot-instrucciones').value = (data && data.instrucciones) || '';
+    document.getElementById('bot-conocimiento').value  = (data && data.conocimiento)  || '';
+    info.textContent = data && data.updated_at ? ('Última edición: ' + new Date(data.updated_at).toLocaleString('es-AR')) : '';
+  }catch(e){
+    info.textContent = '⚠ No se pudo cargar (¿falta correr el SQL de hes_bot_config?)';
+  }
+}
+
+async function botConfigSave(){
+  var payload = {
+    id: 1,
+    instrucciones: document.getElementById('bot-instrucciones').value.trim(),
+    conocimiento:  document.getElementById('bot-conocimiento').value.trim(),
+    updated_at: new Date().toISOString()
+  };
+  try{
+    var { error } = await db.from('hes_bot_config').upsert(payload, { onConflict:'id' });
+    if(error) throw error;
+    toast('Bot actualizado ✓');
+    closeModal('bot-config-modal');
+  }catch(e){
+    toast('⚠ No se pudo guardar (¿falta el SQL?)');
+  }
 }
 
 function openClienteModal(id=null) {

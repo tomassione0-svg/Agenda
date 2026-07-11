@@ -5194,8 +5194,7 @@ function renderClientes() {
       <div style="flex:1;min-width:0">
         <div class="cliente-name">${c.nombre||'—'}</div>
         <div class="cliente-meta">📱 ${c.telefono||c.contacto||'—'}${c.email?` · ✉️ ${c.email}`:''}</div>
-        <div class="cliente-meta">🔧 ${tipoClienteDisplay(c)}${c.provincia?` · 📍 ${c.provincia}`:''}</div>
-        ${c.direccion?`<div class="cliente-meta">📌 ${c.direccion}</div>`:''}
+        <div class="cliente-meta">🔧 ${tipoClienteDisplay(c)}${c.provincia?` · 📍 ${c.provincia}`:''}${c.direccion?` · 📌 ${c.direccion}`:''}</div>
         ${(c._mensaje!=null?c._mensaje:c.notas)?`<div class="cliente-meta" style="margin-top:2px">💬 ${c._mensaje!=null?c._mensaje:c.notas}</div>`:''}
         ${c.resumen?`<div class="cliente-meta">🤖 ${c.resumen}</div>`:''}
       </div>

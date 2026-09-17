@@ -309,7 +309,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   .pdf-kpi .v{font-size:17px;font-weight:800;color:#1B6B2F;line-height:1;}
   .pdf-kpi .l{font-size:9px;color:#666;margin-top:3px;}
   .pdf-table{width:100%;border-collapse:collapse;margin:5px 0;font-size:9.5px;}
-  .pdf-table th{background:#1B6B2F;color:#fff;text-align:left;padding:4px 6px;white-space:nowrap;vertical-align:middle;}
+  .pdf-table th{background:transparent;color:#1a1a1a;font-weight:700;text-align:left;padding:5px 6px 4px;white-space:nowrap;vertical-align:bottom;border-bottom:2px solid #1B6B2F;}
   .pdf-table td{border-bottom:1px solid #ddd;padding:4px 6px;}
   .pdf-table td:last-child{text-align:center;}
   .pdf-table th:last-child{text-align:center;}
@@ -344,7 +344,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 #pdf-propuesta .pdf-kpi .v{font-size:17px;font-weight:800;color:#1B6B2F;line-height:1;}
 #pdf-propuesta .pdf-kpi .l{font-size:9px;color:#666;margin-top:3px;}
 #pdf-propuesta .pdf-table{width:100%;border-collapse:collapse;margin:5px 0;font-size:9.5px;}
-#pdf-propuesta .pdf-table th{background:#1B6B2F;color:#fff;text-align:left;padding:4px 6px;white-space:nowrap;vertical-align:middle;}
+#pdf-propuesta .pdf-table th{background:transparent;color:#1a1a1a;font-weight:700;text-align:left;padding:5px 6px 4px;white-space:nowrap;vertical-align:bottom;border-bottom:2px solid #1B6B2F;}
 #pdf-propuesta .pdf-table td{border-bottom:1px solid #ddd;padding:4px 6px;}
 #pdf-propuesta .pdf-table td:last-child{text-align:center;}
 #pdf-propuesta .pdf-table th:last-child{text-align:center;}
@@ -2082,7 +2082,6 @@ window.addEventListener('load', function() {
       <option value="">Seleccionar tipo de sistema</option>
       <option value="Fotovoltaico On-Grid">Fotovoltaico On-Grid</option>
       <option value="Fotovoltaico Off-Grid">Fotovoltaico Off-Grid</option>
-      <option value="Generador Solar">Generador Solar</option>
       <option value="Solar Térmica — ACS">Solar Térmica — ACS</option>
       <option value="Solar Térmica — Pileta">Solar Térmica — Pileta</option>
       <option value="Solar Térmica — Calefacción">Solar Térmica — Calefacción</option>
@@ -5453,23 +5452,22 @@ function leadFuenteTag(c) {
     else if (notas.includes('lead desde whatsapp') || notas.includes('botón whatsapp') || notas.includes('boton whatsapp')) f='whatsapp';
     else if (notas.includes('lead desde mail') || notas.includes('página web') || notas.includes('pagina web') || notas.includes('consulta recibida desde')) f='mail';
   }
-  if (f==='bot') {
-    // Detectá los canales del lead (puede estar en los DOS: IG + WhatsApp si se consolidó por número).
-    var _sid = String(c.session_id||''); var _nt = (c.notas||'').toLowerCase(); var _cont = String(c.contacto||'');
-    var hasIG = _sid.indexOf('ig:')===0 || _nt.includes('bot instagram') || _nt.includes('vino de instagram') || _cont.indexOf('@')===0;
-    var hasWA = _sid.indexOf('wa:')===0 || _nt.includes('bot whatsapp') || _nt.includes('por whatsapp') || _nt.includes('vino de whatsapp');
-    if (!hasIG && !hasWA) hasWA = true; // por defecto WhatsApp si no se detecta canal
-    var svgIG = '<svg width="13" height="13" viewBox="0 0 24 24" style="vertical-align:-2px"><rect x="2" y="2" width="20" height="20" rx="6" fill="#E1306C"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="17.2" cy="6.8" r="1.3" fill="#fff"/></svg>';
-    var svgWA = '<svg width="13" height="13" viewBox="0 0 24 24" style="vertical-align:-2px"><path fill="#25D366" d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.8-1.5A10 10 0 1 0 12 2z"/><path fill="#fff" d="M8.5 7c-.3 0-.6.1-.8.4-.3.3-.9.9-.9 2.1s.9 2.4 1 2.6c.1.2 1.8 2.9 4.5 3.9 2.2.9 2.7.7 3.2.7.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3-.3-.2-1.6-.8-1.9-.9-.2-.1-.4-.1-.6.1-.2.3-.6.9-.8 1-.1.2-.3.2-.5.1-.3-.1-1.1-.4-2.1-1.3-.8-.7-1.3-1.5-1.4-1.8-.2-.3 0-.4.1-.5l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5 0-.1-.6-1.5-.8-2C9 7.1 8.8 7 8.6 7h-.1z"/></svg>';
-    var _pill = function(bg,col,ic){ return '<span style="font-size:10px;background:'+bg+';color:'+col+';padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;margin:0 0 3px 3px">Lead Bot '+ic+'</span>'; };
-    var _out = '';
-    if (hasIG) _out += _pill('#fce4f1','#c13584',svgIG);
-    if (hasWA) _out += _pill('#25d36620','#128c7e',svgWA);
-    return _out;
-  }
-  if (f==='whatsapp') return '<span style="font-size:10px;background:#25d36620;color:#128c7e;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead WhatsApp</span>';
-  if (f==='mail')     return '<span style="font-size:10px;background:#e8f0fe;color:#1a73e8;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead Mail</span>';
-  return '';
+  // Canales del lead (puede tener varios a la vez si se consolidó por número: Mail/IG + WhatsApp).
+  var _sid = String(c.session_id||''); var _nt = (c.notas||'').toLowerCase(); var _cont = String(c.contacto||'');
+  var hasIG   = _sid.indexOf('ig:')===0 || _nt.includes('bot instagram') || _nt.includes('vino de instagram') || _cont.indexOf('@')===0;
+  var hasMail = f==='mail' || _nt.includes('lead desde mail') || _nt.includes('vino de mail') || _nt.includes('página web') || _nt.includes('pagina web') || _nt.includes('consulta recibida desde');
+  var hasWA   = _sid.indexOf('wa:')===0 || _nt.includes('bot whatsapp') || _nt.includes('por whatsapp') || _nt.includes('vino de whatsapp');
+  if (f==='whatsapp' && !hasMail && !hasIG) return '<span style="font-size:10px;background:#25d36620;color:#128c7e;padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap">Lead WhatsApp</span>';
+  if (!hasIG && !hasWA && !hasMail && f!=='bot') return '';
+  if (!hasIG && !hasWA && !hasMail) hasWA = true; // bot sin canal detectado → WhatsApp
+  var svgIG = '<svg width="13" height="13" viewBox="0 0 24 24" style="vertical-align:-2px"><rect x="2" y="2" width="20" height="20" rx="6" fill="#E1306C"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="17.2" cy="6.8" r="1.3" fill="#fff"/></svg>';
+  var svgWA = '<svg width="13" height="13" viewBox="0 0 24 24" style="vertical-align:-2px"><path fill="#25D366" d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.8-1.5A10 10 0 1 0 12 2z"/><path fill="#fff" d="M8.5 7c-.3 0-.6.1-.8.4-.3.3-.9.9-.9 2.1s.9 2.4 1 2.6c.1.2 1.8 2.9 4.5 3.9 2.2.9 2.7.7 3.2.7.5-.1 1.6-.7 1.8-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3-.3-.2-1.6-.8-1.9-.9-.2-.1-.4-.1-.6.1-.2.3-.6.9-.8 1-.1.2-.3.2-.5.1-.3-.1-1.1-.4-2.1-1.3-.8-.7-1.3-1.5-1.4-1.8-.2-.3 0-.4.1-.5l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5 0-.1-.6-1.5-.8-2C9 7.1 8.8 7 8.6 7h-.1z"/></svg>';
+  var _pill = function(bg,col,txt){ return '<span style="font-size:10px;background:'+bg+';color:'+col+';padding:2px 8px;border-radius:8px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;margin:0 0 3px 3px">'+txt+'</span>'; };
+  var _out = '';
+  if (hasMail) _out += _pill('#e8f0fe','#1a73e8','Lead Mail ✉️');
+  if (hasIG)   _out += _pill('#fce4f1','#c13584','Lead Bot ' + svgIG);
+  if (hasWA)   _out += _pill('#25d36620','#128c7e','Lead Bot ' + svgWA);
+  return _out;
 }
 
 // Extrae de leads viejos "amontonados" (web/mail) los datos a sus campos correctos (solo en memoria)
@@ -5514,6 +5512,7 @@ async function loadClientes() {
   const {data}=await db.from('hes_clientes').select('*').or('estado.is.null,estado.neq.silenciado').order('orden',{nullsFirst:true}).order('created_at',{ascending:false});
   clientes=(data||[]).map(_normalizarLead);
   renderClientes();
+  _autoPerderInactivos(); // manda a Perdido los seguimientos fríos de +DIAS_A_PERDIDO días
 }
 
 // Orden de las etapas: más avanzada arriba (cerrado → enviado → cotizando → consulta → perdido)
@@ -5593,6 +5592,40 @@ function _cliRespondioPendiente(c){
   var m = _cliUltimoMsg(c);
   return (c && c.bot_activo === false) && !!m && m.role === 'user';
 }
+// ── AUTO-PERDIDO: un lead en seguimiento (manual o automático) que no responde en X días → Perdido ──
+// Días sin respuesta desde el último seguimiento/actividad (seguimiento_at, sino último inbound, sino alta).
+var DIAS_A_PERDIDO = 2; // ← cambiá este número si querés otra ventana (ej: 3, 5, 7)
+function _cliDiasInactivo(c){
+  var ref = c && (c.seguimiento_at || c.ultimo_inbound || c.created_at);
+  if(!ref) return 0;
+  var t = new Date(ref).getTime();
+  if(isNaN(t)) return 0;
+  return (Date.now() - t) / 86400000;
+}
+// Recorre los leads y manda a Perdido los que están en seguimiento frío hace DIAS_A_PERDIDO días o más.
+// Se ejecuta al cargar el CRM. No toca calificados ni los que pidieron asesor. Es reversible (desplegable).
+async function _autoPerderInactivos(){
+  if(!Array.isArray(clientes)) return;
+  var cambios = [];
+  clientes.forEach(function(c){
+    if(!c || (c.estado||'consulta')!=='consulta') return;
+    if(c.avisado_calif===true || c.pide_asesor===true) return;     // no perder calificados / asesor
+    if(!_cliSeguimientoFrio(c)) return;                            // el cliente ya respondió → no
+    if(!(_cliSeguimientoManual(c) || _cliSeguimientoEnviadoAuto(c))) return; // solo los que están en seguimiento
+    if(_cliDiasInactivo(c) < DIAS_A_PERDIDO) return;               // todavía no pasaron los días
+    cambios.push(c);
+  });
+  if(!cambios.length) return;
+  for(var i=0;i<cambios.length;i++){
+    var c = cambios[i];
+    var dias = Math.floor(_cliDiasInactivo(c));
+    c.estado = 'perdido';
+    c.notas = (c.notas ? String(c.notas)+' · ' : '') + '⏱ Auto-perdido: '+dias+' días sin respuesta';
+    try{ await db.from('hes_clientes').update({ estado:'perdido', notas:c.notas }).eq('id', c.id); }catch(e){}
+  }
+  toast(cambios.length+' lead(s) pasaron a Perdido por inactividad ('+DIAS_A_PERDIDO+'+ días sin respuesta)');
+  renderClientes();
+}
 async function toggleFijar(id){
   var c = clientes.find(function(x){ return String(x.id) === String(id); });
   if(!c) return;
@@ -5632,6 +5665,16 @@ function ordenarClientes(arr){
       var sisA = _cliSistemaOrden(a), sisB = _cliSistemaOrden(b);
       if (sisA !== sisB) return sisA - sisB;
     }
+    // Cotización / Consulta / Calificado: el MÁS VIEJO arriba (el que hace más tiempo espera → lo atendés primero).
+    // En "Consulta" los Calificados/Asesor van arriba de las consultas comunes; dentro de cada uno, por fecha.
+    if (a.estado === 'cotizando' || a.estado === 'consulta') {
+      if (a.estado === 'consulta') {
+        var ka = (a.avisado_calif===true || a.pide_asesor===true) ? 0 : 1;
+        var kb = (b.avisado_calif===true || b.pide_asesor===true) ? 0 : 1;
+        if (ka !== kb) return ka - kb;
+      }
+      return (new Date(a.created_at||0).getTime()) - (new Date(b.created_at||0).getTime()); // ASC = más viejo primero
+    }
     // Grupo: calificado/asesor → respondió → seguimiento manual → seguimiento enviado → no calificados.
     var ga = _cliGrupoOrden(a), gb = _cliGrupoOrden(b);
     if (ga !== gb) return ga - gb;
@@ -5667,6 +5710,150 @@ function renderCliFiltros(ordenados){
     var bd = activo ? 'var(--verde)' : 'var(--gris-borde)';
     return '<button onclick="setCliFiltro(\''+key+'\')" style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;border:1px solid '+bd+';background:'+bg+';color:'+col+';cursor:pointer;white-space:nowrap">'+txt+' <span style="opacity:.7">'+n+'</span></button>';
   }).join('');
+}
+
+// ── Pre-dimensionamiento automático (etiqueta orientativa en la ficha del lead) ──
+// Lee el consumo y la cobertura que levantó el bot y estima paneles (625W) + inversor
+// con la MISMA fórmula del dimensionamiento (getFVData): P_S = E_C×cob/(365×HSP×PR).
+function _leadResumenCampo(resumen, etiqueta){
+  if(!resumen) return '';
+  var re = new RegExp('•\\s*'+etiqueta+'\\s*:\\s*([^\\n•]+)','i');
+  var m = String(resumen).match(re);
+  return m ? m[1].trim() : '';
+}
+function _parseConsumoAnual(txt){
+  if(!txt) return null;
+  var t = String(txt).toLowerCase();
+  var tieneKwh = /kwh|kw h|kilo/.test(t);
+  var tienePesos = /\$|peso|paga|pago|luca|mil\b/.test(t);
+  var nums = (t.replace(/\./g,'').match(/\d+(?:,\d+)?/g)||[])
+    .map(function(x){return parseFloat(x.replace(',','.'));})
+    .filter(function(n){return n>0;});
+  if(!nums.length) return null;
+  if(!tieneKwh && tienePesos) return {needFactura:true};
+  var val = nums.length>1 ? (nums.reduce(function(a,b){return a+b;},0)/nums.length) : nums[0];
+  var anual;
+  // OJO: usamos límites de palabra para no confundir "verano" con "año" (ano ⊂ verANO).
+  if(/\banual\b|\ba[nñ]o\b|\bal a[nñ]o\b|\bpor a[nñ]o\b|\/a[nñ]o/.test(t)) anual = val;
+  else if(/\bbimestr/.test(t)) anual = val*6;
+  else if(/\bmensual(?:es)?\b|\bmes\b|\bal mes\b|\bpor mes\b|\/mes/.test(t)) anual = val*12;
+  else anual = (val>=2500 ? val : val*12); // sin período: número grande = anual, chico = mensual
+  return {anual:anual};
+}
+// Rendimiento fotovoltaico aprox. por zona (kWh generados por kWp instalado al año, tipo PVGIS,
+// ángulo/orientación razonables). Se usa para que el estimado On-Grid se acerque a lo real según la
+// provincia/localidad que levantó el bot, en vez de un sol genérico bajo.
+function _zonaRendimiento(zona){
+  var z = String(zona||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  function has(){ for(var i=0;i<arguments.length;i++){ if(z.indexOf(arguments[i])>=0) return true; } return false; }
+  if(has('jujuy')) return 2050;
+  if(has('salta')) return 1950;
+  if(has('catamarca')) return 1950;
+  if(has('san juan')) return 1950;
+  if(has('la rioja')) return 1900;
+  if(has('mendoza')) return 1850;
+  if(has('santiago del estero','santiago')) return 1800;
+  if(has('san luis')) return 1780;
+  if(has('tucuman')) return 1750;
+  if(has('cordoba')) return 1700;
+  if(has('la pampa')) return 1680;
+  if(has('neuquen')) return 1650;
+  if(has('rio negro')) return 1650;
+  if(has('santa fe')) return 1620;
+  if(has('chaco')) return 1620;
+  if(has('corrientes')) return 1620;
+  if(has('buenos aires','caba','capital federal','ciudad autonoma','gba','a.m.b.a','amba')) return 1620;
+  if(has('entre rios')) return 1600;
+  if(has('formosa')) return 1600;
+  if(has('chubut')) return 1600;
+  if(has('misiones')) return 1580;
+  if(has('santa cruz')) return 1500;
+  if(has('tierra del fuego','ushuaia')) return 1350;
+  return 1550; // zona desconocida: valor medio realista para Argentina
+}
+function _dimEstimadoChip(c){
+  try{
+    if((c&&c.estado)==='cerrado') return ''; // en Cerrado la venta ya está hecha → no mostrar dimensionamiento
+    var tipo = String((c&&c.tipo)||'');
+    if(!/On-Grid|Off-Grid|Híbrido|Hibrido|FV/i.test(tipo)) return '';
+    var resumen = (c&&c.resumen)||'';
+    if(String(resumen).trim().length === 0) return ''; // lead todavía sin datos → sin etiqueta
+    // ¿El cliente ya mandó la factura? (el bot lo marca como "envió facturas"; "prometió enviarlas" NO cuenta)
+    var facTxt = _leadResumenCampo(resumen,'Facturas');
+    var facturaEnviada = /envi/i.test(facTxt) && !/promet/i.test(facTxt);
+    var facNota = facturaEnviada ? '✅ tenemos la factura' : '⚠️ no tenemos la factura';
+    var facCol  = facturaEnviada ? 'var(--muted)' : 'var(--amber)';
+
+    // Off-Grid e Híbrido se dimensionan por CARGAS (otro método), no por consumo → lo hacés vos.
+    // Acá NO calculamos paneles/inversor; solo mostramos el estado de la factura.
+    if(!/On-Grid/i.test(tipo)){
+      return '<div class="cliente-meta" style="color:'+facCol+';font-weight:600" title="Off-Grid e Híbrido se dimensionan por las cargas del cliente, no por el consumo. Ese cálculo lo hacés vos.">📐 Se dimensiona por cargas (manual) · '+facNota+'</div>';
+    }
+
+    // ── ON-GRID: dimensionamiento automático por consumo × cobertura ──
+    var consTxt = _leadResumenCampo(resumen,'Consumo');
+    var parsed = consTxt ? _parseConsumoAnual(consTxt) : null;
+    if(parsed && !parsed.needFactura){
+      var cobTxt = _leadResumenCampo(resumen,'Cobertura objetivo');
+      var cob = 100; var mc = String(cobTxt).match(/(\d+(?:[.,]\d+)?)/);
+      if(mc) cob = parseFloat(mc[1].replace(',','.'));
+      if(!(cob>0)) cob = 100;
+      var panelW=625;
+      // Rendimiento según la zona del cliente (kWh/kWp/año, tipo PVGIS) → estimado realista.
+      var rend = _zonaRendimiento((c.provincia||'')+' '+(c.direccion||''));
+      var kwpNec=(parsed.anual*(cob/100))/rend;
+      var paneles=Math.max(1,Math.ceil(kwpNec*1000/panelW));
+      var kwpReal=paneles*panelW/1000;
+      var tri=/trif/i.test(_leadResumenCampo(resumen,'Conexión eléctrica'));
+      var invStd=inversorEstandar(+(kwpReal*0.85).toFixed(1), tri);
+      return '<div class="cliente-meta" style="color:var(--verde);font-weight:600" title="Estimación automática orientativa On-Grid · paneles 625W · rendimiento '+rend+' kWh/kWp/año según la zona. Corroborá con PVGIS y la orientación real del techo.">📐 Estimado: '+paneles+' paneles 625W · '+kwpReal.toFixed(1)+' kWp · Inversor '+invStd+' kW'+(tri?' trif.':'')+' · '+Math.round(cob)+'% cob. · '+facNota+'</div>';
+    }
+
+    // On-Grid sin número de consumo usable → no se puede estimar; mostramos estado de factura.
+    return '<div class="cliente-meta" style="color:'+facCol+';font-weight:600" title="No hay consumo por escrito para estimar. Con la factura lo dimensionás vos; si no está, pedila o pedí un kWh/mes.">📐 Sin dimensionamiento automático · '+facNota+'</div>';
+  }catch(e){ return ''; }
+}
+
+// Fecha de INGRESO en la ficha (solo Consulta / Calificado / Cotización).
+// En Presupuesto enviado / Cerrado / Perdido NO se muestra fecha.
+// Cuenta en DÍAS DE CALENDARIO (no horas), así coincide con la fecha mostrada.
+// Naranja + negrita a partir de los 3 días, para ver de un vistazo lo que se atrasa.
+function _fechaIngreso(c){
+  var est = (c && c.estado) || 'consulta';
+  if (est !== 'consulta' && est !== 'cotizando') return '';
+  var d = c && c.created_at;
+  if(!d) return '';
+  var t = new Date(d); if(isNaN(t.getTime())) return '';
+  var hoy = new Date();
+  var t0 = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+  var h0 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  var dias = Math.round((h0 - t0) / 86400000);
+  var rel = dias<=0 ? 'hoy' : (dias===1 ? 'ayer' : 'hace ' + dias + ' días');
+  var dd = String(t.getDate()).padStart(2,'0'), mm = String(t.getMonth()+1).padStart(2,'0');
+  var col = dias>=3 ? 'var(--amber)' : 'var(--muted)';
+  return '<div class="cliente-meta" style="color:'+col+';font-weight:'+(dias>=3?'600':'400')+'">📅 Ingresó ' + rel + ' · ' + dd + '/' + mm + '</div>';
+}
+// ¿Vino por Mail y lo pasaste a WhatsApp? (espejo del flujo de Instagram → WhatsApp)
+function _esMailWA(c){
+  var n = String((c&&c.notas)||'').toLowerCase();
+  var sid = String((c&&c.session_id)||'');
+  return sid.indexOf('wa:')===0 && (n.indexOf('vino de mail')>=0 || n.indexOf('lead desde mail')>=0);
+}
+// Cuerpo de la tarjeta (líneas 💬 y 🤖), UNIFICADO para Instagram y Mail:
+//  · 💬 = nota de origen ("La iniciaste vos por WhatsApp · Vino de …")
+//  · 🤖 = el detalle (resumen del bot, o la consulta que mandó el cliente por mail)
+function _cardCuerpo(c){
+  var out = '';
+  if (_esMailWA(c)) {
+    out += '<div class="cliente-meta" style="margin-top:2px">💬 ✋ La iniciaste vos por WhatsApp · ✉️ Vino de Mail</div>';
+    var det = (c._mensaje != null ? c._mensaje : '') || c.resumen || '';
+    if (det) out += '<div class="cliente-meta">🤖 ' + det + '</div>';
+  } else {
+    var msg = (c._mensaje != null ? c._mensaje : c.notas);
+    if (msg) out += '<div class="cliente-meta" style="margin-top:2px">💬 ' + msg + '</div>';
+    if (c.resumen) out += '<div class="cliente-meta">🤖 ' + c.resumen + '</div>';
+  }
+  return out;
 }
 
 function renderClientes() {
@@ -5706,8 +5893,9 @@ function renderClientes() {
         <div class="cliente-name">${c.nombre||'—'}</div>
         <div class="cliente-meta">📱 ${c.telefono||c.contacto||'—'}${c.email?` · ✉️ ${c.email}`:''}</div>
         <div class="cliente-meta">🔧 ${tipoClienteDisplay(c)}${c.provincia?` · 📍 ${c.provincia}`:''}${c.direccion?` · 📌 ${c.direccion}`:''}</div>
-        ${(c._mensaje!=null?c._mensaje:c.notas)?`<div class="cliente-meta" style="margin-top:2px">💬 ${c._mensaje!=null?c._mensaje:c.notas}</div>`:''}
-        ${c.resumen?`<div class="cliente-meta">🤖 ${c.resumen}</div>`:''}
+        ${_fechaIngreso(c)}
+        ${_cardCuerpo(c)}
+        ${_dimEstimadoChip(c)}
         ${_adjClienteChips(c.id)}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
@@ -5802,6 +5990,7 @@ function waOpen(id){
 // Refresco automático del panel (lee la base y actualiza SOLO si algo cambió)
 async function waRefrescar(){
   if(!_waCliente || !document.getElementById('wa-modal').classList.contains('open')) return;
+  if(document.visibilityState !== 'visible') return; // no consumir con la pestaña de fondo
   try{
     var { data } = await db.from('hes_clientes')
       .select('conversacion, bot_activo, resumen, notas').eq('id', _waCliente.id).maybeSingle();
@@ -6174,6 +6363,11 @@ async function saveCliente() {
   const _tel=document.getElementById('cli-tel').value.trim();
   const payload={nombre:document.getElementById('cli-nombre').value.trim(),telefono:_tel,contacto:_tel,email:document.getElementById('cli-email').value.trim(),provincia:document.getElementById('cli-provincia').value.trim(),direccion:document.getElementById('cli-direccion').value.trim(),tipo:normalizarTipoCliente(document.getElementById('cli-tipo').value, document.getElementById('cli-notas').value),estado:document.getElementById('cli-estado').value,notas:document.getElementById('cli-notas').value.trim(),resumen:document.getElementById('cli-resumen').value.trim(),fuente:document.getElementById('cli-fuente').value.trim()||'manual'};
   if(!payload.nombre){toast('Ingresá el nombre');return;}
+  // Fecha de envío del presupuesto: se sella la PRIMERA vez que el lead pasa a "enviado" (no se pisa después).
+  if(payload.estado==='enviado'){
+    var _prev = id ? (clientes||[]).find(function(x){return String(x.id)===String(id);}) : null;
+    payload.enviado_at = (_prev && _prev.enviado_at) ? _prev.enviado_at : new Date().toISOString();
+  }
   setSyncState('loading');
   let error;
   if(id){({error}=await db.from('hes_clientes').update(payload).eq('id',id));}
@@ -6460,26 +6654,32 @@ async function init() {
   } catch(e){ setSyncState('error'); }
   loadFirma();
 
-  // ── REALTIME: escucha inserts en hes_clientes ──────────────────────────
-  try {
-    db.channel('leads_live')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'hes_clientes'
-      }, function() {
-        loadClientes();
-        toast('🔔 Nuevo lead recibido!');
-      })
-      .subscribe(function(status) {
-        console.log('Realtime status:', status);
-      });
-  } catch(e) { console.warn('Realtime no disponible:', e); }
+  // ── REALTIME + POLLING: se arman UNA SOLA VEZ por carga de página ────────
+  // (init() se llama en cada showApp/re-login; sin este candado se apilaban
+  //  suscripciones y temporizadores → recargas multiplicadas → egress al pedo).
+  if (!window._leadsLiveSetup) {
+    window._leadsLiveSetup = true;
+    // Realtime: avisa los leads nuevos al instante.
+    try {
+      db.channel('leads_live')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'hes_clientes'
+        }, function() {
+          loadClientes();
+          toast('🔔 Nuevo lead recibido!');
+        })
+        .subscribe(function(status) {
+          console.log('Realtime status:', status);
+        });
+    } catch(e) { console.warn('Realtime no disponible:', e); }
 
-  // ── POLLING cada 30s como respaldo ────────────────────────────────────
-  setInterval(function() {
-    loadClientes();
-  }, 30000);
+    // Polling de respaldo: cada 90s y SOLO si la pestaña está VISIBLE.
+    setInterval(function() {
+      if (document.visibilityState === 'visible') loadClientes();
+    }, 90000);
+  } // fin candado _leadsLiveSetup (realtime + polling se arman una sola vez)
 }
 
 // ── DOCUMENTOS ─────────────────────────────────────────────────────────────
@@ -7130,7 +7330,6 @@ function clearVozMic() {
             <option value="">Seleccionar...</option>
             <option value="Fotovoltaico On-Grid">Fotovoltaico On-Grid</option>
             <option value="Fotovoltaico Off-Grid">Fotovoltaico Off-Grid</option>
-            <option value="Generador Solar">Generador Solar</option>
             <option value="Solar Térmica — ACS">Solar Térmica — ACS</option>
             <option value="Solar Térmica — Pileta">Solar Térmica — Pileta</option>
             <option value="Solar Térmica — Calefacción">Solar Térmica — Calefacción</option>
@@ -8550,37 +8749,11 @@ async function pqDownloadPDF() {
       return;
     }
 
-    // Upload to storage — SOLO al guardar de verdad. Base64 por compatibilidad con iOS Safari.
-    let pdfPath = null;
-    try {
-      const filename = 'pq_' + nro + '_' + Date.now() + '.pdf';
-      // Convert blob to base64 (works reliably on all browsers including iOS Safari)
-      const base64 = await new Promise(function(resolve, reject) {
-        const reader = new FileReader();
-        reader.onload = function() {
-          // result is "data:application/pdf;base64,XXXX" — extract just the base64 part
-          resolve(reader.result.split(',')[1]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(pdfBlob);
-      });
-      // Decode base64 back to binary for upload
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const up = await pqSbStorage('object/presupuestos-pdf/' + filename, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/pdf' },
-        body: bytes.buffer
-      });
-      if (up.ok) {
-        pdfPath = filename;
-      } else {
-        console.warn('Storage upload failed:', up.status, await up.text().catch(()=>''));
-      }
-    } catch(e) {
-      console.warn('Storage upload error:', e.message);
-    }
+    // NO subimos el PDF a Supabase. Igual que Dimensionamiento y Análisis financiero,
+    // el PDF se genera y descarga localmente. El historial ("Ver PDF") lo regenera desde
+    // los datos guardados (pqExportHistorialPDF → pqBuildPDFHTML), así que el archivo físico
+    // era redundante y solo llenaba el storage/egress. pdf_path queda null.
+    const pdfPath = null;
 
     // Save or Update to Supabase
     if (_pqEditRecord) {
@@ -9156,6 +9329,51 @@ function pqShowClienteDropdown(q) {
   dd.style.width = rect.width + 'px';
   dd.style.display = 'block';
 }
+
+// ── Autocompletar cliente en DIMENSIONAMIENTO FV (mismo comportamiento que en presupuesto) ──
+// Al elegir un cliente del CRM, trae el nombre y completa la ubicación (dirección + provincia).
+function fvShowClienteDropdown(q) {
+  var inp = document.getElementById('fv-cliente');
+  if (!inp) return;
+  var dd = document.getElementById('fv-cn-dropdown');
+  if (!dd) {
+    dd = document.createElement('div');
+    dd.id = 'fv-cn-dropdown';
+    dd.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.12);max-height:260px;overflow:auto;display:none';
+    document.body.appendChild(dd);
+  }
+  var list = pqClientesAutocompletar();
+  var matches = q ? list.filter(function(c){ return c.nombre.toLowerCase().includes(q.toLowerCase()); }) : list.slice(0, 8);
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.map(function(c) {
+    var details = [ c.contacto ? 'Contacto: ' + c.contacto : '', c.dir ? c.dir : '' ].filter(Boolean).join(' · ');
+    return '<div style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;" ' +
+      'onmousedown="event.preventDefault();fvFillCliente(' + JSON.stringify(c).replace(/"/g,"'") + ')" ' +
+      'onmouseover="this.style.background=\'#eaf5ec\'" onmouseout="this.style.background=\'\'"> ' +
+      '<div style="font-weight:600;font-size:13px;color:#1e2118">' + c.nombre + '</div>' +
+      (details ? '<div style="font-size:11px;color:#888;margin-top:2px">' + details + '</div>' : '') +
+    '</div>';
+  }).join('');
+  var rect = inp.getBoundingClientRect();
+  dd.style.left  = rect.left + 'px';
+  dd.style.top   = rect.bottom + 'px';
+  dd.style.width = rect.width + 'px';
+  dd.style.display = 'block';
+}
+function fvFillCliente(c) {
+  var n = document.getElementById('fv-cliente');   if (n) n.value = c.nombre || '';
+  var u = document.getElementById('fv-ubicacion');  if (u && c.dir) u.value = c.dir;
+  var dd = document.getElementById('fv-cn-dropdown'); if (dd) dd.style.display = 'none';
+  if (typeof calcularFV === 'function') { try { calcularFV(); } catch(e){} }
+}
+document.addEventListener('DOMContentLoaded', function() {
+  var inp = document.getElementById('fv-cliente');
+  if (!inp) return;
+  inp.setAttribute('autocomplete', 'off');
+  inp.addEventListener('input', function() { fvShowClienteDropdown(this.value); });
+  inp.addEventListener('focus', function() { fvShowClienteDropdown(this.value); });
+  inp.addEventListener('blur',  function() { setTimeout(function() { var dd = document.getElementById('fv-cn-dropdown'); if (dd) dd.style.display = 'none'; }, 300); });
+});
 
 // Init cliente autocomplete
 document.addEventListener('DOMContentLoaded', function() {

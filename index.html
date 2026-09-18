@@ -5506,11 +5506,29 @@ function _normalizarLead(c){
 }
 
 // ── CLIENTES ───────────────────────────────────────────────────────────────
-async function loadClientes() {
-  // neq('estado','silenciado'): oculta los chats que iniciaste VOS por WhatsApp con
-  // alguien que no es cliente. Ese registro existe solo para que el bot no se meta.
-  const {data}=await db.from('hes_clientes').select('*').or('estado.is.null,estado.neq.silenciado').order('orden',{nullsFirst:true}).order('created_at',{ascending:false});
-  clientes=(data||[]).map(_normalizarLead);
+async function loadClientes(periodico) {
+  // AHORRO EGRESS #1: NO traemos la columna 'conversacion' (la más pesada) en la lista — solo las columnas
+  // que usan las tarjetas + las resumidas (ult_rol/ult_by/tiene_agente). La conversación completa se
+  // trae recién al abrir el chat (waOpen).
+  // AHORRO EGRESS #2: en el refresco AUTOMÁTICO (periodico=true) NO recargamos los Cerrados/Perdidos
+  // (peso muerto que casi no cambia); se conservan en memoria y se refrescan solo en una carga completa.
+  const _COLS_LISTA = 'id, nombre, contacto, tipo, estado, notas, created_at, orden, telefono, email, provincia, direccion, resumen, fuente, session_id, bot_activo, avisado, avisado_calif, bot_lock, ultimo_inbound, seguimiento_at, wa_negocio, primer_reply_at, fijado, seguimiento_manual, pide_asesor, enviado_at, ppto_seguido_at, ult_rol, ult_by, tiene_agente';
+  var sel = db.from('hes_clientes').select(_COLS_LISTA);
+  if(periodico){
+    sel = sel.or('estado.is.null,estado.eq.consulta,estado.eq.cotizando,estado.eq.enviado'); // solo activos
+  } else {
+    sel = sel.or('estado.is.null,estado.neq.silenciado'); // todo (menos silenciados)
+  }
+  const {data} = await sel.order('orden',{nullsFirst:true}).order('created_at',{ascending:false});
+  var frescos = (data||[]).map(_normalizarLead);
+  if(periodico && Array.isArray(clientes)){
+    // Conservar en memoria lo que no vino en este fetch liviano (Cerrados/Perdidos ya cargados).
+    var ids = {}; frescos.forEach(function(c){ ids[String(c.id)] = true; });
+    var conservar = clientes.filter(function(c){ return c && !ids[String(c.id)]; });
+    clientes = frescos.concat(conservar);
+  } else {
+    clientes = frescos;
+  }
   renderClientes();
   _autoPerderInactivos(); // manda a Perdido los seguimientos fríos de +DIAS_A_PERDIDO días
 }
@@ -5564,16 +5582,21 @@ function _cliSeguimientoEnviado(c){
 // - último mensaje = seguimiento automático del bot (by:'seguimiento') → SEGUIMIENTO ENVIADO por el bot.
 // - último mensaje del cliente (role:'user') → pelota en tu cancha → sin badge (lead activo).
 function _cliUltimoMsg(c){
-  var convo = Array.isArray(c && c.conversacion) ? c.conversacion : [];
-  return convo.length ? convo[convo.length - 1] : null;
+  var convo = Array.isArray(c && c.conversacion) ? c.conversacion : null;
+  if (convo && convo.length) return convo[convo.length - 1];
+  // En la lista NO cargamos la conversación completa (ahorro de egress): reconstruimos lo mínimo
+  // del último mensaje desde las columnas livianas ult_rol / ult_by.
+  if (c && (c.ult_rol || c.ult_by)) return { role: c.ult_rol || 'assistant', by: c.ult_by || undefined };
+  return null;
 }
 // ¿Lo estás manejando vos a mano? PEGAJOSO: si en ALGÚN momento seguiste/tomaste la conversación a mano
 // (algún mensaje by:'agente'), queda marcado como "seguimiento manual" mientras siga en Consulta,
 // aunque el cliente después responda (ahí además aparece "Respondió").
 function _cliSeguimientoManual(c){
   if (c && c.seguimiento_manual === true) return true;
-  var convo = Array.isArray(c && c.conversacion) ? c.conversacion : [];
-  return convo.some(function(m){ return m && m.by === 'agente'; });
+  var convo = Array.isArray(c && c.conversacion) ? c.conversacion : null;
+  if (convo) return convo.some(function(m){ return m && m.by === 'agente'; });
+  return !!(c && c.tiene_agente === true); // lista liviana → usamos la columna resumida
 }
 // ¿El bot mandó su seguimiento automático y nadie respondió? (último mensaje = by:'seguimiento').
 function _cliSeguimientoEnviadoAuto(c){
@@ -5771,6 +5794,13 @@ function _zonaRendimiento(zona){
   if(has('tierra del fuego','ushuaia')) return 1350;
   return 1550; // zona desconocida: valor medio realista para Argentina
 }
+// ¿La ficha tiene un adjunto de factura? (chip 📎 Factura) — sirve aunque el bot no la haya registrado.
+function _clienteTieneFactura(c){
+  if(!c) return false;
+  return (typeof adjuntos!=='undefined' ? adjuntos : []).some(function(a){
+    return a && a.cliente_id!=null && String(a.cliente_id)===String(c.id) && /factura/i.test(String(a.titulo||'') + ' ' + String(a.tipo||''));
+  });
+}
 function _dimEstimadoChip(c){
   try{
     if((c&&c.estado)==='cerrado') return ''; // en Cerrado la venta ya está hecha → no mostrar dimensionamiento
@@ -5780,7 +5810,9 @@ function _dimEstimadoChip(c){
     if(String(resumen).trim().length === 0) return ''; // lead todavía sin datos → sin etiqueta
     // ¿El cliente ya mandó la factura? (el bot lo marca como "envió facturas"; "prometió enviarlas" NO cuenta)
     var facTxt = _leadResumenCampo(resumen,'Facturas');
-    var facturaEnviada = /envi/i.test(facTxt) && !/promet/i.test(facTxt);
+    // Factura: la damos por recibida si el bot la registró en el texto, O si hay un adjunto "Factura" en la ficha
+    // (a veces el bot no la detecta en el flujo pero el cliente igual la mandó y quedó adjunta).
+    var facturaEnviada = (/envi/i.test(facTxt) && !/promet/i.test(facTxt)) || _clienteTieneFactura(c);
     var facNota = facturaEnviada ? '✅ tenemos la factura' : '⚠️ no tenemos la factura';
     var facCol  = facturaEnviada ? 'var(--muted)' : 'var(--amber)';
 
@@ -5814,6 +5846,44 @@ function _dimEstimadoChip(c){
   }catch(e){ return ''; }
 }
 
+// Aviso de seguimiento para "Presupuesto enviado": aparece APENAS lo mandás a enviado
+// (recordatorio de tarea pendiente) y se saca con el botón "✓ Ya lo hice" (marca ppto_seguido_at).
+// Muestra hace cuántos días se envió para que sepas cuándo llamarlo.
+function _pptoSeguimiento(c){
+  if(!c || c.estado !== 'enviado') return '';
+  if(c.ppto_seguido_at) return '';   // ya le hiciste seguimiento → sin aviso
+  var extra = '';
+  if(c.enviado_at){
+    var t = new Date(c.enviado_at);
+    if(!isNaN(t.getTime())){
+      var hoy = new Date();
+      var t0 = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+      var h0 = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+      var dias = Math.round((h0 - t0) / 86400000);
+      var rel = dias<=0 ? 'hoy' : (dias===1 ? 'hace 1 día' : 'hace ' + dias + ' días');
+      extra = ' (enviado ' + rel + ')';
+    }
+  }
+  return '<div class="cliente-meta" onclick="event.stopPropagation();marcarPptoSeguido(\'' + c.id + '\')" title="Clic cuando le hagas el seguimiento (lo saca de la lista)" style="color:var(--amber);font-weight:600;margin-top:2px;cursor:pointer">🔔 Hacer seguimiento' + extra + '</div>';
+}
+async function marcarPptoSeguido(id){
+  var ahora = new Date().toISOString();
+  var c = (clientes||[]).find(function(x){ return String(x.id)===String(id); });
+  if(c) c.ppto_seguido_at = ahora;
+  renderClientes();
+  try{ await db.from('hes_clientes').update({ ppto_seguido_at: ahora }).eq('id', id); toast('✓ Seguimiento hecho'); }
+  catch(e){ toast('No se pudo guardar'); }
+}
+// Enciende/apaga el aviso "Hacer seguimiento" (por si lo sacaste sin querer o querés volver a marcarlo).
+async function toggleSeguimientoPpto(id){
+  var c = (clientes||[]).find(function(x){ return String(x.id)===String(id); });
+  if(!c) return;
+  var nuevo = c.ppto_seguido_at ? null : new Date().toISOString();
+  c.ppto_seguido_at = nuevo;
+  renderClientes();
+  try{ await db.from('hes_clientes').update({ ppto_seguido_at: nuevo }).eq('id', id); toast(nuevo ? '✓ Seguimiento hecho' : '🔔 Marcado para hacer seguimiento'); }
+  catch(e){ toast('No se pudo guardar'); }
+}
 // Fecha de INGRESO en la ficha (solo Consulta / Calificado / Cotización).
 // En Presupuesto enviado / Cerrado / Perdido NO se muestra fecha.
 // Cuenta en DÍAS DE CALENDARIO (no horas), así coincide con la fecha mostrada.
@@ -5894,6 +5964,7 @@ function renderClientes() {
         <div class="cliente-meta">📱 ${c.telefono||c.contacto||'—'}${c.email?` · ✉️ ${c.email}`:''}</div>
         <div class="cliente-meta">🔧 ${tipoClienteDisplay(c)}${c.provincia?` · 📍 ${c.provincia}`:''}${c.direccion?` · 📌 ${c.direccion}`:''}</div>
         ${_fechaIngreso(c)}
+        ${_pptoSeguimiento(c)}
         ${_cardCuerpo(c)}
         ${_dimEstimadoChip(c)}
         ${_adjClienteChips(c.id)}
@@ -5909,6 +5980,7 @@ function renderClientes() {
           <button class="edit-btn" onclick="toggleFijar('${c.id}')" title="${c.fijado?'Quitar de fijados':'Fijar arriba'}" style="font-size:14px;${c.fijado?'':'opacity:.3'}">📌</button>
           <button class="edit-btn" onclick="openAdjuntosCliente('${c.id}')" title="Fotos y archivos" style="font-size:14px">📎${nAdj?`<span style="font-size:9px;font-weight:700;color:var(--verde);vertical-align:super">${nAdj}</span>`:''}</button>
           <button class="edit-btn" onclick="waOpen('${c.id}')" title="Conversación WhatsApp" style="font-size:14px">💬</button>
+          ${(c.estado==='enviado')?`<button class="edit-btn" onclick="event.stopPropagation();toggleSeguimientoPpto('${c.id}')" title="${c.ppto_seguido_at?'Volver a marcar: Hacer seguimiento':'Seguimiento pendiente (clic para sacarlo)'}" style="font-size:14px;${c.ppto_seguido_at?'opacity:.3':''}">🔔</button>`:''}
           <button class="edit-btn" onclick="openClienteModal('${c.id}')">✎</button>
         </div>
       </div>
@@ -5943,10 +6015,14 @@ const _WA_DEMO = [
   { role:'assistant', content:'Perfecto, con ese consumo un sistema On-Grid te sirve. ¿Me pasás tu nombre para que un asesor te cotice?' },
 ];
 
-function waOpen(id){
+async function waOpen(id){
   var c = clientes.find(function(x){ return String(x.id)===String(id); });
   if(!c) return;
   _waCliente = c;
+  // La conversación NO viene en la lista (ahorro de egress) → la traemos ahora, al abrir el chat.
+  if(!Array.isArray(c.conversacion)){
+    try{ var r = await db.from('hes_clientes').select('conversacion').eq('id', id).maybeSingle(); if(r && r.data) c.conversacion = r.data.conversacion; }catch(e){}
+  }
   document.getElementById('wa-nombre').textContent = c.nombre || 'Cliente';
   var _esIG = String(c.session_id||'').indexOf('ig:')===0 || (c.notas||'').toLowerCase().includes('bot instagram');
   document.getElementById('wa-tel').textContent = _esIG
@@ -6675,9 +6751,10 @@ async function init() {
         });
     } catch(e) { console.warn('Realtime no disponible:', e); }
 
-    // Polling de respaldo: cada 90s y SOLO si la pestaña está VISIBLE.
+    // Polling de respaldo: cada 90s, SOLO si la pestaña está VISIBLE, y en modo liviano
+    // (solo activos, sin Cerrados/Perdidos → menos egress).
     setInterval(function() {
-      if (document.visibilityState === 'visible') loadClientes();
+      if (document.visibilityState === 'visible') loadClientes(true);
     }, 90000);
   } // fin candado _leadsLiveSetup (realtime + polling se arman una sola vez)
 }

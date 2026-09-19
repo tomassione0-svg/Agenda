@@ -3346,9 +3346,10 @@ function getFVData() {
     const refWrap = document.getElementById('fv-pvgis-ref-wrap');
     const refAvg  = document.getElementById('fv-pvgis-ref-avg');
     if(pvgisAnual > 0 && pvgisKwp > 0) {
-      const refKwhMes = Math.round(pvgisAnual * pvgisKwp / 12);
+      const refKwhAnual = Math.round(pvgisAnual * pvgisKwp);
+      const refKwhMes = Math.round(refKwhAnual / 12);
       if(refWrap) refWrap.style.display = '';
-      if(refAvg)  refAvg.textContent = refKwhMes.toLocaleString('es-AR') + ' kWh/mes (sistema ref. ' + pvgisKwp.toFixed(1) + ' kWp)';
+      if(refAvg)  refAvg.textContent = refKwhMes.toLocaleString('es-AR') + ' kWh/mes · ' + refKwhAnual.toLocaleString('es-AR') + ' kWh/año (sistema ref. ' + pvgisKwp.toFixed(1) + ' kWp)';
     } else {
       if(refWrap) refWrap.style.display = 'none';
     }
@@ -4478,8 +4479,9 @@ function getHIBData() {
     var refWrap = document.getElementById('hib-pvgis-ref-wrap');
     var refAvg  = document.getElementById('hib-pvgis-ref-avg');
     if (pvgisAnual > 0 && pvgisKwp > 0) {
-      var refKwhMes = Math.round(pvgisAnual * pvgisKwp / 12);
-      if (refAvg)  refAvg.textContent = refKwhMes.toLocaleString('es-AR') + ' kWh/mes (sistema ref. ' + pvgisKwp.toFixed(1) + ' kWp)';
+      var refKwhAnual = Math.round(pvgisAnual * pvgisKwp);
+      var refKwhMes = Math.round(refKwhAnual / 12);
+      if (refAvg)  refAvg.textContent = refKwhMes.toLocaleString('es-AR') + ' kWh/mes · ' + refKwhAnual.toLocaleString('es-AR') + ' kWh/año (sistema ref. ' + pvgisKwp.toFixed(1) + ' kWp)';
       if (refWrap) refWrap.style.display = '';
     } else if (refWrap) {
       refWrap.style.display = 'none';

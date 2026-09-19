@@ -1383,8 +1383,9 @@ window.addEventListener('load', function() {
               📡 Ingresá la generación mensual para <strong>1 kWp</strong> que entrega PVGIS (en kWh/mes). La app escala al sistema real.
             </div>
             <div id="hib-pvgis-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px"></div>
-            <div style="font-size:11px;color:var(--muted);padding:0 2px">
-              Total ingresado: <strong id="hib-pvgis-total">0 kWh/kWp·año</strong>
+            <div style="font-size:11px;color:var(--muted);padding:0 2px;display:flex;flex-wrap:wrap;gap:10px">
+              <span>Total ingresado: <strong id="hib-pvgis-total">0 kWh/kWp·año</strong></span>
+              <span id="hib-pvgis-ref-wrap" style="display:none">· Generación de referencia: <strong id="hib-pvgis-ref-avg" style="color:var(--teal)">— kWh/mes</strong></span>
             </div>
             <div class="calc-field" style="margin-top:8px">
               <label style="font-size:11px;font-weight:600">kWp del sistema simulado en PVGIS</label>
@@ -1558,6 +1559,14 @@ window.addEventListener('load', function() {
           <h3 style="margin:0">Desglose de inversión</h3>
         </div>
         <button class="btn btn-primary" style="font-size:11px;padding:5px 10px" onclick="afAgregarItem()">＋ Ítem</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;background:var(--azul-light);border:1px solid #b8d4f0;border-radius:8px;padding:8px 10px">
+        <label style="font-size:12px;font-weight:600;color:#185FA5;margin:0">💱 Los precios que ingreso están en:</label>
+        <select id="af-moneda-carga" onchange="afSetMonedaCarga(this.value)" style="padding:6px 10px;border:1.5px solid var(--gris-borde);border-radius:6px;font-size:13px;font-family:inherit;font-weight:600">
+          <option value="USD">Dólar (USD)</option>
+          <option value="ARS">Pesos (ARS)</option>
+        </select>
+        <span style="font-size:10px;color:var(--muted)">Poné la moneda del presupuesto. El toggle de resultados solo cambia cómo se MUESTRA.</span>
       </div>
       <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border:1.5px solid var(--gris-borde);border-radius:8px;margin-bottom:10px">
         <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:420px">
@@ -4465,6 +4474,16 @@ function getHIBData() {
     pvgisAnual = pvgisMeses.reduce(function(a,b){return a+b;},0);
     var totEl = document.getElementById('hib-pvgis-total');
     if (totEl) totEl.textContent = Math.round(pvgisAnual)+' kWh/kWp·año';
+    // Generación de referencia = promedio mensual del sistema completo simulado en PVGIS
+    var refWrap = document.getElementById('hib-pvgis-ref-wrap');
+    var refAvg  = document.getElementById('hib-pvgis-ref-avg');
+    if (pvgisAnual > 0 && pvgisKwp > 0) {
+      var refKwhMes = Math.round(pvgisAnual * pvgisKwp / 12);
+      if (refAvg)  refAvg.textContent = refKwhMes.toLocaleString('es-AR') + ' kWh/mes (sistema ref. ' + pvgisKwp.toFixed(1) + ' kWp)';
+      if (refWrap) refWrap.style.display = '';
+    } else if (refWrap) {
+      refWrap.style.display = 'none';
+    }
     if (pvgisAnual <= 0) {
       kwpNecesario = (anual*cobertura)/365/(hsp*pr);
       paneles = Math.max(1, Math.ceil(kwpNecesario*1000/panelW));
@@ -11084,6 +11103,26 @@ function afSetMonedaSilencioso(m) {
     bu.style.background = isArs ? '#fff' : 'var(--verde)'; bu.style.color = isArs ? 'var(--muted)' : '#fff';
     ba.style.background = isArs ? 'var(--verde)' : '#fff'; ba.style.color = isArs ? '#fff' : 'var(--muted)';
   }
+  // En todas las cargas/reset el toggle arranca igual a la moneda de carga → mantener el selector en sincronía
+  var selC = document.getElementById('af-moneda-carga'); if (selC) selC.value = isArs ? 'ARS' : 'USD';
+}
+
+// Selector "moneda de carga": declara en qué moneda están los números que se cargan en la tabla.
+// Reinterpreta lo YA cargado como esa moneda (no lo reconvierte por TC) y alinea el toggle a esa moneda.
+function afSetMonedaCarga(m) {
+  var mon = (m === 'ARS') ? 'ARS' : 'USD';
+  // Los valores VISIBLES pasan a ser la base en la nueva moneda de carga (lo que ves = lo que cargaste).
+  var tbody = document.getElementById('af-items-tbody');
+  if (tbody) tbody.querySelectorAll('tr[id^="afrow-"]').forEach(function(tr){
+    var nums = tr.querySelectorAll('input[type="number"]');
+    var pin  = nums[1];
+    if (pin) { var v = parseFloat(pin.value)||0; pin.setAttribute('data-base', v ? +v.toFixed(4) : 0); }
+  });
+  var inst = document.getElementById('af-inst-pct');
+  if (inst) { var iv = parseFloat(inst.value)||0; inst.setAttribute('data-base', iv ? +iv.toFixed(4) : 0); }
+  window._afEntryMon = mon;
+  afSetMonedaSilencioso(mon);   // mostrar = cargar (1:1); también deja el selector en 'mon'
+  afActualizarTotales();
 }
 
 function afSetMoneda(m) {

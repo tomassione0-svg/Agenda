@@ -5704,8 +5704,13 @@ function ordenarClientes(arr){
     var pa = (_ESTADO_PRIORIDAD[a.estado] != null) ? _ESTADO_PRIORIDAD[a.estado] : 3;
     var pb = (_ESTADO_PRIORIDAD[b.estado] != null) ? _ESTADO_PRIORIDAD[b.estado] : 3;
     if (pa !== pb) return pa - pb;
-    // Dentro de "Presupuesto enviado": ordenar por tipo de sistema (FV → Generador → Térmica).
+    // Dentro de "Presupuesto enviado": PRIMERO los que tienen la campanita activa (falta hacer
+    // seguimiento) arriba de todo; al hacerles el seguimiento (ppto_seguido_at) caen abajo.
+    // Después, dentro de cada grupo, por tipo de sistema (FV → Generador → Térmica).
     if (a.estado === 'enviado' && b.estado === 'enviado') {
+      var segA = a.ppto_seguido_at ? 1 : 0;   // pendiente (0) arriba, ya seguido (1) abajo
+      var segB = b.ppto_seguido_at ? 1 : 0;
+      if (segA !== segB) return segA - segB;
       var sisA = _cliSistemaOrden(a), sisB = _cliSistemaOrden(b);
       if (sisA !== sisB) return sisA - sisB;
     }

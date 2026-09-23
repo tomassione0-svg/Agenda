@@ -1758,6 +1758,12 @@ window.addEventListener('load', function() {
       <button class="btn btn-primary" style="font-size:12px;padding:6px 10px" onclick="startVozCliente()" title="Agregar cliente por voz">🎤</button>
     </div>
   </div>
+  <div style="padding:2px 8px 8px;position:relative">
+    <input id="cliente-buscar" type="text" oninput="setCliBusqueda(this.value)" onfocus="renderCliSugerencias(this.value)" onblur="cliSugerenciasBlur()" placeholder="🔎 Buscar cliente por nombre o teléfono…" autocomplete="off"
+      style="width:100%;padding:9px 34px 9px 12px;border:1.5px solid var(--gris-borde);border-radius:8px;font-size:13px;font-family:inherit">
+    <button type="button" id="cliente-buscar-clear" onclick="limpiarCliBusqueda()" title="Limpiar" style="display:none;position:absolute;right:16px;top:9px;background:none;border:none;cursor:pointer;font-size:15px;color:var(--muted);line-height:1;padding:4px">✕</button>
+    <div id="cliente-buscar-sugerencias" style="display:none;position:absolute;left:8px;right:8px;top:44px;z-index:60;background:var(--card-bg);border:1.5px solid var(--gris-borde);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18);max-height:280px;overflow-y:auto"></div>
+  </div>
   <div id="cliente-filtros" style="display:flex;gap:6px;flex-wrap:wrap;padding:2px 8px 10px"></div>
   <div id="cliente-list" style="padding:0 8px"></div>
 </div>
@@ -5557,6 +5563,73 @@ async function loadClientes(periodico) {
 // Orden de las etapas: más avanzada arriba (cerrado → enviado → cotizando → consulta → perdido)
 const _ESTADO_PRIORIDAD = { cerrado:0, enviado:1, cotizando:2, consulta:3, perdido:4 };
 let _cliFiltro = 'todos';
+let _cliBusqueda = '';
+// Normaliza texto para buscar sin importar mayúsculas ni acentos
+function _cliBusquedaNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
+function setCliBusqueda(v){
+  _cliBusqueda = v || '';
+  var clr = document.getElementById('cliente-buscar-clear');
+  if (clr) clr.style.display = _cliBusqueda.trim() ? 'block' : 'none';
+  renderCliSugerencias(_cliBusqueda);
+  renderClientes();
+}
+function limpiarCliBusqueda(){
+  _cliBusqueda = '';
+  var inp = document.getElementById('cliente-buscar'); if (inp) inp.value = '';
+  var clr = document.getElementById('cliente-buscar-clear'); if (clr) clr.style.display = 'none';
+  var box = document.getElementById('cliente-buscar-sugerencias'); if (box){ box.style.display='none'; box.innerHTML=''; }
+  renderClientes();
+}
+// Desplegable de sugerencias: muestra hasta 8 clientes que coinciden mientras tipeás.
+function renderCliSugerencias(q){
+  var box = document.getElementById('cliente-buscar-sugerencias'); if(!box) return;
+  var qq = _cliBusquedaNorm((q||'').trim());
+  if(!qq){ box.style.display='none'; box.innerHTML=''; return; }
+  var estLbl = {consulta:'Consulta', cotizando:'En cotización', enviado:'Ppto. enviado', cerrado:'Cerrado', perdido:'Perdido'};
+  var matches = ordenarClientes(clientes).filter(function(c){ return _cliMatchBusqueda(c, qq); }).slice(0, 8);
+  if(!matches.length){ box.style.display='none'; box.innerHTML=''; return; }
+  box.innerHTML = matches.map(function(c){
+    var est = (c.estado||'consulta');
+    var lbl = (est==='consulta' && c.avisado_calif===true) ? 'Calificado' : (estLbl[est] || 'Consulta');
+    var tel = c.telefono || c.contacto || '';
+    var nom = String(c.nombre||'—').replace(/</g,'&lt;');
+    // onmousedown (no click): dispara ANTES del blur del input, así no se cierra antes de tiempo.
+    return '<div onmousedown="irACliente(\''+c.id+'\')" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--gris-borde);display:flex;justify-content:space-between;gap:10px;align-items:center">'
+      + '<span style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+nom+'</span>'
+      + '<span style="font-size:11px;color:var(--muted);white-space:nowrap">'+lbl+(tel?(' · '+tel):'')+'</span></div>';
+  }).join('');
+  box.style.display = 'block';
+}
+// Cierra el desplegable al salir del input (con delay para que el clic en una opción llegue primero).
+function cliSugerenciasBlur(){
+  setTimeout(function(){ var b=document.getElementById('cliente-buscar-sugerencias'); if(b) b.style.display='none'; }, 150);
+}
+// "Ir" a un cliente: filtra a ese nombre, cierra el desplegable y resalta su tarjeta.
+function irACliente(id){
+  var box = document.getElementById('cliente-buscar-sugerencias'); if(box){ box.style.display='none'; box.innerHTML=''; }
+  var c = (clientes||[]).find(function(x){ return String(x.id)===String(id); });
+  var inp = document.getElementById('cliente-buscar');
+  if(inp && c){ inp.value = c.nombre || ''; inp.blur(); }
+  _cliBusqueda = c ? (c.nombre || '') : _cliBusqueda;
+  var clr = document.getElementById('cliente-buscar-clear'); if(clr) clr.style.display = 'block';
+  renderClientes();
+  setTimeout(function(){
+    var card = document.querySelector('.cliente-card[data-id="'+id+'"]');
+    if(card){
+      card.scrollIntoView({behavior:'smooth', block:'center'});
+      var old = card.style.boxShadow;
+      card.style.transition = 'box-shadow .2s';
+      card.style.boxShadow = '0 0 0 3px var(--verde)';
+      setTimeout(function(){ card.style.boxShadow = old || ''; }, 1600);
+    }
+  }, 80);
+}
+// ¿El cliente matchea el texto buscado? (nombre, teléfono, contacto o email)
+function _cliMatchBusqueda(c, q){
+  if (!q) return true;
+  var hay = _cliBusquedaNorm([c.nombre, c.telefono, c.contacto, c.email].filter(Boolean).join(' '));
+  return hay.indexOf(q) !== -1;
+}
 
 function _cliEsBot(c){
   var f = c.fuente || c._fuente || '';
@@ -5972,13 +6045,20 @@ function renderClientes() {
   // Filtro activo por etiqueta. "calificado" y "consulta" son sub-estados de la etapa Consulta:
   //   calificado = terminó el flujo del bot; consulta = todavía no cerró (sin calificar).
   var _esCalifLead = function(c){ return (c.estado||'consulta')==='consulta' && c.avisado_calif===true; };
-  const visibles =
-    (_cliFiltro==='todos')      ? ordenados :
-    (_cliFiltro==='calificado') ? ordenados.filter(_esCalifLead) :
-    (_cliFiltro==='consulta')   ? ordenados.filter(function(c){ return (c.estado||'consulta')==='consulta' && !_esCalifLead(c); }) :
-                                  ordenados.filter(function(c){ return (c.estado||'consulta')===_cliFiltro; });
-
-  if(!visibles.length){ list.innerHTML='<div class="empty">Sin clientes'+(_cliFiltro!=='todos'?' en esta etapa':' todavía')+'</div>'; return; }
+  // Búsqueda por texto: si hay algo escrito, busca en TODAS las secciones (ignora el filtro de etapa).
+  var _q = _cliBusquedaNorm(_cliBusqueda.trim());
+  var visibles;
+  if (_q) {
+    visibles = ordenados.filter(function(c){ return _cliMatchBusqueda(c, _q); });
+    if(!visibles.length){ list.innerHTML='<div class="empty">Sin resultados para "'+_cliBusqueda.trim().replace(/</g,'&lt;')+'"</div>'; return; }
+  } else {
+    visibles =
+      (_cliFiltro==='todos')      ? ordenados :
+      (_cliFiltro==='calificado') ? ordenados.filter(_esCalifLead) :
+      (_cliFiltro==='consulta')   ? ordenados.filter(function(c){ return (c.estado||'consulta')==='consulta' && !_esCalifLead(c); }) :
+                                    ordenados.filter(function(c){ return (c.estado||'consulta')===_cliFiltro; });
+    if(!visibles.length){ list.innerHTML='<div class="empty">Sin clientes'+(_cliFiltro!=='todos'?' en esta etapa':' todavía')+'</div>'; return; }
+  }
   list.innerHTML=visibles.map(function(c){
     const st=statusMap[c.estado]||['status-consulta','Consulta'];
     let cls=st[0], lbl=st[1];

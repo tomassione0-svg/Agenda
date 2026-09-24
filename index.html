@@ -5539,7 +5539,7 @@ async function loadClientes(periodico) {
   // trae recién al abrir el chat (waOpen).
   // AHORRO EGRESS #2: en el refresco AUTOMÁTICO (periodico=true) NO recargamos los Cerrados/Perdidos
   // (peso muerto que casi no cambia); se conservan en memoria y se refrescan solo en una carga completa.
-  const _COLS_LISTA = 'id, nombre, contacto, tipo, estado, notas, created_at, orden, telefono, email, provincia, direccion, resumen, fuente, session_id, bot_activo, avisado, avisado_calif, bot_lock, ultimo_inbound, seguimiento_at, wa_negocio, primer_reply_at, fijado, seguimiento_manual, pide_asesor, enviado_at, ppto_seguido_at, ult_rol, ult_by, tiene_agente, tiene_seguimiento';
+  const _COLS_LISTA = 'id, nombre, contacto, tipo, estado, notas, created_at, orden, telefono, email, provincia, direccion, resumen, fuente, session_id, bot_activo, avisado, avisado_calif, bot_lock, ultimo_inbound, seguimiento_at, wa_negocio, primer_reply_at, fijado, seguimiento_manual, pide_asesor, enviado_at, ppto_seguido_at, ult_rol, ult_by, tiene_agente, tiene_seguimiento, reunion_at';
   var sel = db.from('hes_clientes').select(_COLS_LISTA);
   if(periodico){
     sel = sel.or('estado.is.null,estado.eq.consulta,estado.eq.cotizando,estado.eq.enviado'); // solo activos
@@ -5991,6 +5991,17 @@ async function toggleSeguimientoPpto(id){
   try{ await db.from('hes_clientes').update({ ppto_seguido_at: nuevo }).eq('id', id); toast(nuevo ? '✓ Seguimiento hecho' : '🔔 Marcado para hacer seguimiento'); }
   catch(e){ toast('No se pudo guardar'); }
 }
+// Marca / desmarca que el cliente AGENDÓ una reunión (Calendly). Manual: lo tocás vos cuando te
+// llega el mail de Calendly. Si está marcado (reunion_at) → badge "📅 Agendó reunión" en la ficha.
+async function toggleReunion(id){
+  var c = (clientes||[]).find(function(x){ return String(x.id)===String(id); });
+  if(!c) return;
+  var nuevo = c.reunion_at ? null : new Date().toISOString();
+  c.reunion_at = nuevo;
+  renderClientes();
+  try{ await db.from('hes_clientes').update({ reunion_at: nuevo }).eq('id', id); toast(nuevo ? '📅 Marcado: agendó reunión' : 'Desmarcado'); }
+  catch(e){ toast('No se pudo guardar'); }
+}
 // Fecha de INGRESO en la ficha (solo Consulta / Calificado / Cotización).
 // En Presupuesto enviado / Cerrado / Perdido NO se muestra fecha.
 // Cuenta en DÍAS DE CALENDARIO (no horas), así coincide con la fecha mostrada.
@@ -6095,11 +6106,13 @@ function renderClientes() {
         ${segBotResp?`<span style="font-size:10px;font-weight:700;color:var(--verde);background:var(--verde-badge);padding:2px 7px;border-radius:8px;white-space:nowrap" title="Después del seguimiento del bot, el cliente respondió (el bot sigue la charla)">💬 Respondió</span>`:''}
         ${(esConsulta&&!esCalif&&!esAsesor&&segMan)?`<span style="font-size:10px;font-weight:600;color:var(--amber);background:var(--amber-light);padding:2px 7px;border-radius:8px;white-space:nowrap" title="Lo estás manejando vos a mano">👤 Seguimiento manual</span>`:''}
         ${respManual?`<span style="font-size:10px;font-weight:700;color:var(--verde);background:var(--verde-badge);padding:2px 7px;border-radius:8px;white-space:nowrap" title="El cliente te respondió y el bot está apagado (lo manejás vos) → te toca contestar">💬 Respondió</span>`:''}
+        ${c.reunion_at?`<span style="font-size:10px;font-weight:700;color:#185FA5;background:var(--azul-light);padding:2px 7px;border-radius:8px;white-space:nowrap" title="El cliente agendó una reunión">📅 Agendó reunión</span>`:''}
         <div style="display:flex;gap:4px">
           <button class="edit-btn" onclick="toggleFijar('${c.id}')" title="${c.fijado?'Quitar de fijados':'Fijar arriba'}" style="font-size:14px;${c.fijado?'':'opacity:.3'}">📌</button>
           <button class="edit-btn" onclick="openAdjuntosCliente('${c.id}')" title="Fotos y archivos" style="font-size:14px">📎${nAdj?`<span style="font-size:9px;font-weight:700;color:var(--verde);vertical-align:super">${nAdj}</span>`:''}</button>
           <button class="edit-btn" onclick="waOpen('${c.id}')" title="Conversación WhatsApp" style="font-size:14px">💬</button>
           ${(c.estado==='enviado')?`<button class="edit-btn" onclick="event.stopPropagation();toggleSeguimientoPpto('${c.id}')" title="${c.ppto_seguido_at?'Volver a marcar: Hacer seguimiento':'Seguimiento pendiente (clic para sacarlo)'}" style="font-size:14px;${c.ppto_seguido_at?'opacity:.3':''}">🔔</button>`:''}
+          <button class="edit-btn" onclick="event.stopPropagation();toggleReunion('${c.id}')" title="${c.reunion_at?'Agendó reunión (clic para desmarcar)':'Marcar: el cliente agendó reunión'}" style="font-size:14px;${c.reunion_at?'':'opacity:.3'}">📅</button>
           <button class="edit-btn" onclick="openClienteModal('${c.id}')">✎</button>
         </div>
       </div>

@@ -998,6 +998,7 @@ window.addEventListener('load', function() {
           <div class="calc-field" style="margin-bottom:10px">
             <label>Fuente de generación estimada</label>
             <select id="fv-gen-modo" onchange="fvToggleGenModo();calcularFV()">
+              <option value="">— Sin especificar —</option>
               <option value="formula">Fórmula: HSP × PR × 365</option>
               <option value="pvgis">Datos mensuales de PVGIS (más preciso)</option>
             </select>
@@ -1044,6 +1045,7 @@ window.addEventListener('load', function() {
           <div class="calc-field" style="margin-top:10px">
             <label>Panel solar</label>
             <select id="fv-panel" onchange="calcularFV()">
+              <option value="">— Sin especificar —</option>
               <option value="100">100 Wp — micro sistema</option>
               <option value="150">150 Wp — off-grid pequeño</option>
               <option value="200">200 Wp — off-grid chico</option>
@@ -1051,7 +1053,7 @@ window.addEventListener('load', function() {
               <option value="300">300 Wp — off-grid estándar</option>
               <option value="370">370 Wp — estándar</option>
               <option value="400">400 Wp — estándar</option>
-              <option value="430" selected>430 Wp — N-Type TOPCon</option>
+              <option value="430">430 Wp — N-Type TOPCon</option>
               <option value="450">450 Wp — premium</option>
               <option value="475">475 Wp — N-TOPCon</option>
               <option value="500">500 Wp — premium</option>
@@ -1074,6 +1076,7 @@ window.addEventListener('load', function() {
           <div class="calc-field">
             <label>Tipo de red eléctrica</label>
             <select id="fv-red-tipo" onchange="calcularFV()">
+              <option value="">— Sin especificar —</option>
               <option value="mono">Monofásica</option>
               <option value="tri">Trifásica</option>
             </select>
@@ -1214,13 +1217,14 @@ window.addEventListener('load', function() {
           <div class="calc-field">
             <label>Panel solar</label>
             <select id="og-panel" onchange="calcularOffGrid()">
+              <option value="">— Sin especificar —</option>
               <option value="100">100 Wp — micro sistema</option>
               <option value="150">150 Wp — off-grid pequeño</option>
               <option value="200">200 Wp — off-grid chico</option>
               <option value="250">250 Wp — off-grid mediano</option>
               <option value="300">300 Wp — off-grid estándar</option>
               <option value="370">370 Wp — estándar</option>
-              <option value="400" selected>400 Wp — estándar</option>
+              <option value="400">400 Wp — estándar</option>
               <option value="450">450 Wp — premium</option>
               <option value="475">475 Wp — N-TOPCon</option>
               <option value="500">500 Wp — premium</option>
@@ -1239,6 +1243,7 @@ window.addEventListener('load', function() {
           <div class="calc-field">
             <label>Tipo de red eléctrica</label>
             <select id="og-red-tipo" onchange="calcularOffGrid()">
+              <option value="">— Sin especificar —</option>
               <option value="mono">Monofásica</option>
               <option value="tri">Trifásica</option>
             </select>
@@ -1364,6 +1369,7 @@ window.addEventListener('load', function() {
           <div class="calc-field" style="margin-bottom:10px">
             <label>Fuente de generación estimada</label>
             <select id="hib-gen-modo" onchange="hibToggleGenModo();calcularHibrido()">
+              <option value="">— Sin especificar —</option>
               <option value="formula">Fórmula: HSP × PR × 365</option>
               <option value="pvgis">Datos mensuales de PVGIS (más preciso)</option>
             </select>
@@ -1397,6 +1403,7 @@ window.addEventListener('load', function() {
           <div class="calc-field" style="margin-top:10px">
             <label>Panel solar</label>
             <select id="hib-panel" onchange="calcularHibrido()">
+              <option value="">— Sin especificar —</option>
               <option value="100">100 Wp — micro sistema</option>
               <option value="150">150 Wp — off-grid pequeño</option>
               <option value="200">200 Wp — off-grid chico</option>
@@ -1404,7 +1411,7 @@ window.addEventListener('load', function() {
               <option value="300">300 Wp — off-grid estándar</option>
               <option value="370">370 Wp — estándar</option>
               <option value="400">400 Wp — estándar</option>
-              <option value="430" selected>430 Wp — N-Type TOPCon</option>
+              <option value="430">430 Wp — N-Type TOPCon</option>
               <option value="450">450 Wp — premium</option>
               <option value="475">475 Wp — N-TOPCon</option>
               <option value="500">500 Wp — premium</option>
@@ -1427,6 +1434,7 @@ window.addEventListener('load', function() {
           <div class="calc-field">
             <label>Tipo de red eléctrica</label>
             <select id="hib-red-tipo" onchange="calcularHibrido()">
+              <option value="">— Sin especificar —</option>
               <option value="mono">Monofásica</option>
               <option value="tri">Trifásica</option>
             </select>
@@ -4161,15 +4169,12 @@ function exportarPDFTermica() {
 function limpiarDimensionTermica() {
   var fn=document.getElementById('firma-termica-nombre'); if(fn) fn.value='';
   var fp=document.getElementById('firma-termica-posicion'); if(fp) fp.value='';
-  document.getElementById('d-cliente').value = '';
-  document.getElementById('d-personas').value = '';
-  document.getElementById('d-litros').value = '';
-  document.getElementById('d-tacum').value = '';
-  document.getElementById('d-tred').value = '';
-  document.getElementById('d-zona').selectedIndex = 0;
-  document.getElementById('d-tipo').selectedIndex = 0;
-  document.getElementById('d-cobertura').value = '';
-  calcular();
+  // Vaciar TODOS los campos de entrada
+  ['d-cliente','d-personas','d-litros','d-tacum','d-tred','d-cobertura'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  var zEl=document.getElementById('d-zona'); if(zEl) zEl.selectedIndex=0;
+  var tEl=document.getElementById('d-tipo'); if(tEl) tEl.selectedIndex=0;
+  // Blanquear resultados (no recalcular, para que no reaparezcan valores)
+  ['r-area','r-colectores','r-bomba','r-tubos','r-acum','r-sistema','r-resumen'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent='—'; });
 }
 
 function limpiarDimensionOG() {
@@ -4195,12 +4200,13 @@ function limpiarDimensionOG() {
   // — Limpiar campos de entrada —
   var cli = document.getElementById('fv-cliente');   if(cli)  cli.value = '';
   var ubic = document.getElementById('fv-ubicacion'); if(ubic) ubic.value = '';
-  var ogZona = document.getElementById('og-zona');   if(ogZona) ogZona.value = '2.8';
-  var ogHsp  = document.getElementById('og-hsp-display'); if(ogHsp) ogHsp.textContent = '2.8 h/día';
-  var ogPanel = document.getElementById('og-panel'); if(ogPanel) ogPanel.value = '400';
-  var ogTen   = document.getElementById('og-tension'); if(ogTen)  ogTen.value  = '24';
-  var ogBat   = document.getElementById('og-bateria-tipo'); if(ogBat) ogBat.value = '0.70';
-  var ogPR    = document.getElementById('og-pr');    if(ogPR)   ogPR.value   = '0.75';
+  var ogZona = document.getElementById('og-zona');   if(ogZona) ogZona.value = '';
+  var ogHsp  = document.getElementById('og-hsp-display'); if(ogHsp) ogHsp.textContent = '—';
+  var ogPanel = document.getElementById('og-panel'); if(ogPanel) ogPanel.selectedIndex = 0;
+  var ogRed   = document.getElementById('og-red-tipo'); if(ogRed) ogRed.selectedIndex = 0;
+  var ogTen   = document.getElementById('og-tension'); if(ogTen)  ogTen.value  = '';
+  var ogBat   = document.getElementById('og-bateria-tipo'); if(ogBat) ogBat.value = '';
+  var ogPR    = document.getElementById('og-pr');    if(ogPR)   ogPR.value   = '';
 
   // — Vaciar tabla de cargas y dejar una fila vacía —
   var tbody = document.getElementById('og-cargas-tbody');
@@ -4225,25 +4231,18 @@ function limpiarDimensionFV() {
   var fn=document.getElementById('firma-fv-nombre'); if(fn) fn.value='';
   var fp=document.getElementById('firma-fv-posicion'); if(fp) fp.value='';
   var im=document.getElementById('fv-inv-manual'); if(im){ im.value=''; im.dataset.manual=''; }
-  document.getElementById('fv-cliente').value = '';
-  const ubic = document.getElementById('fv-ubicacion');
-  if (ubic) ubic.value = '';
-  const tarifa = document.getElementById('fv-tarifa');
-  if (tarifa) tarifa.value = 120;
-  document.getElementById('fv-cobertura').value = '75';
-  document.getElementById('fv-zona').value = '4.7';
-  document.getElementById('fv-panel').value = '430';
-  document.getElementById('fv-pr').value = '0.80';
-  document.getElementById('fv-sistema').value = 'ongrid';
+  // Vaciar TODOS los campos de entrada (cliente, recurso solar, consumo)
+  ['fv-cliente','fv-ubicacion','fv-tarifa','fv-cobertura','fv-zona','fv-pr','fv-pvgis-kwp'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  var panelEl=document.getElementById('fv-panel'); if(panelEl) panelEl.selectedIndex=0;
+  var redEl=document.getElementById('fv-red-tipo'); if(redEl) redEl.selectedIndex=0;
+  var sisEl=document.getElementById('fv-sistema'); if(sisEl) sisEl.selectedIndex=0;
   for (let i = 0; i < 12; i++) {
     const el = document.getElementById('fv-mes-' + i);
     if (el) el.value = '';
   }
   // Volver al modo fórmula y limpiar campos PVGIS
   const genModoEl = document.getElementById('fv-gen-modo');
-  if (genModoEl) { genModoEl.value = 'formula'; fvToggleGenModo(); }
-  const pvgisKwpEl = document.getElementById('fv-pvgis-kwp');
-  if (pvgisKwpEl) pvgisKwpEl.value = '1';
+  if (genModoEl) { genModoEl.selectedIndex = 0; fvToggleGenModo(); }
   for (let i = 0; i < 12; i++) {
     const el = document.getElementById('fv-pvgis-' + i);
     if (el) el.value = '';
@@ -4252,7 +4251,8 @@ function limpiarDimensionFV() {
   if (totEl) totEl.textContent = '0 kWh/año';
   const refWrap = document.getElementById('fv-pvgis-ref-wrap');
   if (refWrap) refWrap.style.display = 'none';
-  calcularFV();
+  // Blanquear resultados (no recalcular, para que no reaparezcan valores)
+  ['fv-r-kwp','fv-r-paneles','fv-r-inversor','fv-r-gen-mes','fv-r-ahorro-mes','fv-r-ahorro-anual','fv-r-bateria','fv-r-resumen'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent='—'; });
 }
 
 
@@ -4681,21 +4681,21 @@ function limpiarDimensionHibrido() {
   var fn=document.getElementById('firma-hib-nombre'); if(fn) fn.value='';
   var fp=document.getElementById('firma-hib-posicion'); if(fp) fp.value='';
   var im=document.getElementById('hib-inv-manual'); if(im){ im.value=''; im.dataset.manual=''; }
-  var ids=['hib-zona','hib-pr','hib-cobertura','hib-tarifa','hib-crit-w','hib-aut-h'];
-  var defs=[4.7,0.80,75,156,1000,4];
-  ids.forEach(function(id,i){ var el=document.getElementById(id); if(el) el.value=defs[i]; });
-  var panelEl=document.getElementById('hib-panel'); if(panelEl) panelEl.value='430';
-  var redEl=document.getElementById('hib-red-tipo'); if(redEl) redEl.value='mono';
-  var tarEl=document.getElementById('hib-tar-tipo'); if(tarEl) tarEl.value='';
-  var tensEl=document.getElementById('hib-tension'); if(tensEl) tensEl.value='48';
-  var batEl=document.getElementById('hib-bat-tipo'); if(batEl) batEl.value='';
-  var dodEl=document.getElementById('hib-bat-dod'); if(dodEl) dodEl.value='0.90';
-  var genModoEl=document.getElementById('hib-gen-modo'); if(genModoEl){ genModoEl.value='formula'; hibToggleGenModo(); }
-  var pvgisKwpEl=document.getElementById('hib-pvgis-kwp'); if(pvgisKwpEl) pvgisKwpEl.value='1';
+  var cli=document.getElementById('fv-cliente'); if(cli) cli.value='';
+  var ubic=document.getElementById('fv-ubicacion'); if(ubic) ubic.value='';
+  // Vaciar TODOS los campos de entrada (recurso solar + baterías + consumo)
+  ['hib-zona','hib-pr','hib-cobertura','hib-tarifa','hib-crit-w','hib-aut-h','hib-tension','hib-bat-tipo','hib-bat-dod','hib-pvgis-kwp'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  var panelEl=document.getElementById('hib-panel'); if(panelEl) panelEl.selectedIndex=0;
+  var redEl=document.getElementById('hib-red-tipo'); if(redEl) redEl.selectedIndex=0;
+  var tarEl=document.getElementById('hib-tar-tipo'); if(tarEl) tarEl.selectedIndex=0;
+  var genModoEl=document.getElementById('hib-gen-modo'); if(genModoEl){ genModoEl.selectedIndex=0; hibToggleGenModo(); }
   for(var j=0;j<12;j++){ var pv=document.getElementById('hib-pvgis-'+j); if(pv) pv.value=''; }
   var totEl=document.getElementById('hib-pvgis-total'); if(totEl) totEl.textContent='0 kWh/kWp·año';
+  var refW=document.getElementById('hib-pvgis-ref-wrap'); if(refW) refW.style.display='none';
   for(var i=0;i<12;i++){ var el=document.getElementById('hib-mes-'+i); if(el) el.value=''; }
-  calcularHibrido();
+  // Blanquear resultados (no recalcular, para que no reaparezcan valores)
+  ['hib-r-kwp','hib-r-paneles','hib-r-inversor','hib-r-gen-mes','hib-r-bat-kwh','hib-r-bat-ah','hib-r-ahorro-mes','hib-r-ahorro-anual'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent='—'; });
+  var resH=document.getElementById('hib-r-resumen'); if(resH) resH.textContent='—';
 }
 
 async function guardarDimHibrido() {

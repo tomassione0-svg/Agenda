@@ -1398,7 +1398,7 @@ window.addEventListener('load', function() {
             </div>
             <div id="hib-pvgis-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px"></div>
             <div style="font-size:11px;color:var(--muted);padding:0 2px;display:flex;flex-wrap:wrap;gap:10px">
-              <span>Total ingresado: <strong id="hib-pvgis-total">0 kWh/kWp·año</strong></span>
+              <span>Total ingresado: <strong id="hib-pvgis-total">0 kWh/año</strong></span>
               <span id="hib-pvgis-ref-wrap" style="display:none">· Generación de referencia: <strong id="hib-pvgis-ref-avg" style="color:var(--teal)">— kWh/mes</strong></span>
             </div>
             <div class="calc-field" style="margin-top:8px">
@@ -1565,6 +1565,14 @@ window.addEventListener('load', function() {
         <option value="">— Seleccioná un presupuesto guardado —</option>
       </select>
       <div style="font-size:11px;color:var(--muted);margin-top:6px">Trae los ítems con el precio unitario + IVA (costo real que se paga). La instalación entra al desglose sin IVA.</div>
+      <div id="af-sistema-wrap" style="display:none;margin-top:10px">
+        <label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block">Tipo de sistema</label>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn btn-secondary af-sist-btn" data-sist="On-Grid" onclick="afSetSistemaManual(this)" style="flex:1;font-size:12px;padding:8px 0">On-Grid</button>
+          <button type="button" class="btn btn-secondary af-sist-btn" data-sist="Híbrido" onclick="afSetSistemaManual(this)" style="flex:1;font-size:12px;padding:8px 0">Híbrido</button>
+          <button type="button" class="btn btn-secondary af-sist-btn" data-sist="Off-Grid" onclick="afSetSistemaManual(this)" style="flex:1;font-size:12px;padding:8px 0">Off-Grid</button>
+        </div>
+      </div>
     </div>
 
     <!-- ② Desglose de inversión manual -->
@@ -3616,6 +3624,7 @@ function construirPropuestaFV() {
         ${hayCons ? `<tr><td>Cobertura objetivo</td><td><strong>${Math.round(d.cobertura*100)}%</strong></td></tr>` : ''}
         <tr><td>Zona solar considerada</td><td><strong>${zonaTxt}</strong></td></tr>
         <tr><td>Panel considerado</td><td><strong>${panelTxt}</strong></td></tr>
+        <tr><td>Inversor</td><td><strong>${invMostrar} kW ${fvTri?'trifásico':'estándar'}</strong></td></tr>
       </tbody></table>
     </div>
     <div class="pdf-section"><h3>Producción estimada</h3>
@@ -4494,7 +4503,8 @@ function getHIBData() {
     pvgisMeses = mesesNom.map(function(_,i){ var el=document.getElementById('hib-pvgis-'+i); return el?(parseFloat(el.value)||0)/pvgisKwp:0; });
     pvgisAnual = pvgisMeses.reduce(function(a,b){return a+b;},0);
     var totEl = document.getElementById('hib-pvgis-total');
-    if (totEl) totEl.textContent = Math.round(pvgisAnual)+' kWh/kWp·año';
+    var _sumaRealH = pvgisAnual * pvgisKwp;
+    if (totEl) totEl.textContent = Math.round(_sumaRealH).toLocaleString('es-AR')+' kWh/año';
     // Generación de referencia = promedio mensual del sistema completo simulado en PVGIS
     var refWrap = document.getElementById('hib-pvgis-ref-wrap');
     var refAvg  = document.getElementById('hib-pvgis-ref-avg');
@@ -4644,7 +4654,7 @@ function construirPropuestaHibrido() {
       '<div class="pdf-kpi"><div class="v">'+d.kwpReal.toFixed(1)+'</div><div class="l">kWp instalados</div></div>'+
       '<div class="pdf-kpi"><div class="v">'+d.paneles+'</div><div class="l">paneles '+d.panelW+'W</div></div>'+
       '<div class="pdf-kpi"><div class="v">'+invMostrar+'</div><div class="l">kW inv. '+invLabel+'</div></div>'+
-      '<div class="pdf-kpi"><div class="v">'+Math.round(d.genMes).toLocaleString('es-AR')+'</div><div class="l">kWh/mes est.</div></div>'+
+      '<div class="pdf-kpi"><div class="v">'+Math.round(d.genMes).toLocaleString('es-AR')+'</div><div class="l">kWh/mes estimados</div></div>'+
     '</div>'+
     '<div class="pdf-section"><h3>Sistema Híbrido</h3>'+
       '<table class="pdf-table"><tbody>'+
@@ -4653,7 +4663,6 @@ function construirPropuestaHibrido() {
         '<tr><td>Cobertura objetivo</td><td><strong>'+Math.round(d.cobertura*100)+'%</strong></td></tr>' : '')+
         '<tr><td>Panel solar</td><td><strong>'+panelTxt+'</strong></td></tr>'+
         '<tr><td>Inversor híbrido</td><td><strong>'+invMostrar+' kW '+invLabel+'</strong></td></tr>'+
-        '<tr><td>Generación estimada</td><td><strong>'+Math.round(d.genMes).toLocaleString('es-AR')+' kWh/mes</strong></td></tr>'+
         '<tr><td>Ahorro estimado</td><td><strong>'+moneyARS(d.ahorroMes)+'/mes · '+moneyARS(d.ahorroAnual)+'/año</strong></td></tr>'+
       '</tbody></table></div>'+
     '<div class="pdf-section"><h3>Producción estimada</h3>'+
@@ -4671,6 +4680,7 @@ function construirPropuestaHibrido() {
           return '<tr><td>'+x.mes+'</td>'+(hayCons?'<td>'+(x.kwh?Math.round(x.kwh).toLocaleString('es-AR'):'—')+'</td>':'')+'<td>'+genTxt+'</td></tr>';
         }).join('');
       })()+
+      '<tr style="background:#EAF5EC;font-weight:700"><td>Total anual</td>'+(hayCons?'<td>'+Math.round(d.anual).toLocaleString('es-AR')+' kWh</td>':'')+'<td>'+Math.round(d.genAnual).toLocaleString('es-AR')+' kWh</td></tr>'+
       '</tbody></table></div>'+
     '<div class="pdf-section"><h3>Banco de baterías (respaldo)</h3>'+
       '<table class="pdf-table"><tbody>'+
@@ -4705,7 +4715,7 @@ function limpiarDimensionHibrido() {
   var tarEl=document.getElementById('hib-tar-tipo'); if(tarEl) tarEl.selectedIndex=0;
   var genModoEl=document.getElementById('hib-gen-modo'); if(genModoEl){ genModoEl.selectedIndex=0; hibToggleGenModo(); }
   for(var j=0;j<12;j++){ var pv=document.getElementById('hib-pvgis-'+j); if(pv) pv.value=''; }
-  var totEl=document.getElementById('hib-pvgis-total'); if(totEl) totEl.textContent='0 kWh/kWp·año';
+  var totEl=document.getElementById('hib-pvgis-total'); if(totEl) totEl.textContent='0 kWh/año';
   var refW=document.getElementById('hib-pvgis-ref-wrap'); if(refW) refW.style.display='none';
   for(var i=0;i<12;i++){ var el=document.getElementById('hib-mes-'+i); if(el) el.value=''; }
   // Blanquear resultados (no recalcular, para que no reaparezcan valores)
@@ -4835,7 +4845,7 @@ function construirPDFPresupuestoGuardado(p) {
         '<div class="pdf-kpi"><div class="v">'+kwpRealH.toFixed(1)+'</div><div class="l">kWp instalados</div></div>'+
         '<div class="pdf-kpi"><div class="v">'+nPanelesH+'</div><div class="l">paneles</div></div>'+
         '<div class="pdf-kpi"><div class="v">'+invStrH+'</div><div class="l">kW inv. '+invLabelH+'</div></div>'+
-        '<div class="pdf-kpi"><div class="v">'+genMesTxtH+'</div><div class="l">kWh/mes est.</div></div>'+
+        '<div class="pdf-kpi"><div class="v">'+genMesTxtH+'</div><div class="l">kWh/mes estimados</div></div>'+
       '</div>'+
       '<div class="pdf-section"><h3>Sistema Híbrido</h3>'+
         '<table class="pdf-table"><tbody>'+
@@ -4844,7 +4854,6 @@ function construirPDFPresupuestoGuardado(p) {
           '<tr><td>Cobertura objetivo</td><td><strong>'+cobH+'%</strong></td></tr>' : '')+
           '<tr><td>Panel solar</td><td><strong>'+panel+'</strong></td></tr>'+
           '<tr><td>Inversor</td><td><strong>'+invStrH+' kW '+invLabelH+'</strong></td></tr>'+
-          '<tr><td>Generación estimada</td><td><strong>'+_fmt2(genMesTxtH)+' kWh/mes</strong></td></tr>'+
         '</tbody></table></div>'+
       '<div class="pdf-section"><h3>Producción estimada</h3>'+
         '<table class="pdf-table"><thead><tr><th>Mes</th>'+((anualH>0)?'<th>Consumo kWh</th>':'')+'<th>Generación kWh</th></tr></thead><tbody>'+
@@ -4863,6 +4872,17 @@ function construirPDFPresupuestoGuardado(p) {
             var genTxtH=(pvgValsH&&!(pvgValsH[i]>0))?'—':_fmt2(gen);
             return '<tr><td>'+m+'</td>'+((anualH>0)?'<td>'+(cons>0?_fmt2(cons):'—')+'</td>':'')+'<td>'+genTxtH+'</td></tr>';
           }).join('');
+        })()+
+        (function(){
+          var pvgMH2=tipo.match(/PVG=([\.\d,]+)/); var kwpPvgMH2=tipo.match(/KWP=([\d.]+)/);
+          var pvgV2=pvgMH2?pvgMH2[1].split(',').map(parseFloat):null;
+          var kwpR2=pvgV2&&kwpPvgMH2?parseFloat(kwpPvgMH2[1]):1;
+          var totalGenH=0;
+          for(var i=0;i<12;i++){
+            if(pvgV2&&pvgV2[i]>0) totalGenH+=Math.round(pvgV2[i]/kwpR2*kwpRealH);
+            else totalGenH+=Math.round(genMesTxtH);
+          }
+          return '<tr style="background:#EAF5EC;font-weight:700"><td>Total anual</td>'+((anualH>0)?'<td>'+_fmt2(anualH)+' kWh</td>':'')+'<td>'+_fmt2(totalGenH)+' kWh</td></tr>';
         })()+
         '</tbody></table></div>'+
       '<div class="pdf-section"><h3>Banco de baterías (respaldo)</h3>'+
@@ -4941,6 +4961,7 @@ function construirPDFPresupuestoGuardado(p) {
           '<tr><td>Cobertura objetivo</td><td><strong>'+cob+'%</strong></td></tr>' : '')+
           '<tr><td>Zona solar considerada</td><td><strong>'+(p.zona||'—')+'</strong></td></tr>'+
           '<tr><td>Panel considerado</td><td><strong>'+panel+'</strong></td></tr>'+
+          '<tr><td>Inversor</td><td><strong>'+invStr+' kW '+invLabel+'</strong></td></tr>'+
         '</tbody></table></div>'+
       '<div class="pdf-section"><h3>Producción estimada</h3>'+
         '<table class="pdf-table"><thead><tr><th>Mes</th>'+((anual>0)?'<th>Consumo kWh</th>':'')+'<th>Producción kWh</th></tr></thead><tbody>'+(function(){
@@ -8920,7 +8941,7 @@ async function _dimEntregarPDF(filename, imgUrl, fromSaved){
       el.innerHTML += '<div style="page-break-before:always;padding-top:30px;text-align:center">' +
         '<div style="font-weight:700;color:#1B6B2F;font-size:15px;margin:0 0 16px">Vista del proyecto — Layout de paneles</div>' +
         '<img src="'+_imgSrc+'" style="width:62%;max-width:520px;border-radius:8px;border:1px solid #ddd;display:inline-block">' +
-        '</div>' + _firmaHtml;
+        '</div><div style="max-width:90%;margin:20px auto 0;text-align:right">' + _firmaHtml + '</div>';
     }
     var _t=document.title; document.title=' ';
     setTimeout(function(){ window.print(); document.title=_t; el.innerHTML=''; },120);
@@ -8990,7 +9011,7 @@ async function _dimEntregarPDF(filename, imgUrl, fromSaved){
       var _bottomImg = iy + imgH;
       // Firma debajo de la foto (si hay)
       if(_firmaNombre || _firmaPosicion){
-        var _fxR = pdfW - 14;
+        var _fxR = pdfW - 22;
         var _fy = _bottomImg + 14;
         var _fLineW = 42;
         doc.setDrawColor(27,107,47); doc.setLineWidth(0.6);
@@ -10173,9 +10194,13 @@ function afInferirSistema(lineasSolar, lineasManual) {
   // Fotovoltaico: si hay paneles / inversor / etc. (prioridad sobre térmica)
   var esFV = /panel(es)? solar|fotovolta|inversor|mppt|goodwe|jinko|kwp|microinversor/.test(txt);
   if (esFV) {
-    if (/conexi[oó]n a red|on-?grid|a red|inyecci|medidor bidirec|bidireccional/.test(txt)) return 'On-Grid';
+    var tieneRed = /conexi[oó]n a red|on-?grid|a red|inyecci|medidor bidirec|bidireccional/.test(txt);
+    var tieneBat = /bater[ií]a|banco de bater/.test(txt);
+    var esHibrido = /h[ií]brid/.test(txt);
+    if (esHibrido || (tieneRed && tieneBat)) return 'Híbrido';
+    if (tieneRed) return 'On-Grid';
     if (/off-?grid|aislad|standalone/.test(txt)) return 'Off-Grid';
-    if (/bater[ií]a|banco de bater/.test(txt)) return 'Off-Grid';
+    if (tieneBat) return 'Off-Grid';
     return 'On-Grid';
   }
   // Térmica: sólo términos específicos (NO "termo" suelto, para no confundir con "termomagnético")
@@ -10240,14 +10265,47 @@ async function afCargarPresupuesto() {
     // Guardar cliente y sistema del presupuesto para el PDF y la tarjeta guardada
     window._afCliente = doc.cliente || '';
     window._afSistema = afInferirSistema(lineasSolar, lineasManual);
+    if (doc.cliente && (presupuestos||[]).length) {
+      var _dimMatch = presupuestos.filter(function(d){ return d.cliente && d.cliente.toLowerCase() === doc.cliente.toLowerCase() && (d.tipo||'').toLowerCase().startsWith('fv'); });
+      if (_dimMatch.length) {
+        _dimMatch.sort(function(a,b){ return (b.id||0) - (a.id||0); });
+        var _tp = (_dimMatch[0].tipo||'').toLowerCase();
+        if (_tp.includes('híbrido') || _tp.includes('hibrido')) window._afSistema = 'Híbrido';
+        else if (_tp.includes('off-grid') || _tp.includes('off grid')) window._afSistema = 'Off-Grid';
+        else if (_tp.includes('on-grid') || _tp.includes('on grid')) window._afSistema = 'On-Grid';
+      }
+    }
 
     // Resetear el selector de dimensionamiento para no mezclar orígenes
     var dimSel  = document.getElementById('af-dim-select'); if (dimSel)  dimSel.value = '';
     var dimInfo = document.getElementById('af-dim-info');   if (dimInfo) dimInfo.style.display = 'none';
 
+    afMostrarSistemaSelector(window._afSistema);
     afActualizarTotales();
     toast('Presupuesto N° ' + (doc.nro||'') + ' cargado en ' + (monPres==='ARS'?'pesos':'USD'));
   } catch(e) { console.warn(e); toast('Error al cargar el presupuesto'); }
+}
+
+function afSetSistemaManual(btn) {
+  window._afSistema = btn.getAttribute('data-sist');
+  document.querySelectorAll('.af-sist-btn').forEach(function(b){
+    b.style.background = ''; b.style.color = ''; b.style.borderColor = '';
+  });
+  btn.style.background = 'var(--verde)'; btn.style.color = '#fff'; btn.style.borderColor = 'var(--verde)';
+}
+
+function afMostrarSistemaSelector(sistemaResuelto) {
+  var wrap = document.getElementById('af-sistema-wrap');
+  if (!wrap) return;
+  wrap.style.display = '';
+  document.querySelectorAll('.af-sist-btn').forEach(function(b){
+    var s = b.getAttribute('data-sist');
+    if (s === sistemaResuelto) {
+      b.style.background = 'var(--verde)'; b.style.color = '#fff'; b.style.borderColor = 'var(--verde)';
+    } else {
+      b.style.background = ''; b.style.color = ''; b.style.borderColor = '';
+    }
+  });
 }
 
 function afNombreCliente(a) {
@@ -10455,6 +10513,10 @@ function afEditarGuardado(id) {
   if (pc) pc.style.display = '';
   document.getElementById('af-edit-banner').style.display = 'flex';
   document.getElementById('af-edit-banner-cliente').textContent = a.cliente || '';
+  var _sistEdit = (sistemaStr.split('::')[0]||'').trim();
+  window._afCliente = a.cliente || '';
+  window._afSistema = _sistEdit;
+  afMostrarSistemaSelector(_sistEdit);
   window.scrollTo({ top: 0, behavior: 'smooth' });
   toast('✏️ Parámetros cargados — modificá y guardá');
 }
@@ -11715,6 +11777,16 @@ async function afGuardar() {
     }
   } else {
     sistema = window._afSistema || '';
+    if (cliente && (presupuestos||[]).length) {
+      var _dmG = presupuestos.filter(function(d){ return d.cliente && d.cliente.toLowerCase() === cliente.toLowerCase() && (d.tipo||'').toLowerCase().startsWith('fv'); });
+      if (_dmG.length) {
+        _dmG.sort(function(a,b){ return (b.id||0) - (a.id||0); });
+        var _tpG = (_dmG[0].tipo||'').toLowerCase();
+        if (_tpG.includes('híbrido') || _tpG.includes('hibrido')) sistema = 'Híbrido';
+        else if (_tpG.includes('off-grid') || _tpG.includes('off grid')) sistema = 'Off-Grid';
+        else if (_tpG.includes('on-grid') || _tpG.includes('on grid')) sistema = 'On-Grid';
+      }
+    }
   }
 
   // Guardar ítems individuales del desglose en sistema como "On-Grid::desc1|qty1|price1;desc2|qty2|price2#PCT=30"
@@ -11785,6 +11857,7 @@ function afReset() {
   var fp=document.getElementById('firma-af-posicion'); if(fp) fp.value='';
   window._afEntryMon = 'USD';
   window._afCliente = ''; window._afSistema = '';
+  var _swrap = document.getElementById('af-sistema-wrap'); if (_swrap) _swrap.style.display = 'none';
   if (typeof afSetMonedaSilencioso === 'function') afSetMonedaSilencioso('USD'); // moneda por defecto
   // Limpiar selectores y tabla
   var sel = document.getElementById('af-dim-select');

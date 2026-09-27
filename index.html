@@ -9299,10 +9299,8 @@ async function pqImportarHist() {
   var d = _pqHistMap[sel.value];
   if (!d) { toast('No se encontró el presupuesto'); return; }
 
-  // ¿Estamos editando un presupuesto existente? Si sí, se mantiene ESE (mismo N°) y al guardar
-  // se sobrescribe. Si estamos en un presupuesto en blanco, se crea uno nuevo (copia). El original
-  // que se importa NUNCA se toca.
-  var editando = !!_pqEditRecord;
+  // Importar SIEMPRE crea un presupuesto NUEVO (nunca pisa el que estabas editando).
+  _pqEditRecord = null;
 
   // Traer el contenido del presupuesto seleccionado
   document.getElementById('pq-cliente').value = d.cliente || '';
@@ -9324,25 +9322,16 @@ async function pqImportarHist() {
   pqRebuildSecciones();
   pqRenderSolar(); pqRenderManual(); pqRecalc();
 
-  if (editando) {
-    // Mantener el presupuesto en edición (mismo N°) → al guardar se sobrescribe ese, no duplica
-    document.getElementById('pq-nro').value = _pqEditRecord.nro || document.getElementById('pq-nro').value;
-    document.getElementById('pq-nro-badge').textContent = '#' + (_pqEditRecord.nro || '');
-    toast('Contenido traído · se guardará sobre el presupuesto en edición #' + (_pqEditRecord.nro || ''));
-    var _pqDupE=document.getElementById('pq-dup-banner'); if(_pqDupE) _pqDupE.style.display='none';
-  } else {
-    // Copia como NUEVO presupuesto (número fresco)
-    _pqEditRecord = null;
-    document.getElementById('pq-edit-banner').style.display = 'none';
+  // Siempre como NUEVO presupuesto (número fresco)
+  document.getElementById('pq-edit-banner').style.display = 'none';
   { var _pqDb=document.getElementById('pq-dup-banner'); if(_pqDb) _pqDb.style.display='none'; }
-    document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
-    document.getElementById('pq-fecha').value = new Date().toISOString().split('T')[0];
-    var nro = await pqGetNextNro();
-    document.getElementById('pq-nro').value = nro;
-    document.getElementById('pq-nro-badge').textContent = '#' + nro;
-    toast('Copiado como presupuesto nuevo #' + nro);
-    var _pqDup=document.getElementById('pq-dup-banner'); if(_pqDup){ var _pdc=document.getElementById('pq-dup-banner-cliente'); if(_pdc) _pdc.textContent=d.cliente||('N° '+(d.nro||'')); _pqDup.style.display='flex'; }
-  }
+  document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
+  document.getElementById('pq-fecha').value = new Date().toISOString().split('T')[0];
+  var nro = await pqGetNextNro();
+  document.getElementById('pq-nro').value = nro;
+  document.getElementById('pq-nro-badge').textContent = '#' + nro;
+  toast('Copiado como presupuesto nuevo #' + nro);
+  var _pqDup=document.getElementById('pq-dup-banner'); if(_pqDup){ var _pdc=document.getElementById('pq-dup-banner-cliente'); if(_pdc) _pdc.textContent=d.cliente||('N° '+(d.nro||'')); _pqDup.style.display='flex'; }
   // Limpiar el selector para que quede listo para la próxima importación (no se queda "pegado" en el último).
   sel.value = '';
 }

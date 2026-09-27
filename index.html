@@ -959,6 +959,14 @@ window.addEventListener('load', function() {
           style="flex:1;padding:9px;border-radius:8px;border:1.5px solid var(--gris-borde);background:#fff;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer">
           ⚡ Híbrido</button>
       </div>
+      <div class="calc-field" style="margin-top:14px;margin-bottom:0">
+        <label>📷 Imagen del layout (OpenSolar) — opcional · sale en el PDF</label>
+        <input type="file" id="fv-imagen" accept="image/*" onchange="dimSubirImagen(this)" style="width:100%;font-size:12px;padding:6px 0">
+        <div id="fv-imagen-estado" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+        <label id="fv-imagen-print-wrap" style="display:none;align-items:center;gap:6px;font-size:12px;margin-top:6px;cursor:pointer">
+          <input type="checkbox" id="fv-imagen-print" checked style="width:auto;margin:0"> Imprimir la foto en el PDF
+        </label>
+      </div>
     </div>
 
     <!-- ════════════════════════════════════════════
@@ -3629,12 +3637,12 @@ function construirPropuestaFV() {
   </div>`;
 }
 
-function exportarPDFfv() {
+async function exportarPDFfv() {
   const cliente=document.getElementById('fv-cliente').value.trim();
   if(!cliente){toast('Ingresá el nombre del cliente antes de exportar');return;}
   if(getFVData().sinBase){toast('Cargá el consumo o la generación PVGIS antes de exportar');return;}
   document.getElementById('pdf-propuesta').innerHTML = construirPropuestaFV();
-  _entregarDocPDF('Dimensionamiento_FV_OnGrid.pdf');
+  await _dimEntregarPDF('Dimensionamiento_FV_OnGrid.pdf');
 }
 
 // ── TABS On-Grid / Off-Grid ───────────────────────────────────────────────────
@@ -3973,11 +3981,11 @@ function construirPropuestaOG() {
   '</div>';
 }
 
-function exportarPDFog() {
+async function exportarPDFog() {
   var cliente = document.getElementById('fv-cliente').value.trim();
   if (!cliente) { toast('Ingresá el nombre del cliente antes de exportar'); return; }
   document.getElementById('pdf-propuesta').innerHTML = construirPropuestaOG();
-  _entregarDocPDF('Dimensionamiento_OffGrid.pdf');
+  await _dimEntregarPDF('Dimensionamiento_OffGrid.pdf');
 }
 
 async function guardarDimOG() {
@@ -4031,11 +4039,13 @@ async function guardarDimOG() {
     colectores: nPaneles  || 0,
     acumulador: capAh     || 0,
     bomba:      iReg      || 0,
-    area:       kwpReal   || 0
+    area:       kwpReal   || 0,
+    imagen_url: _dimImagenUrl || null,
+    imagen_print: _imagenPrintFlag()
   };
 
   setSyncState('loading');
-  var wasEditingOG = !!_dimEditFV;
+  var wasEditingOG = !!_dimEditFV && !_dimDuplicando;
   var ogResult = wasEditingOG
     ? await db.from('hes_presupuestos').update(payload).eq('id', _dimEditFV.id)
     : await db.from('hes_presupuestos').insert([payload]);
@@ -4045,7 +4055,7 @@ async function guardarDimOG() {
     toast('Error al guardar: ' + (ogResult.error.message || 'revisar Supabase'));
     return;
   }
-  _dimEditFV = null;
+  _dimEditFV = null; _dimDuplicando = false;
   document.getElementById('dim-edit-banner-fv').style.display = 'none';
   { var _dupB=document.getElementById('dim-dup-banner'); if(_dupB) _dupB.style.display='none'; }
   await loadPresupuestos();
@@ -4178,6 +4188,7 @@ function limpiarDimensionTermica() {
 }
 
 function limpiarDimensionOG() {
+  _resetDimImagen();
   var fn=document.getElementById('firma-og-nombre'); if(fn) fn.value='';
   var fp=document.getElementById('firma-og-posicion'); if(fp) fp.value='';
   // — Limpiar resultados PRIMERO (antes de cualquier recalculo) —
@@ -4228,6 +4239,7 @@ function limpiarDimensionOG() {
 }
 
 function limpiarDimensionFV() {
+  _resetDimImagen();
   var fn=document.getElementById('firma-fv-nombre'); if(fn) fn.value='';
   var fp=document.getElementById('firma-fv-posicion'); if(fp) fp.value='';
   var im=document.getElementById('fv-inv-manual'); if(im){ im.value=''; im.dataset.manual=''; }
@@ -4279,7 +4291,7 @@ async function guardarDim() {
     area: parseFloat(document.getElementById('r-area').textContent) || 0
   };
   setSyncState('loading');
-  const wasEditing = !!_dimEditTermica;
+  const wasEditing = !!_dimEditTermica && !_dimDuplicando;
   const result = wasEditing
     ? await db.from('hes_presupuestos').update(payload).eq('id', _dimEditTermica.id)
     : await db.from('hes_presupuestos').insert([payload]);
@@ -4289,7 +4301,7 @@ async function guardarDim() {
     toast('Error al guardar térmica: ' + (result.error.message || 'revisar Supabase'));
     return;
   }
-  _dimEditTermica = null;
+  _dimEditTermica = null; _dimDuplicando = false;
   document.getElementById('dim-edit-banner-termica').style.display = 'none';
   { var _dupB=document.getElementById('dim-dup-banner'); if(_dupB) _dupB.style.display='none'; }
   await loadPresupuestos();
@@ -4321,10 +4333,12 @@ async function guardarDimFV() {
     colectores: d.paneles || 0,
     acumulador: d.sistema === 'offgrid' ? (parseInt(d.bateria) || 0) : 0,
     bomba: Math.round(d.ahorroAnual) || 0,
-    area: parseFloat(d.kwpReal.toFixed(2)) || 0
+    area: parseFloat(d.kwpReal.toFixed(2)) || 0,
+    imagen_url: _dimImagenUrl || null,
+    imagen_print: _imagenPrintFlag()
   };
   setSyncState('loading');
-  const wasEditing = !!_dimEditFV;
+  const wasEditing = !!_dimEditFV && !_dimDuplicando;
   const result = wasEditing
     ? await db.from('hes_presupuestos').update(payload).eq('id', _dimEditFV.id)
     : await db.from('hes_presupuestos').insert([payload]);
@@ -4334,7 +4348,7 @@ async function guardarDimFV() {
     toast('Error al guardar FV: ' + (result.error.message || 'revisar Supabase'));
     return;
   }
-  _dimEditFV = null;
+  _dimEditFV = null; _dimDuplicando = false;
   document.getElementById('dim-edit-banner-fv').style.display = 'none';
   { var _dupB=document.getElementById('dim-dup-banner'); if(_dupB) _dupB.style.display='none'; }
   await loadPresupuestos();
@@ -4671,13 +4685,14 @@ function construirPropuestaHibrido() {
     '</div>';
 }
 
-function exportarPDFhibrido() {
+async function exportarPDFhibrido() {
   if(getHIBData().sinBase){toast('Cargá el consumo o la generación PVGIS antes de exportar');return;}
   document.getElementById('pdf-propuesta').innerHTML = construirPropuestaHibrido();
-  _entregarDocPDF('Dimensionamiento_Hibrido.pdf');
+  await _dimEntregarPDF('Dimensionamiento_Hibrido.pdf');
 }
 
 function limpiarDimensionHibrido() {
+  _resetDimImagen();
   var fn=document.getElementById('firma-hib-nombre'); if(fn) fn.value='';
   var fp=document.getElementById('firma-hib-posicion'); if(fp) fp.value='';
   var im=document.getElementById('hib-inv-manual'); if(im){ im.value=''; im.dataset.manual=''; }
@@ -4736,10 +4751,12 @@ async function guardarDimHibrido() {
     colectores: d.paneles||0,
     acumulador: Math.round(d.batKwhUtil*10)/10,
     bomba: Math.round(d.ahorroAnual)||0,
-    area: parseFloat(d.kwpReal.toFixed(2))||0
+    area: parseFloat(d.kwpReal.toFixed(2))||0,
+    imagen_url: _dimImagenUrl || null,
+    imagen_print: _imagenPrintFlag()
   };
   setSyncState('loading');
-  var wasEditing = !!_dimEditFV;
+  var wasEditing = !!_dimEditFV && !_dimDuplicando;
   var result = wasEditing
     ? await db.from('hes_presupuestos').update(payload).eq('id', _dimEditFV.id)
     : await db.from('hes_presupuestos').insert([payload]);
@@ -4748,7 +4765,7 @@ async function guardarDimHibrido() {
     toast('Error al guardar: '+(result.error.message||'revisar Supabase'));
     return;
   }
-  _dimEditFV = null;
+  _dimEditFV = null; _dimDuplicando = false;
   document.getElementById('dim-edit-banner-fv').style.display = 'none';
   { var _dupB=document.getElementById('dim-dup-banner'); if(_dupB) _dupB.style.display='none'; }
   await loadPresupuestos();
@@ -5259,11 +5276,12 @@ function _cargarTermicaEnForma(p) {
   if (rBomba)rBomba.textContent= p.bomba || 0;
 }
 
-function exportarPresupuestoPDF(id) {
+async function exportarPresupuestoPDF(id) {
   const p = presupuestos.find(x => String(x.id) === String(id));
   if (!p) { toast('No encontré ese presupuesto'); return; }
   document.getElementById('pdf-propuesta').innerHTML = construirPDFPresupuestoGuardado(p);
-  _entregarDocPDF('Dimensionamiento_' + ((p&&p.cliente)?String(p.cliente).replace(/[^\w]+/g,'_'):'guardado') + '.pdf');
+  var _imgGuardada = (p.imagen_print === false) ? '' : (p.imagen_url || '');
+  await _dimEntregarPDF('Dimensionamiento_' + ((p&&p.cliente)?String(p.cliente).replace(/[^\w]+/g,'_'):'guardado') + '.pdf', _imgGuardada, true);
 }
 
 function exportarPresupuestoActualPDF() {
@@ -6883,11 +6901,11 @@ async function init() {
         });
     } catch(e) { console.warn('Realtime no disponible:', e); }
 
-    // Polling de respaldo: cada 90s, SOLO si la pestaña está VISIBLE, y en modo liviano
+    // Polling de respaldo: cada 120s, SOLO si la pestaña está VISIBLE, y en modo liviano
     // (solo activos, sin Cerrados/Perdidos → menos egress).
     setInterval(function() {
       if (document.visibilityState === 'visible') loadClientes(true);
-    }, 90000);
+    }, 120000);
   } // fin candado _leadsLiveSetup (realtime + polling se arman una sola vez)
 }
 
@@ -8815,6 +8833,50 @@ async function _htmlAPdfSimple(el, filename) {
 }
 
 // Entrega el documento de #pdf-propuesta: en móvil (iOS/Android) genera un PDF descargable; en desktop imprime.
+// ── Imagen del layout (OpenSolar) para el PDF de dimensionamiento FV ──────────
+var _dimImagenUrl = '';
+// Sube la imagen elegida a Supabase Storage (bucket público hes-archivos) y guarda su URL.
+async function dimSubirImagen(inp){
+  var file = inp && inp.files && inp.files[0];
+  var est = document.getElementById('fv-imagen-estado');
+  if(!file){ _dimImagenUrl=''; if(est) est.textContent=''; return; }
+  if(est) est.textContent = 'Subiendo imagen…';
+  try{
+    var ext = (String(file.name).split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'') || 'jpg';
+    var path = 'dim/' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.' + ext;
+    var up = await db.storage.from('hes-archivos').upload(path, file, { contentType: file.type || 'image/jpeg', upsert:false });
+    if(up.error) throw up.error;
+    _dimImagenUrl = db.storage.from('hes-archivos').getPublicUrl(path).data.publicUrl;
+    if(est) est.textContent = '✅ Imagen cargada (saldrá en el PDF)';
+    _mostrarImagenPrint(true);
+  }catch(e){ _dimImagenUrl=''; if(est) est.textContent = '❌ No se pudo subir la imagen'; _mostrarImagenPrint(false); }
+}
+// Muestra/oculta el toggle "Imprimir la foto en el PDF" y lo deja tildado cuando hay imagen.
+function _mostrarImagenPrint(hay){
+  var w = document.getElementById('fv-imagen-print-wrap');
+  var c = document.getElementById('fv-imagen-print');
+  if(w) w.style.display = hay ? 'flex' : 'none';
+  if(c && hay) c.checked = true;
+}
+function _resetDimImagen(){ _dimImagenUrl=''; var i=document.getElementById('fv-imagen'); if(i) i.value=''; var e=document.getElementById('fv-imagen-estado'); if(e) e.textContent=''; _mostrarImagenPrint(false); }
+// Lee el estado del toggle "Imprimir la foto en el PDF" (true si no hay checkbox visible).
+function _imagenPrintFlag(){ var e=document.getElementById('fv-imagen-print'); return e ? !!e.checked : true; }
+// Agrega al PDF (pdf-propuesta) una sección final con la imagen del layout, si hay.
+async function _appendImgLayout(url){
+  url = url || _dimImagenUrl;
+  if(!url) return;
+  var src = url;
+  try{
+    var r = await fetch(url); var b = await r.blob();
+    src = await new Promise(function(res,rej){ var fr=new FileReader(); fr.onload=function(){res(fr.result);}; fr.onerror=rej; fr.readAsDataURL(b); });
+  }catch(e){ /* si falla el fetch, usa la URL directa (html2canvas con useCORS) */ }
+  var el = document.getElementById('pdf-propuesta');
+  if(!el) return;
+  el.innerHTML += '<div style="margin-top:26px;text-align:center">' +
+    '<div style="font-weight:700;color:#1B6B2F;font-size:15px;margin:0 0 12px">Vista del proyecto — Layout de paneles</div>' +
+    '<img src="' + src + '" style="width:62%;max-width:480px;border-radius:8px;border:1px solid #ddd;display:inline-block">' +
+    '</div>';
+}
 function _entregarDocPDF(filename) {
   var el = document.getElementById('pdf-propuesta');
   if (!el) return;
@@ -8826,6 +8888,112 @@ function _entregarDocPDF(filename) {
     var t=document.title; document.title=' ';
     setTimeout(function(){ window.print(); document.title=t; el.innerHTML=''; }, 120);
   }
+}
+
+// Entrega el PDF de dimensionamiento FV (On-Grid/Off-Grid/Híbrido) vía jsPDF, con pie de página
+// (contacto + "Página X de Y") en TODAS las hojas. Si hay imagen del layout (OpenSolar), va en su
+// PROPIA hoja al final: línea de contacto arriba, un espacio, el título y la foto centrada.
+// Se usa en desktop y móvil por igual (mismo resultado). El contenido principal NO debe traer la imagen.
+async function _dimEntregarPDF(filename, imgUrl, fromSaved){
+  var el = document.getElementById('pdf-propuesta');
+  if(!el){ return; }
+  if(fromSaved){
+    // Export de un guardado: la URL viene resuelta (ya contempla imagen_print). Usar tal cual.
+    imgUrl = imgUrl || '';
+  } else {
+    // Export en vivo del form: usa la imagen cargada y respeta el toggle "Imprimir la foto en el PDF".
+    imgUrl = imgUrl || _dimImagenUrl || '';
+    var _chk = document.getElementById('fv-imagen-print'); if(_chk && !_chk.checked) imgUrl = '';
+  }
+  if(!window.html2canvas){ await new Promise(function(res,rej){ var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+  if(!window.jspdf){ await new Promise(function(res,rej){ var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+  // Si hay foto, sacar la firma del HTML (se dibuja con jsPDF en la hoja de la foto)
+  var _firmaDiv = null, _firmaNombre='', _firmaPosicion='';
+  if(imgUrl){
+    var _divs = el.querySelectorAll('div[style*="flex-end"]');
+    for(var _i=_divs.length-1; _i>=0; _i--){
+      var _d=_divs[_i]; if(_d.querySelector('div[style*="border-top"]')){
+        var _txts=_d.querySelectorAll('div[style*="border-top"] > div');
+        if(_txts.length>=1) _firmaNombre=(_txts[0].textContent||'').trim();
+        if(_txts.length>=2) _firmaPosicion=(_txts[1].textContent||'').trim();
+        _firmaDiv=_d; _d.style.display='none'; break;
+      }
+    }
+  }
+  // Capturar el contenido principal off-screen a ancho A4 (794px)
+  var prev = { disp:el.style.display, pos:el.style.position, left:el.style.left, top:el.style.top, z:el.style.zIndex, w:el.style.width, min:el.style.minWidth };
+  el.style.display='block'; el.style.position='fixed'; el.style.left='-10000px'; el.style.top='0'; el.style.zIndex='-1'; el.style.width='794px'; el.style.minWidth='794px';
+  await new Promise(function(r){ setTimeout(r,90); });
+  var canvas = await html2canvas(el, { scale:2, useCORS:true, backgroundColor:'#ffffff', width:794, windowWidth:794, windowHeight:3000, scrollX:0, scrollY:0 });
+  el.style.display=prev.disp; el.style.position=prev.pos; el.style.left=prev.left; el.style.top=prev.top; el.style.zIndex=prev.z; el.style.width=prev.w; el.style.minWidth=prev.min;
+  if(_firmaDiv) _firmaDiv.style.display='';
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+  var pdfW=210, pdfH=297, footerH=14;
+  var ratio = pdfW / canvas.width;
+  var pageMaxPx = Math.floor((pdfH - footerH) / ratio); // deja aire abajo para el pie
+  var _pageBottoms = {}; // por hoja: mm donde termina el contenido (para ubicar el pie justo abajo)
+  var y=0, first=true;
+  while (y < canvas.height - 1){
+    var sliceH = Math.min(pageMaxPx, canvas.height - y);
+    var pc = document.createElement('canvas'); pc.width=canvas.width; pc.height=sliceH;
+    pc.getContext('2d').drawImage(canvas, 0, y, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+    if(!first) doc.addPage();
+    doc.addImage(pc.toDataURL('image/jpeg',0.92), 'JPEG', 0, 0, pdfW, sliceH*ratio);
+    _pageBottoms[doc.getNumberOfPages()] = sliceH*ratio;
+    y += sliceH; first=false;
+  }
+  // ── Hoja propia para la imagen del layout ──
+  if(imgUrl){
+    var _imgCacheKey = 'dim_img_' + imgUrl;
+    var _cachedSrc = null;
+    try { _cachedSrc = sessionStorage.getItem(_imgCacheKey); } catch(e){}
+    var im = new Image(); im.crossOrigin='anonymous';
+    var ok = await new Promise(function(res){ im.onload=function(){res(true);}; im.onerror=function(){res(false);}; im.src = _cachedSrc || imgUrl; });
+    if(ok && !_cachedSrc){
+      try{ var _cc=document.createElement('canvas'); _cc.width=im.naturalWidth; _cc.height=im.naturalHeight; _cc.getContext('2d').drawImage(im,0,0); sessionStorage.setItem(_imgCacheKey, _cc.toDataURL('image/jpeg',0.85)); }catch(e){}
+    }
+    if(ok){
+      doc.addPage();
+      // Sin banda de contacto arriba (el pie ya la trae en las dos hojas). Título arriba y foto debajo.
+      doc.setFontSize(14); doc.setTextColor(27,107,47);
+      doc.text('Vista del proyecto — Layout de paneles', pdfW/2, 22, { align:'center' });
+      // Foto centrada, con márgenes visibles
+      var imgW = 130; // ~62% del ancho A4 → quedan bordes a los costados
+      var imgH = im.naturalWidth ? (imgW * im.naturalHeight / im.naturalWidth) : 90;
+      var maxH = pdfH - 32 - 18; // desde y=32 hasta dejar aire para el pie
+      if(imgH > maxH){ imgH = maxH; imgW = im.naturalHeight ? (imgH * im.naturalWidth / im.naturalHeight) : imgW; }
+      var ix = (pdfW - imgW)/2, iy = 32;
+      try{ doc.addImage(im, 'JPEG', ix, iy, imgW, imgH, undefined, 'FAST'); }catch(e){}
+      doc.setDrawColor(210,210,210); doc.setLineWidth(0.3); doc.rect(ix, iy, imgW, imgH);
+      var _bottomImg = iy + imgH;
+      // Firma debajo de la foto (si hay)
+      if(_firmaNombre || _firmaPosicion){
+        var _fxR = pdfW - 14;
+        var _fy = _bottomImg + 14;
+        var _fLineW = 42;
+        doc.setDrawColor(27,107,47); doc.setLineWidth(0.6);
+        doc.line(_fxR - _fLineW, _fy, _fxR, _fy);
+        if(_firmaNombre){ doc.setFontSize(10); doc.setTextColor(17,17,17); doc.text(_firmaNombre, _fxR, _fy+5, {align:'right'}); }
+        if(_firmaPosicion){ doc.setFontSize(8); doc.setTextColor(27,107,47); doc.text(_firmaPosicion.toUpperCase(), _fxR, _fy + (_firmaNombre?10:5), {align:'right'}); }
+        _bottomImg = _fy + (_firmaNombre?10:5) + (_firmaPosicion?5:0);
+      }
+      _pageBottoms[doc.getNumberOfPages()] = _bottomImg;
+    }
+  }
+  // ── Pie de página en TODAS las hojas: pegado al final del contenido (izq contacto + der N° hoja) ──
+  var _tot = doc.getNumberOfPages();
+  for(var _p=1; _p<=_tot; _p++){
+    doc.setPage(_p);
+    var _cb = _pageBottoms[_p] || (pdfH-16);
+    var _ly = Math.min(_cb + 7, pdfH - 11), _ty = _ly+5;
+    doc.setDrawColor(220,220,220); doc.setLineWidth(0.2); doc.line(12, _ly, pdfW-12, _ly);
+    doc.setFontSize(7.5); doc.setTextColor(150,150,150);
+    doc.text('info@exergrid.com.ar  ·  +54 9 11 2592 3099  ·  exergrid.com.ar', 12, _ty);
+    doc.text('Página ' + _p + ' de ' + _tot, pdfW-12, _ty, { align:'right' });
+  }
+  _pdfEntregar(doc.output('blob'), filename);
+  el.innerHTML='';
 }
 
 async function pqDownloadPDF() {
@@ -10253,6 +10421,7 @@ function editarDimTermica(id) {
   var p = presupuestos.find(function(x){ return x.id === id; });
   if (!p) { toast('No se encontró el registro'); return; }
   _dimEditTermica = { id: p.id, cliente: p.cliente };
+  _dimDuplicando = false; // edición real térmica: sí pisa (el importador lo vuelve a true después)
   document.getElementById('d-cliente').value  = p.cliente || '';
   document.getElementById('d-personas').value = p.personas || 4;
   document.getElementById('d-litros').value   = p.litros_dia || 40;
@@ -10290,7 +10459,7 @@ function editarDimTermica(id) {
 
 function cancelarEditDimTermica() {
   if (!confirm('¿Cancelar edición? Los cambios no guardados se perderán.')) return;
-  _dimEditTermica = null;
+  _dimEditTermica = null; _dimDuplicando = false;
   document.getElementById('dim-edit-banner-termica').style.display = 'none';
   { var _dupB=document.getElementById('dim-dup-banner'); if(_dupB) _dupB.style.display='none'; }
   limpiarDimensionTermica();
@@ -10298,14 +10467,24 @@ function cancelarEditDimTermica() {
 
 // ── EDITAR DIMENSIONAMIENTO FV ────────────────────────────────────────────────
 var _dimEditFV = null;
+// Flag "estoy duplicando desde un guardado" → fuerza INSERT (crear nuevo), nunca UPDATE (pisar).
+// Es a prueba de excepciones: aunque editarDimFV falle a mitad, el importador lo deja en true.
+var _dimDuplicando = false;
 
 function editarDimFV(id) {
   var p = presupuestos.find(function(x){ return x.id === id; });
   if (!p) { toast('No se encontró el registro'); return; }
   _dimEditFV = { id: p.id, cliente: p.cliente };
+  _dimDuplicando = false; // edición real: sí pisa (el importador lo vuelve a true después de llamarme)
 
   // Cliente compartido en la cabecera del tab FV
   document.getElementById('fv-cliente').value = p.cliente || '';
+  // Restaurar imagen del layout (OpenSolar) si el dimensionamiento guardado tenía una
+  _dimImagenUrl = p.imagen_url || '';
+  var _imgEst = document.getElementById('fv-imagen-estado'); if(_imgEst) _imgEst.textContent = _dimImagenUrl ? '✅ Imagen del layout cargada (saldrá en el PDF)' : '';
+  var _imgInp = document.getElementById('fv-imagen'); if(_imgInp) _imgInp.value = '';
+  _mostrarImagenPrint(!!_dimImagenUrl);
+  var _imgChk = document.getElementById('fv-imagen-print'); if(_imgChk) _imgChk.checked = (p.imagen_print !== false);
 
   var tipoStr = p.tipo || '';
   var partes = tipoStr.split('|').map(function(x){ return x.trim(); });
@@ -10583,7 +10762,7 @@ function editarDimFV(id) {
 
 function cancelarEditDimFV() {
   if (!confirm('¿Cancelar edición? Los cambios no guardados se perderán.')) return;
-  _dimEditFV = null;
+  _dimEditFV = null; _dimDuplicando = false;
   document.getElementById('dim-edit-banner-fv').style.display = 'none';
   { var _dupB=document.getElementById('dim-dup-banner'); if(_dupB) _dupB.style.display='none'; }
   limpiarDimensionFV();
@@ -10608,10 +10787,16 @@ function importarDimGuardado(id){
   var p=(presupuestos||[]).find(function(x){return String(x.id)===String(id);});
   if(!p){ toast('No se encontró el dimensionamiento'); return; }
   if(/^Térmica/i.test(p.tipo||'')){
-    showDimTab('termica'); editarDimTermica(p.id); _dimEditTermica=null;
+    showDimTab('termica');
+    try{ editarDimTermica(p.id); }catch(e){ console.error('importar térmica:', e); }
+    // Forzar NUEVO aunque editarDimTermica haya fallado a mitad (así no queda en modo pisar)
+    _dimEditTermica=null; _dimEditFV=null; _dimDuplicando=true;
     var bt=document.getElementById('dim-edit-banner-termica'); if(bt) bt.style.display='none';
   } else {
-    showDimTab('fv'); editarDimFV(p.id); _dimEditFV=null;
+    showDimTab('fv');
+    try{ editarDimFV(p.id); }catch(e){ console.error('importar FV:', e); }
+    // Forzar NUEVO aunque editarDimFV haya fallado a mitad (así no queda en modo pisar)
+    _dimEditFV=null; _dimEditTermica=null; _dimDuplicando=true;
     var bf=document.getElementById('dim-edit-banner-fv'); if(bf) bf.style.display='none';
   }
   document.getElementById('dim-dup-banner-cliente').textContent=p.cliente||'';

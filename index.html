@@ -888,7 +888,7 @@ window.addEventListener('load', function() {
         <h3>Datos del proyecto</h3>
         <div class="calc-field"><label>Cliente</label><input type="text" id="d-cliente" placeholder="Nombre del cliente"></div>
         <div class="calc-field"><label>Personas</label><input type="number" id="d-personas" min="1" placeholder="ej: 4" oninput="calcular()"></div>
-        <div class="calc-field"><label>Litros/día por persona</label><input type="number" id="d-litros" placeholder="ej: 40" oninput="calcular()"></div>
+        <div class="calc-field"><label>Litros/día por persona</label><input type="number" id="d-litros" value="50" placeholder="50" oninput="calcular()"></div>
         <div class="calc-field"><label>Temp. acumulación (°C)</label><input type="number" id="d-tacum" placeholder="ej: 55" oninput="calcular()"></div>
         <div class="calc-field"><label>Temp. agua de red (°C)</label><input type="number" id="d-tred" placeholder="ej: 15" oninput="calcular()"></div>
         <div class="calc-field"><label>Zona</label>
@@ -5246,7 +5246,7 @@ function _cargarTermicaEnForma(p) {
   var partes = tipo.split('|').map(function(x){return x.trim();});
   document.getElementById('d-cliente').value = p.cliente || '';
   document.getElementById('d-personas').value = p.personas || 4;
-  document.getElementById('d-litros').value = p.litros_dia || 40;
+  document.getElementById('d-litros').value = p.litros_dia || 50;
   var tacumM = tipo.match(/TACUM=([\d.]+)/);
   if (tacumM) document.getElementById('d-tacum').value = tacumM[1];
   var tredM = tipo.match(/TRED=([\d.]+)/);
@@ -8898,16 +8898,30 @@ async function _dimEntregarPDF(filename, imgUrl, fromSaved){
   var el = document.getElementById('pdf-propuesta');
   if(!el){ return; }
   if(fromSaved){
-    // Export de un guardado: la URL viene resuelta (ya contempla imagen_print). Usar tal cual.
     imgUrl = imgUrl || '';
   } else {
-    // Export en vivo del form: usa la imagen cargada y respeta el toggle "Imprimir la foto en el PDF".
     imgUrl = imgUrl || _dimImagenUrl || '';
     var _chk = document.getElementById('fv-imagen-print'); if(_chk && !_chk.checked) imgUrl = '';
   }
+  // Desktop: usar window.print() (mejor calidad, diálogo de nombre de archivo)
+  var _isIOS = /iP(ad|hone|od)/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  var _isMobile = _isIOS || /Android|Mobile/i.test(navigator.userAgent);
+  if(!_isMobile){
+    if(imgUrl){
+      var _imgSrc = imgUrl;
+      try{ var _r=await fetch(imgUrl); var _b=await _r.blob(); _imgSrc=await new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(fr.result);};fr.onerror=rej;fr.readAsDataURL(_b);}); }catch(e){}
+      el.innerHTML += '<div style="page-break-before:always;padding-top:30px;text-align:center">' +
+        '<div style="font-weight:700;color:#1B6B2F;font-size:15px;margin:0 0 16px">Vista del proyecto — Layout de paneles</div>' +
+        '<img src="'+_imgSrc+'" style="width:62%;max-width:520px;border-radius:8px;border:1px solid #ddd;display:inline-block">' +
+        '</div>';
+    }
+    var _t=document.title; document.title=' ';
+    setTimeout(function(){ window.print(); document.title=_t; el.innerHTML=''; },120);
+    return;
+  }
+  // Móvil: usar jsPDF (descarga directa)
   if(!window.html2canvas){ await new Promise(function(res,rej){ var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
   if(!window.jspdf){ await new Promise(function(res,rej){ var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
-  // Si hay foto, sacar la firma del HTML (se dibuja con jsPDF en la hoja de la foto)
   var _firmaDiv = null, _firmaNombre='', _firmaPosicion='';
   if(imgUrl){
     var _divs = el.querySelectorAll('div[style*="flex-end"]');
@@ -8951,7 +8965,7 @@ async function _dimEntregarPDF(filename, imgUrl, fromSaved){
     var im = new Image(); im.crossOrigin='anonymous';
     var ok = await new Promise(function(res){ im.onload=function(){res(true);}; im.onerror=function(){res(false);}; im.src = _cachedSrc || imgUrl; });
     if(ok && !_cachedSrc){
-      try{ var _cc=document.createElement('canvas'); _cc.width=im.naturalWidth; _cc.height=im.naturalHeight; _cc.getContext('2d').drawImage(im,0,0); sessionStorage.setItem(_imgCacheKey, _cc.toDataURL('image/jpeg',0.85)); }catch(e){}
+      try{ var _cc=document.createElement('canvas'); _cc.width=im.naturalWidth; _cc.height=im.naturalHeight; _cc.getContext('2d').drawImage(im,0,0); sessionStorage.setItem(_imgCacheKey, _cc.toDataURL('image/jpeg',0.95)); }catch(e){}
     }
     if(ok){
       doc.addPage();
@@ -8964,7 +8978,7 @@ async function _dimEntregarPDF(filename, imgUrl, fromSaved){
       var maxH = pdfH - 32 - 18; // desde y=32 hasta dejar aire para el pie
       if(imgH > maxH){ imgH = maxH; imgW = im.naturalHeight ? (imgH * im.naturalWidth / im.naturalHeight) : imgW; }
       var ix = (pdfW - imgW)/2, iy = 32;
-      try{ doc.addImage(im, 'JPEG', ix, iy, imgW, imgH, undefined, 'FAST'); }catch(e){}
+      try{ doc.addImage(im, 'JPEG', ix, iy, imgW, imgH, undefined, 'SLOW'); }catch(e){}
       doc.setDrawColor(210,210,210); doc.setLineWidth(0.3); doc.rect(ix, iy, imgW, imgH);
       var _bottomImg = iy + imgH;
       // Firma debajo de la foto (si hay)
@@ -9739,6 +9753,48 @@ document.addEventListener('DOMContentLoaded', function() {
   inp.addEventListener('input', function() { fvShowClienteDropdown(this.value); });
   inp.addEventListener('focus', function() { fvShowClienteDropdown(this.value); });
   inp.addEventListener('blur',  function() { setTimeout(function() { var dd = document.getElementById('fv-cn-dropdown'); if (dd) dd.style.display = 'none'; }, 300); });
+});
+
+// ── Autocompletar cliente en DIMENSIONAMIENTO TÉRMICO ──
+function dtShowClienteDropdown(q) {
+  var inp = document.getElementById('d-cliente');
+  if (!inp) return;
+  var dd = document.getElementById('dt-cn-dropdown');
+  if (!dd) {
+    dd = document.createElement('div');
+    dd.id = 'dt-cn-dropdown';
+    dd.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #ddd;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.12);max-height:260px;overflow:auto;display:none';
+    document.body.appendChild(dd);
+  }
+  var list = pqClientesAutocompletar();
+  var matches = q ? list.filter(function(c){ return c.nombre.toLowerCase().includes(q.toLowerCase()); }) : list.slice(0, 8);
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.map(function(c) {
+    var details = [ c.contacto ? 'Contacto: ' + c.contacto : '', c.dir ? c.dir : '' ].filter(Boolean).join(' · ');
+    return '<div style="padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f0f0;" ' +
+      'onmousedown="event.preventDefault();dtFillCliente(' + JSON.stringify(c).replace(/"/g,"'") + ')" ' +
+      'onmouseover="this.style.background=\'#eaf5ec\'" onmouseout="this.style.background=\'\'"> ' +
+      '<div style="font-weight:600;font-size:13px;color:#1e2118">' + c.nombre + '</div>' +
+      (details ? '<div style="font-size:11px;color:#888;margin-top:2px">' + details + '</div>' : '') +
+    '</div>';
+  }).join('');
+  var rect = inp.getBoundingClientRect();
+  dd.style.left  = rect.left + 'px';
+  dd.style.top   = rect.bottom + 'px';
+  dd.style.width = rect.width + 'px';
+  dd.style.display = 'block';
+}
+function dtFillCliente(c) {
+  var n = document.getElementById('d-cliente'); if (n) n.value = c.nombre || '';
+  var dd = document.getElementById('dt-cn-dropdown'); if (dd) dd.style.display = 'none';
+}
+document.addEventListener('DOMContentLoaded', function() {
+  var inp = document.getElementById('d-cliente');
+  if (!inp) return;
+  inp.setAttribute('autocomplete', 'off');
+  inp.addEventListener('input', function() { dtShowClienteDropdown(this.value); });
+  inp.addEventListener('focus', function() { dtShowClienteDropdown(this.value); });
+  inp.addEventListener('blur',  function() { setTimeout(function() { var dd = document.getElementById('dt-cn-dropdown'); if (dd) dd.style.display = 'none'; }, 300); });
 });
 
 // Init cliente autocomplete

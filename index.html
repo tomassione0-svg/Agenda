@@ -288,14 +288,14 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
 .pdf-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
 .btn-outline{background:#fff;color:var(--verde);border:1.5px solid var(--verde);}
 @media(max-width:520px){.fv-months-grid{grid-template-columns:repeat(2,1fr)}.pdf-actions{grid-template-columns:1fr}.af-params-grid{grid-template-columns:1fr!important}}
-@page { size: A4; margin: 0; }
+@page { size: A4; margin: 0 0 14mm 0; }
 #pdf-footer-fixed{ display: none; }
 @media print{
   html,body{margin:0!important;padding:0!important;}
   body > *:not(#pdf-propuesta):not(#pdf-footer-fixed){display:none!important;}
   #pdf-propuesta{display:block!important;position:relative;width:100%;background:#fff;color:#111;margin:0;padding:0;}
   /* Pie fijo en TODAS las hojas de los PDF que se imprimen por navegador */
-  #pdf-footer-fixed{display:block!important;position:static;margin:5mm 10mm 0;font-family:Arial,sans-serif;font-size:8px;color:#555;text-align:center;border-top:1px solid #ddd;padding-top:3px;}
+  #pdf-footer-fixed{display:block!important;position:fixed;bottom:0;left:0;right:0;margin:0 10mm 3mm;font-family:Arial,sans-serif;font-size:8px;color:#555;text-align:center;border-top:1px solid #ddd;padding-top:3px;}
   .pdf-page{width:100%;margin:0;padding:12mm 10mm 8mm;font-family:Arial,sans-serif;font-size:10px;box-sizing:border-box;}
   .pdf-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1B6B2F;padding-bottom:8px;margin-bottom:10px;}
   .pdf-brand{font-size:20px;font-weight:800;color:#1B6B2F;}

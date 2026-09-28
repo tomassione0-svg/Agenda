@@ -5830,6 +5830,11 @@ function ordenarClientes(arr){
       var segA = a.ppto_seguido_at ? 1 : 0;   // pendiente (0) arriba, ya seguido (1) abajo
       var segB = b.ppto_seguido_at ? 1 : 0;
       if (segA !== segB) return segA - segB;
+      if (!segA && !segB) {
+        var eaA = new Date(a.enviado_at || a.created_at || 0).getTime();
+        var eaB = new Date(b.enviado_at || b.created_at || 0).getTime();
+        if (eaA !== eaB) return eaA - eaB;
+      }
       var sisA = _cliSistemaOrden(a), sisB = _cliSistemaOrden(b);
       if (sisA !== sisB) return sisA - sisB;
     }

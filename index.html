@@ -294,7 +294,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);
   html,body{margin:0!important;padding:0!important;}
   body > *:not(#pdf-propuesta):not(#pdf-footer-fixed){display:none!important;}
   #pdf-propuesta{display:block!important;position:relative;width:100%;background:#fff;color:#111;margin:0;padding:0;}
-  #pdf-footer-fixed{display:block!important;position:static;margin:5mm 10mm 0;font-family:Arial,sans-serif;font-size:8px;color:#555;text-align:center;border-top:1px solid #ddd;padding-top:3px;}
+  #pdf-footer-fixed{display:flex!important;justify-content:center;align-items:baseline;position:relative;margin:5mm 10mm 0;font-family:Arial,sans-serif;font-size:8px;color:#555;border-top:1px solid #ddd;padding-top:3px;} #pdf-footer-pg{position:absolute;right:0;}
   .pdf-page{width:100%;margin:0;padding:12mm 10mm 8mm;font-family:Arial,sans-serif;font-size:10px;box-sizing:border-box;}
   .pdf-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1B6B2F;padding-bottom:8px;margin-bottom:10px;}
   .pdf-brand{font-size:20px;font-weight:800;color:#1B6B2F;}
@@ -2181,7 +2181,7 @@ window.addEventListener('load', function() {
 </div><!-- /app -->
 
 <div id="pdf-propuesta" class="pdf-preview"></div>
-<div id="pdf-footer-fixed">info@exergrid.com.ar&nbsp;&nbsp;·&nbsp;&nbsp;+54 9 11 2592 3099&nbsp;&nbsp;·&nbsp;&nbsp;exergrid.com.ar</div>
+<div id="pdf-footer-fixed"><span>info@exergrid.com.ar&nbsp;&nbsp;·&nbsp;&nbsp;+54 9 11 2592 3099&nbsp;&nbsp;·&nbsp;&nbsp;exergrid.com.ar</span><span id="pdf-footer-pg"></span></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -8910,8 +8910,9 @@ function _entregarDocPDF(filename) {
   if (isMobile) {
     _htmlAPdfSimple(el, filename).then(function(){ el.innerHTML=''; }).catch(function(){ el.innerHTML=''; });
   } else {
+    var fpg=document.getElementById('pdf-footer-pg'); if(fpg) fpg.textContent='Página 1 de 1';
     var t=document.title; document.title=' ';
-    setTimeout(function(){ window.print(); document.title=t; el.innerHTML=''; }, 120);
+    setTimeout(function(){ window.print(); document.title=t; el.innerHTML=''; if(fpg) fpg.textContent=''; }, 120);
   }
 }
 
@@ -8950,7 +8951,7 @@ async function _dimEntregarPDF(filename, imgUrl, fromSaved){
         var _wrap1 = document.createElement('div');
         while(_pg1.firstChild) _wrap1.appendChild(_pg1.firstChild);
         _pg1.appendChild(_wrap1);
-        _pg1.insertAdjacentHTML('beforeend', '<div style="margin-top:auto;text-align:center;font-size:8px;color:#555;border-top:1px solid #ddd;padding-top:3px;font-family:Arial,sans-serif">info@exergrid.com.ar&nbsp;&nbsp;·&nbsp;&nbsp;+54 9 11 2592 3099&nbsp;&nbsp;·&nbsp;&nbsp;exergrid.com.ar</div>');
+        _pg1.insertAdjacentHTML('beforeend', '<div style="margin-top:auto;position:relative;text-align:center;font-size:8px;color:#555;border-top:1px solid #ddd;padding-top:3px;font-family:Arial,sans-serif">info@exergrid.com.ar&nbsp;&nbsp;·&nbsp;&nbsp;+54 9 11 2592 3099&nbsp;&nbsp;·&nbsp;&nbsp;exergrid.com.ar<span style="position:absolute;right:0">Página 1 de 2</span></div>');
       }
       var _imgSrc = imgUrl;
       try{ var _r=await fetch(imgUrl); var _b=await _r.blob(); _imgSrc=await new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(fr.result);};fr.onerror=rej;fr.readAsDataURL(_b);}); }catch(e){}
@@ -8959,8 +8960,10 @@ async function _dimEntregarPDF(filename, imgUrl, fromSaved){
         '<img src="'+_imgSrc+'" style="width:62%;max-width:520px;border-radius:8px;border:1px solid #ddd;display:inline-block">' +
         '</div><div style="max-width:90%;margin:20px auto 0;text-align:right">' + _firmaHtml + '</div>';
     }
+    var _fpg=document.getElementById('pdf-footer-pg');
+    if(_fpg) _fpg.textContent = imgUrl ? 'Página 2 de 2' : 'Página 1 de 1';
     var _t=document.title; document.title=' ';
-    setTimeout(function(){ window.print(); document.title=_t; el.innerHTML=''; },120);
+    setTimeout(function(){ window.print(); document.title=_t; el.innerHTML=''; if(_fpg) _fpg.textContent=''; },120);
     return;
   }
   // Móvil: usar jsPDF (descarga directa)

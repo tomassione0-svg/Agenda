@@ -4539,17 +4539,18 @@ function getHIBData() {
   var ahorroMes = Math.min(genMes, promedio)*tarifa;
   var ahorroAnual = ahorroMes*12;
   // Baterías
-  var critW = parseFloat((document.getElementById('hib-crit-w')||{value:'1000'}).value)||1000;
-  var autH  = parseFloat((document.getElementById('hib-aut-h')||{value:'4'}).value)||4;
-  var tension = parseFloat((document.getElementById('hib-tension')||{value:'48'}).value)||48;
+  var critW = parseFloat((document.getElementById('hib-crit-w')||{value:''}).value)||0;
+  var autH  = parseFloat((document.getElementById('hib-aut-h')||{value:''}).value)||0;
+  var tension = parseFloat((document.getElementById('hib-tension')||{value:''}).value)||0;
   var batTipo = ((document.getElementById('hib-bat-tipo')||{value:''}).value||'').trim();
-  var dod = parseFloat((document.getElementById('hib-bat-dod')||{value:'0.90'}).value)||0.90;
-  var batKwhUtil = critW*autH/1000;
-  var batAh = Math.ceil(critW*autH/(dod*tension));
+  var dod = parseFloat((document.getElementById('hib-bat-dod')||{value:''}).value)||0;
+  var tieneBat = critW > 0 && autH > 0 && tension > 0;
+  var batKwhUtil = tieneBat ? critW*autH/1000 : 0;
+  var batAh = tieneBat ? Math.ceil(critW*autH/((dod||0.9)*tension)) : 0;
   var sinBase = (genModo === 'pvgis')
     ? !(pvgisAnual > 0 && (pvgisKwpVal > 1.05 || cargados.length > 0))
     : cargados.length === 0;
-  return {consumos,cargados,anual,promedio,cobertura,hsp,panelW,pr,tarifa,kwpReal,paneles,genAnual,genMes,inversor,ahorroMes,ahorroAnual,critW,autH,tension,batTipo,dod,batKwhUtil,batAh,genModo,pvgisAnual,pvgisMeses,sinBase};
+  return {consumos,cargados,anual,promedio,cobertura,hsp,panelW,pr,tarifa,kwpReal,paneles,genAnual,genMes,inversor,ahorroMes,ahorroAnual,critW,autH,tension,batTipo,dod,batKwhUtil,batAh,tieneBat,genModo,pvgisAnual,pvgisMeses,sinBase};
 }
 
 function calcularHibrido() {
@@ -4571,9 +4572,9 @@ function calcularHibrido() {
   }
   function st(id,v){ var el=document.getElementById(id); if(el) el.textContent=v; }
   st('hib-r-wpanel', 'paneles '+d.panelW+'W');
-  st('hib-r-bat-kwh', d.batKwhUtil.toFixed(1));
-  st('hib-r-bat-ah', d.batAh);
-  st('hib-r-bat-label', 'Ah · '+d.tension+' V');
+  st('hib-r-bat-kwh', d.tieneBat ? d.batKwhUtil.toFixed(1) : '—');
+  st('hib-r-bat-ah', d.tieneBat ? d.batAh : '—');
+  st('hib-r-bat-label', d.tieneBat ? 'Ah · '+d.tension+' V' : 'sin baterías');
   if (d.sinBase) {
     // Nada cargado → no mostramos un dimensionamiento FV inventado (las baterías sí, dependen de la carga crítica)
     ['hib-r-kwp','hib-r-paneles','hib-r-inversor','hib-r-gen-mes','hib-r-ahorro-mes','hib-r-ahorro-anual'].forEach(function(id){ st(id,'—'); });
@@ -4611,11 +4612,12 @@ function calcularHibrido() {
   var pico = hayConsHib ? Math.max.apply(null,d.cargados.map(function(x){return x.kwh;})) : 0;
   st('hib-pico-mensual', hayConsHib ? Math.round(pico).toLocaleString('es-AR')+' kWh' : '—');
   var batTipoTxt = d.batTipo || 'LiFePO4';
+  var batResumen = d.tieneBat ? ' · Banco baterías: '+d.batKwhUtil.toFixed(1)+' kWh ('+d.batAh+' Ah · '+d.tension+' V) · Tipo: '+batTipoTxt+' DOD '+Math.round(d.dod*100)+'%' : '';
   if (d.sinBase) {
-    st('hib-r-resumen', 'Cargá el consumo (o la generación PVGIS y el tamaño del sistema) para ver el dimensionamiento. Banco de baterías: '+d.batKwhUtil.toFixed(1)+' kWh ('+d.batAh+' Ah · '+d.tension+' V) · Tipo: '+batTipoTxt+' DOD '+Math.round(d.dod*100)+'%');
+    st('hib-r-resumen', 'Cargá el consumo (o la generación PVGIS y el tamaño del sistema) para ver el dimensionamiento.'+batResumen);
   } else {
     var invResumen = invMostrar+' kW '+invLabelBase.replace(/\n.*/,'')+(invMostrar!==invStd?' (T1→10 kW)':invCalc!==invStd?' (calc. '+invCalc.toFixed(1)+' kW)':'');
-    st('hib-r-resumen', d.paneles+' paneles de '+d.panelW+'W = '+d.kwpReal.toFixed(1)+' kWp · Generación: '+Math.round(d.genMes).toLocaleString('es-AR')+' kWh/mes · Inversor: '+invResumen+' · Banco baterías: '+d.batKwhUtil.toFixed(1)+' kWh ('+d.batAh+' Ah · '+d.tension+' V) · Tipo: '+batTipoTxt+' DOD '+Math.round(d.dod*100)+'%');
+    st('hib-r-resumen', d.paneles+' paneles de '+d.panelW+'W = '+d.kwpReal.toFixed(1)+' kWp · Generación: '+Math.round(d.genMes).toLocaleString('es-AR')+' kWh/mes · Inversor: '+invResumen+batResumen);
   }
 }
 
@@ -4683,12 +4685,12 @@ function construirPropuestaHibrido() {
       '</tbody></table></div>'+
     '<div class="pdf-section"><h3>Banco de baterías (respaldo)</h3>'+
       '<table class="pdf-table"><tbody>'+
-        '<tr><td>Carga crítica</td><td><strong>'+d.critW+' W</strong></td></tr>'+
-        '<tr><td>Autonomía</td><td><strong>'+d.autH+' h</strong></td></tr>'+
-        '<tr><td>Energía requerida</td><td><strong>'+d.batKwhUtil.toFixed(1)+' kWh</strong></td></tr>'+
-        '<tr><td>Tipo de batería</td><td><strong>'+batTipoTxt+' (DOD '+Math.round(d.dod*100)+'%)</strong></td></tr>'+
-        '<tr><td>Tensión del banco</td><td><strong>'+d.tension+' V</strong></td></tr>'+
-        '<tr><td>Capacidad del banco</td><td><strong>'+d.batAh+' Ah · '+d.tension+' V</strong></td></tr>'+
+        '<tr><td>Carga crítica</td><td><strong>'+(d.tieneBat ? d.critW+' W' : '—')+'</strong></td></tr>'+
+        '<tr><td>Autonomía</td><td><strong>'+(d.tieneBat ? d.autH+' h' : '—')+'</strong></td></tr>'+
+        '<tr><td>Energía requerida</td><td><strong>'+(d.tieneBat ? d.batKwhUtil.toFixed(1)+' kWh' : '—')+'</strong></td></tr>'+
+        '<tr><td>Tipo de batería</td><td><strong>'+(d.tieneBat ? batTipoTxt+' (DOD '+Math.round(d.dod*100)+'%)' : '—')+'</strong></td></tr>'+
+        '<tr><td>Tensión del banco</td><td><strong>'+(d.tieneBat ? d.tension+' V' : '—')+'</strong></td></tr>'+
+        '<tr><td>Capacidad del banco</td><td><strong>'+(d.tieneBat ? d.batAh+' Ah · '+d.tension+' V' : '—')+'</strong></td></tr>'+
       '</tbody></table></div>'+
     (function(){ var fn=document.getElementById('firma-hib-nombre'); var fp=document.getElementById('firma-hib-posicion'); return getFirmaBlockById('_',fn?fn.value.trim():'',fp?fp.value.trim():''); })()+
     '</div>';
@@ -4886,12 +4888,12 @@ function construirPDFPresupuestoGuardado(p) {
         '</tbody></table></div>'+
       '<div class="pdf-section"><h3>Banco de baterías (respaldo)</h3>'+
         '<table class="pdf-table"><tbody>'+
-          '<tr><td>Carga crítica</td><td><strong>'+_fmt2(critWH)+' W</strong></td></tr>'+
-          '<tr><td>Autonomía</td><td><strong>'+autHH+' h</strong></td></tr>'+
-          '<tr><td>Energía requerida</td><td><strong>'+batKwhH.toFixed(1)+' kWh</strong></td></tr>'+
-          '<tr><td>Tipo de batería</td><td><strong>'+batTipoH+' (DOD '+Math.round(batDodH*100)+'%)</strong></td></tr>'+
-          '<tr><td>Tensión del banco</td><td><strong>'+batVoltH+' V</strong></td></tr>'+
-          '<tr><td>Capacidad del banco</td><td><strong>'+_fmt2(batAhH)+' Ah · '+batVoltH+' V</strong></td></tr>'+
+          '<tr><td>Carga crítica</td><td><strong>'+(critWH > 0 ? _fmt2(critWH)+' W' : '—')+'</strong></td></tr>'+
+          '<tr><td>Autonomía</td><td><strong>'+(autHH > 0 ? autHH+' h' : '—')+'</strong></td></tr>'+
+          '<tr><td>Energía requerida</td><td><strong>'+(batKwhH > 0 ? batKwhH.toFixed(1)+' kWh' : '—')+'</strong></td></tr>'+
+          '<tr><td>Tipo de batería</td><td><strong>'+(critWH > 0 ? batTipoH+' (DOD '+Math.round(batDodH*100)+'%)' : '—')+'</strong></td></tr>'+
+          '<tr><td>Tensión del banco</td><td><strong>'+(batVoltH > 0 ? batVoltH+' V' : '—')+'</strong></td></tr>'+
+          '<tr><td>Capacidad del banco</td><td><strong>'+(batAhH > 0 ? _fmt2(batAhH)+' Ah · '+batVoltH+' V' : '—')+'</strong></td></tr>'+
         '</tbody></table></div>'+
       (function(){ var nm=tipo.match(/FIRMA_N=([^|]*)/); var pm=tipo.match(/FIRMA_P=([^|]*)/); return getFirmaBlockById('_',nm?nm[1].trim():'',pm?pm[1].trim():''); })()+
       '</div>';
@@ -10907,6 +10909,7 @@ function cancelarEditDimFV() {
   { var _dupB=document.getElementById('dim-dup-banner'); if(_dupB) _dupB.style.display='none'; }
   limpiarDimensionFV();
   limpiarDimensionOG();
+  limpiarDimensionHibrido();
 }
 
 function poblarDimImportSelect(){
@@ -10949,6 +10952,7 @@ function cancelarDupDim(){
   _dimEditFV=null; _dimEditTermica=null;
   if(typeof limpiarDimensionFV==='function') limpiarDimensionFV();
   if(typeof limpiarDimensionOG==='function') limpiarDimensionOG();
+  if(typeof limpiarDimensionHibrido==='function') limpiarDimensionHibrido();
   if(typeof limpiarDimensionTermica==='function') limpiarDimensionTermica();
 }
 

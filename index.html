@@ -9406,15 +9406,16 @@ async function pqImportarHist() {
   sel.value = '';
 }
 
-async function pqStartEdit(id) {
+function pqStartEdit(id) {
   var d = _pqHistMap[id];
   if (!d) { toast('No se encontró el presupuesto'); return; }
 
-  // SIEMPRE crea un presupuesto NUEVO basado en el seleccionado (nunca pisa el original).
-  _pqEditRecord = null;
+  _pqEditRecord = { id: d.id, nro: d.nro, pdf_path: d.pdf_path || null };
 
   // Fill header fields
-  document.getElementById('pq-fecha').value            = new Date().toISOString().split('T')[0];
+  document.getElementById('pq-nro').value              = d.nro       || '';
+  document.getElementById('pq-nro-badge').textContent  = '#' + (d.nro || '');
+  document.getElementById('pq-fecha').value            = d.fecha     || new Date().toISOString().split('T')[0];
   document.getElementById('pq-validez').value          = d.validez   || '7 días hábiles';
   if (document.getElementById('pq-moneda')) document.getElementById('pq-moneda').value = d.moneda || 'ARS';
   if (document.getElementById('pq-margen')) document.getElementById('pq-margen').value = d.margen || 0;
@@ -9429,8 +9430,6 @@ async function pqStartEdit(id) {
   // Restore line items
   try { pqLineasSolar  = d.lineas_solar  ? JSON.parse(d.lineas_solar)  : []; } catch(e) { pqLineasSolar  = []; }
   try { pqLineasManual = d.lineas_manual ? JSON.parse(d.lineas_manual) : []; } catch(e) { pqLineasManual = []; }
-  pqLineasSolar.forEach(function(r){ r.id = pqNextId++; });
-  pqLineasManual.forEach(function(r){ r.id = pqNextId++; });
   pqRebuildSecciones();
   pqRenderSolar();
   pqRenderManual();
@@ -9442,14 +9441,11 @@ async function pqStartEdit(id) {
   if (pqFnEl) pqFnEl.value = d.firma_nombre   || localStorage.getItem('pq_firma_' + d.nro + '_nombre')   || localStorage.getItem('firma_pq_nombre')   || '';
   if (pqFpEl) pqFpEl.value = d.firma_posicion || localStorage.getItem('pq_firma_' + d.nro + '_posicion') || localStorage.getItem('firma_pq_posicion') || '';
 
-  // Número nuevo, no el del original
-  document.getElementById('pq-edit-banner').style.display = 'none';
-  document.getElementById('pq-btn-preview').textContent = 'Exportar PDF';
-  var nro = await pqGetNextNro();
-  document.getElementById('pq-nro').value = nro;
-  document.getElementById('pq-nro-badge').textContent = '#' + nro;
-  toast('Copiado como presupuesto nuevo #' + nro + ' (basado en #' + (d.nro || '') + ')');
-  var _pqDup=document.getElementById('pq-dup-banner'); if(_pqDup){ var _pdc=document.getElementById('pq-dup-banner-cliente'); if(_pdc) _pdc.textContent=d.cliente||('N° '+(d.nro||'')); _pqDup.style.display='flex'; }
+  // Show banner and change button
+  var banner = document.getElementById('pq-edit-banner');
+  banner.style.display = 'flex';
+  document.getElementById('pq-edit-banner-nro').textContent = '#' + (d.nro || '');
+  document.getElementById('pq-btn-preview').textContent = '↑ Actualizar presupuesto';
 
   // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -9601,7 +9597,7 @@ async function pqLoadHistorial() {
         '<td class="pq-hist-actions-cell">' +
           '<div class="pq-hist-actions">' +
             '<button class="pq-btn-sm view" onclick="pqExportHistorialPDF(' + JSON.stringify(d.id) + ')">Ver PDF</button>' +
-            '<button class="pq-btn-sm" style="background:var(--amber-light);border-color:#e0a800;color:#7a5800;" onclick="pqStartEdit(' + JSON.stringify(d.id) + ')">📋 Copiar</button>' +
+            '<button class="pq-btn-sm" style="background:var(--amber-light);border-color:#e0a800;color:#7a5800;" onclick="pqStartEdit(' + JSON.stringify(d.id) + ')">✏ Editar</button>' +
             '<button class="pq-btn-sm del" onclick="pqDeleteDoc(\'' + d.id + '\',\'' + (d.nro || '') + '\',\'' + (d.pdf_path || '') + '\')">🗑</button>' +
           '</div>' +
         '</td>' +
